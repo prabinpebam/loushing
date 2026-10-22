@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/prabinpebam/loushing/design/chopper/scenes.schema.json",
+  "title": "Chopper scene library",
+  "description": "Where Chopper may appear (zones, owned by layouts), how often (rules), how every image is drawn (drawing), the props and supporting cast, every scene and its renders, the set pieces made of several images, and the story threads that order them. The site's cameo picker reads only this file. See docs/design/chopper.md.",
+  "type": "object",
+  "required": ["rules", "drawing", "zones", "props", "cast", "scenes", "setPieces", "threads"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "rules": {
+      "type": "object",
+      "required": ["maxPerPage", "maxInViewport", "minGapViewports", "historySize", "statusesShown", "maxImagesPerPage", "maxPartsPerSetPiece", "maxPropsPerImage", "minCandidatesPerZone", "preferDaypart"],
+      "additionalProperties": false,
+      "properties": {
+        "maxPerPage": { "type": "integer", "minimum": 0, "description": "Most moments on one page. A moment is one scene or one set piece" },
+        "maxInViewport": { "type": "integer", "minimum": 0, "maximum": 1, "description": "Most moments visible at once. A set piece's parts count as one moment" },
+        "minGapViewports": { "type": "number", "minimum": 0, "description": "Least distance between two moments on one page, in viewport heights" },
+        "historySize": { "type": "integer", "minimum": 0, "description": "Recent moments not repeated within a browsing session" },
+        "statusesShown": { "type": "array", "items": { "$ref": "#/$defs/renderStatus" }, "description": "Render statuses the live site may show" },
+        "maxImagesPerPage": { "type": "integer", "minimum": 0, "description": "Most cameo images on one page, counting every part of a set piece" },
+        "maxPartsPerSetPiece": { "type": "integer", "minimum": 2, "description": "Most images in one set piece" },
+        "maxPropsPerImage": { "type": "integer", "minimum": 0, "description": "Most props drawn in one image" },
+        "minCandidatesPerZone": { "type": "integer", "minimum": 1, "description": "A zone shows Chopper only once it has at least this many approved moments at its size, so a reload brings something new" },
+        "preferDaypart": { "type": "boolean", "description": "Favour threads whose daypart matches the visitor's local time, read in the browser and never stored or sent" }
+      }
+    },
+    "drawing": {
+      "type": "object",
+      "description": "The drawing standard: every image is drawn for the size it is shown at, with one line width and one scale per size class.",
+      "required": ["masterFactor", "lineCssPx", "lineTolerance", "scaleTolerance", "densities", "canvases", "sizes"],
+      "additionalProperties": false,
+      "properties": {
+        "masterFactor": { "type": "number", "minimum": 1, "maximum": 2, "description": "k: a master is drawn at k times its shipped 2x size, and every image is reduced by exactly 1/k. One value for every image; changing it means redrawing all of them" },
+        "lineCssPx": { "type": "number", "exclusiveMinimum": 0, "description": "The ink line's width as shown, in CSS px, the same in every image and size" },
+        "lineTolerance": { "type": "number", "minimum": 0, "maximum": 1, "description": "Allowed deviation of the measured line width, as a fraction" },
+        "scaleTolerance": { "type": "number", "minimum": 0, "maximum": 1, "description": "Allowed deviation of his head height from the size class, as a fraction" },
+        "densities": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "Pixel densities shipped (1x and 2x)" },
+        "canvases": {
+          "type": "object",
+          "description": "Generation canvases, each at or near the model's smallest supported area",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9]+x[0-9]+$" }
+        },
+        "sizes": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/size" },
+          "additionalProperties": {
+            "type": "object",
+            "required": ["frameToken", "frameCssPx", "headCssPx"],
+            "additionalProperties": false,
+            "properties": {
+              "frameToken": { "type": "string", "description": "The token for the zone's reserved height" },
+              "frameCssPx": { "type": "number", "description": "The same value, for scripts" },
+              "headCssPx": { "type": "number", "description": "His head height as shown (top of fringe to chin): the class's scale, whatever the pose" }
+            }
+          }
+        }
+      }
+    },
+    "zones": {
+      "type": "object",
+      "description": "Named cameo zones. Layouts declare which zones they have; views never place Chopper.",
+      "propertyNames": { "$ref": "#/$defs/zone" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description", "poses", "size", "minBreakpoint", "align"],
+        "additionalProperties": false,
+        "properties": {
+          "description": { "type": "string" },
+          "poses": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/pose" } },
+          "size": { "$ref": "#/$defs/size" },
+          "minBreakpoint": { "enum": ["none", "sm", "md", "lg", "xl"], "description": "Smallest breakpoint token at which the zone exists" },
+          "align": { "enum": ["start", "end", "either"], "description": "Which side of the zone a single scene sits on. Set pieces need either" }
+        }
+      }
+    },
+    "props": {
+      "type": "object",
+      "description": "Every object that may be drawn with him, described once so it looks the same in every scene. Drawn at true scale to him, in his style",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["toy", "household", "nature", "effect"], "description": "toy: his toys; household: things around the home, cut off cleanly where they leave the frame; nature: outdoor things and small creatures drawn as in a cast sheet; effect: droplets, bubbles, earth, a sun patch" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "cast": {
+      "type": "object",
+      "description": "Supporting characters. Each has its own sheet in his style, approved before any scene uses it, and appears only in set pieces with him",
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description", "sheet", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "description": { "type": "string" },
+          "sheet": { "type": "string", "description": "design/chopper/reference/cast-<id>.png" },
+          "status": { "enum": ["planned", "draft", "approved", "retired"] }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scene" }
+    },
+    "setPieces": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/setPiece" }
+    },
+    "threads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/thread" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "size": { "enum": ["sm", "md", "lg"] },
+    "zone": { "enum": ["masthead-edge", "gutter", "section-break", "tile-peek", "footer-ledge", "list-end", "empty-companion"] },
+    "pose": { "enum": ["lying", "sitting", "standing", "running", "peeking", "playing"] },
+    "renderStatus": { "enum": ["planned", "draft", "approved", "retired"] },
+    "render": {
+      "type": "object",
+      "description": "One image of a scene, drawn for one size class. A scene shown at two sizes is drawn twice, never resized",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "$ref": "#/$defs/renderStatus" },
+        "canvas": { "type": "string", "description": "The canvas name from drawing.canvases it was generated on" },
+        "source": { "type": "string", "description": "Approved transparent PNG master, design/chopper/source/<id>.<size>.png" },
+        "prompt": { "type": "string", "description": "The exact prompt and options, design/chopper/source/<id>.<size>.prompt.txt" },
+        "measured": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lineCssPx": { "type": "number", "description": "Measured median ink line width as shown" },
+            "headCssPx": { "type": "number", "description": "Measured head height as shown" }
+          }
+        },
+        "canon": { "type": "boolean", "default": false, "description": "Good enough to pass as a reference for new renders" }
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "approved" } } }, "then": { "required": ["canvas", "source", "prompt", "measured"] } }
+      ]
+    },
+    "scene": {
+      "type": "object",
+      "required": ["id", "action", "pose", "mood", "facing", "zones", "renders", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id", "description": "Permanent ID; also the file name stem" },
+        "subject": { "type": "string", "default": "chopper", "description": "chopper, or a cast ID for a supporting character's image" },
+        "standalone": { "type": "boolean", "default": true, "description": "false: shown only as part of a set piece. Always false for a cast subject" },
+        "action": { "type": "string", "maxLength": 200, "description": "What the subject is doing, in plain words; goes into the prompt" },
+        "pose": { "$ref": "#/$defs/pose" },
+        "mood": { "enum": ["normal", "happy", "playful", "curious", "sleepy", "alert"], "description": "One of the character sheet's expressions" },
+        "facing": { "enum": ["left", "right", "front", "back"], "description": "Generated as drawn; never mirrored, because the black patch is asymmetric" },
+        "zones": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/zone" } },
+        "props": { "type": "array", "maxItems": 2, "items": { "$ref": "#/$defs/id" }, "description": "IDs from props, at most rules.maxPropsPerImage" },
+        "renders": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/size" },
+          "additionalProperties": { "$ref": "#/$defs/render" },
+          "description": "One render for each size class among its zones"
+        },
+        "motion": { "enum": ["none", "settle"], "default": "settle", "description": "settle: fade in with a small rise; none when reduced motion is on" },
+        "status": { "enum": ["active", "retired"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "setPiece": {
+      "type": "object",
+      "description": "Several separate images placed together as one moment, such as a squirrel at one side and Chopper sniffing toward it from the other",
+      "required": ["id", "description", "zones", "minBreakpoint", "parts", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "description": { "type": "string" },
+        "zones": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/zone" }, "description": "Zones it can play in. All parts go in the same zone, on their sides, inside one screenful" },
+        "minBreakpoint": { "enum": ["none", "sm", "md", "lg", "xl"], "description": "Narrower than this, the parts would crowd; the zone's own minimum also applies" },
+        "parts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["scene", "side"],
+            "additionalProperties": false,
+            "properties": {
+              "scene": { "$ref": "#/$defs/id" },
+              "side": { "enum": ["left", "right"], "description": "Physical side; a part faces toward the other part" }
+            }
+          }
+        },
+        "status": { "enum": ["active", "retired"] }
+      }
+    },
+    "thread": {
+      "type": "object",
+      "description": "A short story told across moments: beats in order, shown top to bottom on a page and continued across page views",
+      "required": ["id", "title", "daypart", "beats"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "description": "For the scene gallery only; never shown on the site" },
+        "daypart": { "enum": ["morning", "day", "evening", "night", "any"], "description": "When in his day the story happens. With rules.preferDaypart, the picker favours threads that match the visitor's local time" },
+        "beats": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "oneOf": [
+              { "type": "object", "required": ["scene"], "additionalProperties": false, "properties": { "scene": { "$ref": "#/$defs/id" } } },
+              { "type": "object", "required": ["setPiece"], "additionalProperties": false, "properties": { "setPiece": { "$ref": "#/$defs/id" } } }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

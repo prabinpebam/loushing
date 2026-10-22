@@ -1,0 +1,165 @@
+{
+  "$comment": "Contrast pairs held in every theme context (WCAG 2.2: 4.5 for text, 3 for non-text: outlines, focus, chart series). Decor and rule are decorative and have no minimum.",
+  "contrast": [
+    {
+      "fg": "color.text",
+      "bg": "color.bg",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text",
+      "bg": "color.bg-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text",
+      "bg": "color.bg-sunken",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text-muted",
+      "bg": "color.bg",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text-muted",
+      "bg": "color.bg-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text-muted",
+      "bg": "color.bg-sunken",
+      "min": 4.5
+    },
+    {
+      "fg": "color.accent",
+      "bg": "color.bg",
+      "min": 4.5
+    },
+    {
+      "fg": "color.accent",
+      "bg": "color.bg-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "color.accent",
+      "bg": "color.bg-sunken",
+      "min": 4.5
+    },
+    {
+      "fg": "color.on-action",
+      "bg": "color.action",
+      "min": 4.5
+    },
+    {
+      "fg": "color.on-action",
+      "bg": "color.action-hover",
+      "min": 4.5
+    },
+    {
+      "fg": "color.on-accent",
+      "bg": "color.accent",
+      "min": 4.5
+    },
+    {
+      "fg": "color.positive",
+      "bg": "color.bg-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "color.negative",
+      "bg": "color.bg-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "color.positive",
+      "bg": "color.bg",
+      "min": 4.5
+    },
+    {
+      "fg": "color.negative",
+      "bg": "color.bg",
+      "min": 4.5
+    },
+    {
+      "fg": "color.outline",
+      "bg": "color.bg",
+      "min": 3
+    },
+    {
+      "fg": "color.focus",
+      "bg": "color.bg",
+      "min": 3
+    },
+    {
+      "fg": "color.outline",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.focus",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.outline",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.focus",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.series-1",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.series-1",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.series-2",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.series-2",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.series-3",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.series-3",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.series-4",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.series-4",
+      "bg": "color.bg-sunken",
+      "min": 3
+    },
+    {
+      "fg": "color.series-5",
+      "bg": "color.bg-raised",
+      "min": 3
+    },
+    {
+      "fg": "color.series-5",
+      "bg": "color.bg-sunken",
+      "min": 3
+    }
+  ]
+}

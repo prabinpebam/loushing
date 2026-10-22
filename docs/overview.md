@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | Purpose | Capture the brief, evidence, designs, decisions, and specifications | Help humans and AI agents browse, discover, and use skills and related resources |
 | Implementation | Slate documentation harness | Separate application code; technology undecided |
-| Current state | Draft product spec and benchmark research | Specified as a draft; not implemented |
+| Current state | Draft product spec, design system and benchmark research | Specified as a draft; design tokens and view format set up; not implemented |
 
 Slate's navigation, search, and themes belong to this documentation reader.
 They do not determine the future product's information architecture or UI.
@@ -27,6 +27,9 @@ They do not determine the future product's information architecture or UI.
 | [Distribution and install](spec/distribution.md) | See the `npx loushing` strategy, Git and download routes, and security |
 | [Agent access](spec/agent-access.md) | See how AI agents find, read and install items |
 | [Definitions of Done](spec/definition-of-done.md) | See what success means and the five delivery stages |
+| [Design system](design/design-system.md) | See the look, the tokens, the component tiers, views from data, and the checks that enforce them |
+| [Visual first](design/visual-first.md) | See when the UI shows instead of tells, the visual patterns, and the text limits |
+| [Chopper](design/chopper.md) | See the tribute character: who he is, where he appears, his rules, and how his images are made |
 | [Working guide](working-guide.md) | Preview, author, organize, and validate these documents |
 
 ## Three editable harnesses
@@ -65,3 +68,9 @@ the [decisions table](spec/product-spec.md#10-decisions). Most urgent: the names
 multi-part systems and curated sets (kit and stack), the site technology and hosting,
 and which of your skills to publish first. No skills have been imported, and the job
 areas will be derived from the first real items. "Loushing" is still a working name.
+
+For the design: review the palette and typeface
+([O22, O23](design/design-system.md#decisions-on-this-page)), write Chopper's tribute
+line and decide whether he appears in the logo
+([O26, O32](design/chopper.md#decisions-on-this-page)), and give the go-ahead for a
+4-render Chopper pilot (about $0.40) that tests his likeness and the drawing standard.

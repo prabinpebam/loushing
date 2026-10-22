@@ -26,12 +26,23 @@ loushing/
 │  └─ schema/                  JSON Schemas for cards, pointers and the index
 ├─ cli/                        The `loushing` npm package (the npx entry point)
 ├─ site/                       The browsing website (its own code; not Slate)
+├─ design/                     The site's design source (see Design system)
+│  ├─ tokens/                  DTCG tokens, contexts and contrast checks
+│  ├─ views/                   View specs: each screen as data
+│  └─ chopper/                 Character sheet, scene library, approved masters
 ├─ tools/                      Catalog build and checks
 ├─ docs/                       Slate planning host (this documentation)
 ├─ slate/ agentic-craft/ agent-orchestration/
 │                              Submodules: tooling for planning and building Loushing
-└─ .github/workflows/          Check on pull request; build, release and deploy on main
+└─ .github/
+   ├─ workflows/               Check on pull request; build, release and deploy on main
+   └─ skills/                  Agent skills for working on Loushing (installed
+                               harness skills, plus project-owned chopper and
+                               visual-first)
 ```
+
+The design source is described in the [design system](../design/design-system.md),
+[visual first](../design/visual-first.md) and [Chopper](../design/chopper.md) pages.
 
 Generated output (`catalog.json`, per-item JSON and Markdown, `llms.txt`, the built
 site) is produced by the build and published. It is not committed, so it can never

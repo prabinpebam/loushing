@@ -1,0 +1,159 @@
+{
+  "$description": "Light theme context: semantic colour roles and shadows.",
+  "color": {
+    "text": {
+      "$type": "color",
+      "$value": "{p.ink.900}",
+      "$description": "Body text and headings"
+    },
+    "text-muted": {
+      "$type": "color",
+      "$value": "{p.ink.600}",
+      "$description": "Secondary text and meta"
+    },
+    "bg": {
+      "$type": "color",
+      "$value": "{p.paper.50}",
+      "$description": "The page"
+    },
+    "bg-raised": {
+      "$type": "color",
+      "$value": "{p.paper.0}",
+      "$description": "Cards, panels, inputs"
+    },
+    "bg-sunken": {
+      "$type": "color",
+      "$value": "{p.paper.100}",
+      "$description": "Tiles and wells: Chopper's cream"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{p.paper.200}",
+      "$description": "Hover fill on sunken surfaces"
+    },
+    "rule": {
+      "$type": "color",
+      "$value": "{p.paper.300}",
+      "$description": "Dividers (decorative, no contrast minimum)"
+    },
+    "outline": {
+      "$type": "color",
+      "$value": "{p.ink.600}",
+      "$description": "Control outlines: 3:1 on every surface"
+    },
+    "action": {
+      "$type": "color",
+      "$value": "{p.ink.900}",
+      "$description": "Primary buttons: ink"
+    },
+    "action-hover": {
+      "$type": "color",
+      "$value": "{p.ink.700}",
+      "$description": "Primary button hover"
+    },
+    "on-action": {
+      "$type": "color",
+      "$value": "{p.paper.50}",
+      "$description": "Text on a primary button"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "{p.coral.700}",
+      "$description": "Accent text, selection and current location"
+    },
+    "accent-hover": {
+      "$type": "color",
+      "$value": "{p.coral.800}",
+      "$description": "Accent hover"
+    },
+    "on-accent": {
+      "$type": "color",
+      "$value": "{p.paper.0}",
+      "$description": "Text on an accent fill"
+    },
+    "decor": {
+      "$type": "color",
+      "$value": "{p.coral.400}",
+      "$description": "Illustration highlights: never text or controls"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "{p.coral.700}",
+      "$description": "The focus ring"
+    },
+    "positive": {
+      "$type": "color",
+      "$value": "{p.green.700}",
+      "$description": "Success text and icons"
+    },
+    "negative": {
+      "$type": "color",
+      "$value": "{p.red.700}",
+      "$description": "Error text and icons"
+    },
+    "series-1": {
+      "$type": "color",
+      "$value": "{p.coral.700}",
+      "$description": "Chart series 1"
+    },
+    "series-2": {
+      "$type": "color",
+      "$value": "{p.teal.600}",
+      "$description": "Chart series 2"
+    },
+    "series-3": {
+      "$type": "color",
+      "$value": "{p.gold.600}",
+      "$description": "Chart series 3"
+    },
+    "series-4": {
+      "$type": "color",
+      "$value": "{p.blue.600}",
+      "$description": "Chart series 4"
+    },
+    "series-5": {
+      "$type": "color",
+      "$value": "{p.sage.600}",
+      "$description": "Chart series 5"
+    },
+    "shadow-near": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.102,
+          0.0902,
+          0.0824
+        ],
+        "alpha": 0.06
+      },
+      "$description": "The tight layer of a raised shadow"
+    },
+    "shadow-far": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.102,
+          0.0902,
+          0.0824
+        ],
+        "alpha": 0.08
+      },
+      "$description": "The soft layer of a raised shadow"
+    },
+    "chopper-halo": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.9922,
+          0.9843,
+          0.9686
+        ],
+        "alpha": 0
+      },
+      "$description": "No halo on light surfaces (fully clear)"
+    }
+  }
+}

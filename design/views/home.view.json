@@ -1,0 +1,21 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "landing",
+  "title": "Loushing",
+  "regions": {
+    "masthead": [
+      { "type": "hero", "title": "Skills for the job in front of you", "standfirst": "Find one by describing your task. Understand it in a minute. Get it in one step.", "search": true }
+    ],
+    "pulse": [
+      { "type": "stat-strip", "stats": { "from": "counts" } }
+    ],
+    "bento": [
+      { "type": "area-tiles", "items": { "from": "areas", "sort": "order" } },
+      { "type": "stack-tiles", "heading": "Work well together", "items": { "from": "stacks", "limit": 3 } },
+      { "type": "item-tiles", "view": "bento", "heading": "Kits", "items": { "from": "items", "where": { "type": "kit" }, "sort": "name" } }
+    ],
+    "fresh": [
+      { "type": "item-tiles", "view": "tiles", "heading": "Recently updated", "items": { "from": "items", "sort": "updated", "limit": 6 } }
+    ]
+  }
+}

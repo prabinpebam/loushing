@@ -26,8 +26,12 @@ agentic-craft and agent-orchestration.
 > - **Success:** the [Definitions of Done](definition-of-done.md). A first-time person
 >   decides about an item within a minute and has it working within three; adding a
 >   skill takes you under 15 minutes.
+> - **Look:** a clean, visual-first system in warm paper, ink and coral, with Chopper
+>   in quiet background cameos. See the [design system](../design/design-system.md),
+>   [visual first](../design/visual-first.md) and [Chopper](../design/chopper.md).
 > - **Open:** the names (kit, stack), the site technology, hosting, and how private
->   items work. Each has a working default in [§10](#10-decisions).
+>   items work. Each has a working default in [§10](#10-decisions). The palette,
+>   typeface, Chopper's tribute line and the logo are on the design pages.
 
 Related pages: [content model](content-model.md) ·
 [repository organization](repository-organization.md) · [item pages](item-pages.md) ·
@@ -45,6 +49,9 @@ Related pages: [content model](content-model.md) ·
 | An easy way to get items: a complete npx strategy, with GitHub cloning still available | [Distribution](distribution.md) |
 | Organizing skills inside Loushing, with bigger items in their own repositories | [Repository organization](repository-organization.md) |
 | Research and benchmarking of similar solutions, with their customer promises and jobs | [Benchmarks](../research/benchmarks.md) |
+| A strict design system with tokens and components | [Design system](../design/design-system.md) |
+| A modern, clean, visual-first UI, where visuals frame the UI and text content stays text | [Visual first](../design/visual-first.md), [§5](#5-views) |
+| Chopper, your dog, as a hand-drawn character in background cameos, made with your image skill from his character sheet | [Chopper](../design/chopper.md) |
 
 **Added to make it complete** (things the request did not mention):
 
@@ -330,6 +337,12 @@ The ID, URL and installs keep working, and the page says where the item now live
 The site is separate code, not Slate ([O5, O6](#10-decisions)). Every view is built
 from the catalog index and the design system, and is static except search and filters.
 
+Each view is a [view spec](../design/design-system.md#views-from-data) of blocks in a
+layout. [Visual first](../design/visual-first.md#per-view) sets how each view frames
+its information; item content stays text. Layouts may hold up to two
+[Chopper cameos](../design/chopper.md#where-he-appears) in reserved zones; views never
+place him.
+
 | View | Purpose | Serves | Regions and data |
 | --- | --- | --- | --- |
 | **Home** | Start from a task | U1, U9, U20 | Search box first; job areas; featured stacks; recently added and updated items; one line on what skills and kits are, linking to Get started |
@@ -380,6 +393,7 @@ service.
 | `npx loushing add <skill>`, first run | waiting | npx progress, then the steps | ≤ 15 s on broadband |
 | `npx loushing add <kit>` | waiting or long | Plan, then the installer's output | Kit installer time plus ≤ 5 s |
 | Catalog release after merge | long | Pull request checks and the deploy job | ≤ 10 minutes to live |
+| Chopper cameo | none | Space reserved; loaded lazily after the page is idle; no wait shown | Never the largest contentful paint; at most 3 cameo images and 90 KB per page |
 
 ## 8. Copy
 
@@ -397,6 +411,7 @@ service.
 | **This project / All my projects** | Install scopes | Local/global, workspace/user |
 | **Effects** | What an item can do beyond giving instructions: run scripts, use the network, write outside its folder, need credentials | Permissions (it grants none) |
 | **Works well with** | A related item, with the reason | Similar, recommended |
+| **Chopper** | The hand-drawn dog in background cameos; named only in the footer's tribute line and the "Hide Chopper" setting | Mascot, assistant, guide |
 
 **Failure words** follow one pattern, *what happened · what it means · what to do*:
 
@@ -423,6 +438,11 @@ service.
 | A11 | Agent vendors change skill folders and packaging (plugins, marketplaces) faster than items change | Risk | Medium (P3) | Research: OpenAI deprecated its skills repository for plugins; VS Code deprecated a skill-location setting; Copilot and Claude Code added plugin marketplaces ([benchmarks](../research/benchmarks.md)) | n/a | Watch vendor documentation | Keep per-agent folders in one CLI table, updated independently of items | Accepted |
 | A12 | A compromised account or item could push malicious scripts to people who install | Risk | High (P4) | The Shai-Hulud worm spread through hundreds of npm packages in September 2025; skill directories scan submissions but say a pass is no guarantee ([security](distribution.md#security)) | n/a | n/a | Pinning, hashes, provenance, 2FA, review and effects disclosure ([security](distribution.md#security)) | Accepted, with mitigations |
 | A13 | You can maintain the catalog in about 30 minutes a week | Viability | Medium (P7, P8) | None | Over the first 8 weeks, catalog upkeep beyond adding items stays at or under 30 minutes a week | Keep a rough log | Automate more, or slow the release cadence | Open |
+| A14 | Chopper's cameos add warmth without distracting anyone from finding and deciding | Desirability | Medium (P1, P2) | None | In the prototype test, no participant calls him distracting or confusing, and median task times with and without cameos differ by ≤ 10% | Run half the prototype sessions with `?chopper=off` | Fewer cameos, fewer zones, or hidden by default ([O28](../design/chopper.md#decisions-on-this-page)) | Open |
+| A15 | The image model keeps Chopper on model across scenes when given the character sheet | Feasibility | Medium (the character) | The sheet is consistent across 16 views; the image skill accepts up to 16 references and returns true alpha | All 4 pilot renders pass the [QA checklist](../design/chopper.md#making-his-images) within 2 draft rounds; later, at least 8 of every 10 | The [4-render pilot](../design/chopper.md#making-his-images), about $0.40 | Add approved renders as references, narrow the poses, or hand-correct masters | Open |
+| A16 | Visual-first item pages let people grasp compatibility, effects and files faster than text | Usability | Medium (P2) | None | In the prototype test, 4 of 5 first-time people state an item's supported agents and effects correctly within 10 seconds of opening its page | The same prototype test | Move the misread block back to text ([visual first](../design/visual-first.md#the-ladder)) | Open |
+| A17 | The image model can draw him at a stated scale and line width on its smallest canvas, so every image shares [one drawing standard](../design/chopper.md#drawn-for-its-size) | Feasibility | Medium (a consistent look across sizes) | None. The model's smallest canvas is about 0.66 megapixels, larger than any cameo, so figures must be drawn small on purpose | In the pilot, each final's measured line is within 20% of 1.5 px and its head height within 10% of its class, at k = 1.25, within 2 draft rounds | The same 4-render pilot | Raise k for every image together and ask for a proportionally thicker line; if still inconsistent, trim and reduce each class by a fixed per-class factor, with each class keeping one line width | Open |
+| A18 | Stories and a new pick on every page view keep him a pleasant surprise rather than wallpaper or a distraction | Desirability | Low (P1, P2) | None | In the prototype test, people who notice him describe him as fun or calm, and none says he repeats; no one reloads to see him at the cost of their task | The prototype test, with a seeded story across 3 pages | Fewer threads, standalone scenes only, or fewer zones ([O35](../design/chopper.md#decisions-on-this-page)) | Open |
 
 **Ranked:** A3 and A1 first. A3 decides whether the CLI can keep P3, and A1 decides
 whether a website is worth building. Then A4 (kits), A10 (work devices), A8
@@ -447,6 +467,13 @@ whether a website is worth building. Then A4 (kits), A10 (work devices), A8
 | O13 | Product name | Keep "Loushing" · choose another before launch | Confirm before the first public release: check the npm name (free as of 22 October 2026), a domain and any conflicts | Open: needs your choice |
 | O14 | Contributions from others | Issues only · pull requests for fixes · open submissions | Issues only at first; fixes by pull request later | Working default: issues only |
 | O15 | Default install scope | This project · all my projects | This project: it is visible, reviewable and committed with the code | Working default: this project |
+
+Later decisions live on the page they affect: O16-O17 on
+[agent access](agent-access.md#decisions-on-this-page); O18-O21 on
+[distribution](distribution.md#decisions-on-this-page); O22-O24 on the
+[design system](../design/design-system.md#decisions-on-this-page); O30-O31 on
+[visual first](../design/visual-first.md#decisions-on-this-page); and O25-O29 and O32-O35 on
+[Chopper](../design/chopper.md#decisions-on-this-page).
 
 ## 11. As built
 

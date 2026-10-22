@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/prabinpebam/loushing/design/views/view.schema.json",
+  "title": "Loushing view spec",
+  "description": "A screen described as data: a layout and, for each of its regions, the blocks it shows. The renderer maps each block through the component registry. Extends agentic-craft's templates/ui/view.schema.json with Loushing's visual-first blocks. Views never place Chopper: layouts own cameo zones (design/chopper/scenes.json). See docs/design/design-system.md#views-from-data.",
+  "type": "object",
+  "required": ["layout", "regions"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "layout": {
+      "enum": ["landing", "index", "item", "path", "article", "message"],
+      "description": "landing: Home. index: Catalog, What's new. item: skill, kit and part pages. path: stack pages. article: Get started, For agents. message: Not found, Gone."
+    },
+    "title": { "type": "string", "description": "The document title, or a template such as {item.name}" },
+    "regions": {
+      "type": "object",
+      "description": "The layout's named regions (slots), each an ordered list of blocks",
+      "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+    }
+  },
+  "$defs": {
+    "query": {
+      "type": "object",
+      "description": "Data resolved from the catalog index before rendering, so components only see plain data. Never a literal number or claim typed into the view.",
+      "required": ["from"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "enum": ["items", "areas", "stacks", "releases", "counts", "item", "search"] },
+        "where": { "type": "object", "description": "Field filters, e.g. { \"type\": \"kit\" }" },
+        "sort": { "enum": ["updated", "added", "name", "order"] },
+        "limit": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": ["type"],
+      "description": "One block; its type names a registry entry",
+      "oneOf": [
+        { "properties": { "type": { "const": "hero" }, "title": { "type": "string" }, "standfirst": { "type": "string", "maxLength": 140 }, "search": { "type": "boolean" } }, "required": ["type", "title"] },
+        { "properties": { "type": { "const": "stat-strip" }, "stats": { "$ref": "#/$defs/query" } }, "required": ["type", "stats"] },
+        { "properties": { "type": { "const": "area-tiles" }, "items": { "$ref": "#/$defs/query" } }, "required": ["type", "items"] },
+        { "properties": { "type": { "const": "item-tiles" }, "view": { "enum": ["bento", "tiles", "list"] }, "heading": { "type": "string" }, "items": { "$ref": "#/$defs/query" } }, "required": ["type", "items"] },
+        { "properties": { "type": { "const": "stack-tiles" }, "heading": { "type": "string" }, "items": { "$ref": "#/$defs/query" } }, "required": ["type", "items"] },
+        { "properties": { "type": { "const": "facet-bar" }, "facets": { "type": "array", "items": { "enum": ["type", "area", "agent", "effects", "status"] } } }, "required": ["type", "facets"] },
+        { "properties": { "type": { "const": "release-timeline" }, "items": { "$ref": "#/$defs/query" } }, "required": ["type", "items"] },
+        { "properties": { "type": { "const": "item-header" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "get-it-panel" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "effects-chips" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "compat-grid" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "adds-tree" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "kit-anatomy" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "stack-path" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "works-with" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "item-body" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "source-viewer" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "text" }, "markdown": { "type": "string" } }, "required": ["type", "markdown"] },
+        { "properties": { "type": { "const": "empty-state" }, "kind": { "enum": ["no-results", "not-found", "gone", "empty-catalog"] } }, "required": ["type", "kind"] }
+      ]
+    }
+  }
+}

@@ -45,5 +45,8 @@ coverage/
 *.log
 *.tmp
 
+# Chopper image drafts (only chosen, QA-passed images go to design/chopper/source/)
+design/chopper/drafts/
+
 # Agent working state (agent-orchestration's in-repo fallback for progress logs)
 .agent-orchestration/

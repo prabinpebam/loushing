@@ -1,0 +1,159 @@
+{
+  "$description": "Dark theme context: semantic colour roles and shadows. Warm night, not blue-black, so Chopper's cream reads as cream.",
+  "color": {
+    "text": {
+      "$type": "color",
+      "$value": "{p.paper.100}",
+      "$description": "Body text and headings"
+    },
+    "text-muted": {
+      "$type": "color",
+      "$value": "{p.night.300}",
+      "$description": "Secondary text and meta"
+    },
+    "bg": {
+      "$type": "color",
+      "$value": "{p.night.900}",
+      "$description": "The page"
+    },
+    "bg-raised": {
+      "$type": "color",
+      "$value": "{p.night.800}",
+      "$description": "Cards, panels, inputs"
+    },
+    "bg-sunken": {
+      "$type": "color",
+      "$value": "{p.night.700}",
+      "$description": "Tiles and wells"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{p.night.600}",
+      "$description": "Hover fill on sunken surfaces"
+    },
+    "rule": {
+      "$type": "color",
+      "$value": "{p.night.600}",
+      "$description": "Dividers (decorative, no contrast minimum)"
+    },
+    "outline": {
+      "$type": "color",
+      "$value": "{p.night.500}",
+      "$description": "Control outlines: 3:1 on every surface"
+    },
+    "action": {
+      "$type": "color",
+      "$value": "{p.paper.100}",
+      "$description": "Primary buttons: cream"
+    },
+    "action-hover": {
+      "$type": "color",
+      "$value": "{p.paper.0}",
+      "$description": "Primary button hover"
+    },
+    "on-action": {
+      "$type": "color",
+      "$value": "{p.night.900}",
+      "$description": "Text on a primary button"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "{p.coral.300}",
+      "$description": "Accent text, selection and current location"
+    },
+    "accent-hover": {
+      "$type": "color",
+      "$value": "{p.paper.100}",
+      "$description": "Accent hover"
+    },
+    "on-accent": {
+      "$type": "color",
+      "$value": "{p.night.900}",
+      "$description": "Text on an accent fill"
+    },
+    "decor": {
+      "$type": "color",
+      "$value": "{p.coral.400}",
+      "$description": "Illustration highlights: never text or controls"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "{p.coral.300}",
+      "$description": "The focus ring"
+    },
+    "positive": {
+      "$type": "color",
+      "$value": "{p.green.400}",
+      "$description": "Success text and icons"
+    },
+    "negative": {
+      "$type": "color",
+      "$value": "{p.red.400}",
+      "$description": "Error text and icons"
+    },
+    "series-1": {
+      "$type": "color",
+      "$value": "{p.coral.300}",
+      "$description": "Chart series 1"
+    },
+    "series-2": {
+      "$type": "color",
+      "$value": "{p.teal.300}",
+      "$description": "Chart series 2"
+    },
+    "series-3": {
+      "$type": "color",
+      "$value": "{p.gold.300}",
+      "$description": "Chart series 3"
+    },
+    "series-4": {
+      "$type": "color",
+      "$value": "{p.blue.300}",
+      "$description": "Chart series 4"
+    },
+    "series-5": {
+      "$type": "color",
+      "$value": "{p.sage.300}",
+      "$description": "Chart series 5"
+    },
+    "shadow-near": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "alpha": 0.3
+      },
+      "$description": "The tight layer of a raised shadow"
+    },
+    "shadow-far": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "alpha": 0.4
+      },
+      "$description": "The soft layer of a raised shadow"
+    },
+    "chopper-halo": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.9725,
+          0.9451,
+          0.9059
+        ],
+        "alpha": 0.35
+      },
+      "$description": "A soft cream halo so his black ears and patch stay visible on dark surfaces"
+    }
+  }
+}

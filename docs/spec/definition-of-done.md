@@ -37,6 +37,8 @@ evidence that would prove it, and its result is recorded beside it once known.
 | PD9 | The outcome is valuable | You use the catalog to set up your own items on a new project or machine instead of copying folders. At least 3 other people install an item and come back for another within a month | Your own report; GitHub issues and messages; npm downloads as a weak signal | |
 | PD10 | Nothing live breaks | Every merge passes the checks before deploy. The site meets the [performance targets](product-spec.md#7-performance-and-waits). No published install command fails for a stable item | CI checks; a weekly install smoke test of every stable item; a Lighthouse run in CI | |
 | PD11 | Docs | The spec's As built section records what was built, and the Get started and For agents pages match the CLI | Review at each stage | |
+| PD12 | The design system holds | Every screen is a valid view spec of registered blocks; components use tokens only; every contrast pair passes in light, dark and more-contrast; every component shows every state in the library | The [enforcement checks](../design/design-system.md#enforcement) on every pull request | |
+| PD13 | Chopper is a quiet delight | Cameos follow every [rule of presence](../design/chopper.md#rules-of-presence); every shown scene passed QA against the character sheet; no test participant finds him distracting; "Hide Chopper" works | The [Chopper checks](../design/chopper.md#checks); the A14 comparison in the prototype test | |
 
 ## 2. Stages
 
@@ -52,6 +54,9 @@ language, and set it up by hand with clear steps.
     through a test with 5 people.
   - A5 (agent-drafted cards), A7 (keyword search), A8 (publishable content) and A9
     (sizes), using the first real items.
+  - A14 (Chopper without distraction), A16 (visual-first pages) and A18 (his stories
+    stay fresh) in the same test with people, and A15 (Chopper stays on model) and A17
+    (one drawing standard across sizes) through the 4-render pilot, which also sets k.
   - Beside it, **a spike** settles A3 (reaching every agent) by placing one skill in
     each agent's folder, with no product code needed.
 - **Try it:** open the site, type "write documentation for my project", and open the
@@ -70,9 +75,14 @@ language, and set it up by hand with clear steps.
 | 1.7 | An item that fails the publication check is never built into the site or index (U22) | A test fixture with a planted secret | |
 | 1.8 | Every page meets WCAG 2.2 AA in light and dark themes, works with the keyboard and on a phone, and meets the performance targets | Automated accessibility check; one capture per state and theme; Lighthouse | |
 | 1.9 | The spike shows, for each target agent, the folders where it discovers a skill, at project and personal scope | A table of results kept in the [distribution](distribution.md#install-targets) page | |
+| 1.10 | Every view is built from a view spec with the design system's components and tokens, and the [enforcement checks](../design/design-system.md#enforcement) pass | CI checks; the component library reviewed in every context | |
+| 1.11 | Each view follows its [visual-first plan](../design/visual-first.md#per-view): a person can read an item's agents, effects and files from its page at a glance, and every visual has a text equivalent | Review of 3 item pages and Home; the A16 measure in the test with people | |
+| 1.12 | Every zone the site shows has at least 4 approved Chopper moments at its size, each render measured to the [drawing standard](../design/chopper.md#drawn-for-its-size); cameos follow every [rule of presence](../design/chopper.md#rules-of-presence), a reload shows a fresh pick, and "Hide Chopper" hides them | The [Chopper checks](../design/chopper.md#checks); the A14 and A18 comparisons | |
 
 **Depends on:** your choice of site technology and hosting (O6, O7), and which skills
-to publish first. Both are your decisions.
+to publish first. Both are your decisions. Your review of the palette and typeface
+(O22, O23), and your go-ahead for the Chopper pilot, are needed before the prototype
+test.
 
 ### Stage 2: One command for skills
 
@@ -185,11 +195,17 @@ People keep items current, and the catalog grows without breaking anything.
 
 Nothing is built. A person today can clone the three kit repositories and follow each
 one's README. No individual skills are published, there is no catalog, and nothing
-installs in one step. In the order they block the promise:
+installs in one step. The design groundwork exists: tokens that pass every contrast
+check, the view format, and Chopper's character sheet, scenes, set pieces, stories,
+drawing standard and generation skill, with no approved render yet. In the order they
+block the promise:
 
 1. **Your decisions:** site technology and hosting (O6, O7), the names (O1, O2, O13),
-   and which skills to publish first. These block stage 1.
+   and which skills to publish first. These block stage 1. The palette, typeface and
+   Chopper's tribute line (O22, O23, O26) block the prototype test.
 2. **The A3 spike:** where each agent discovers skills. This blocks the CLI design.
 3. **npm publishing approval** and access to a managed device. These block stage 2's
    evidence.
 4. **Kit installer changes** in three repositories. These block stage 3.
+5. **The Chopper pilot** (4 renders, about $0.40, with your go-ahead). It settles A15
+   and A17 and sets the reduction factor k before the full library (about $10) is made.
