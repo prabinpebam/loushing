@@ -457,7 +457,7 @@ whether a website is worth building. Then A4 (kits), A10 (work devices), A8
 | O3 | Which item types besides skills and kits | Add agents, instructions, prompts, hooks and MCP configurations now · add each when the first real one arrives | Add each when the first real one arrives | Working default: skills, kits, stacks |
 | O4 | Job areas | Define now · derive from the first 10-15 items | Derive from real items with the [working rule](content-model.md#organization-facets-not-folders) | Working default: derive later |
 | O5 | Where the site and CLI code live | In Loushing (`site/`, `cli/`) · separate repositories | In Loushing: they share the schema, and one change can update both | Working default: in Loushing |
-| O6 | Site technology | A static-site generator with content collections and pre-rendering · a single-page app · a server framework | Static, pre-rendered pages from the index, with a client-side search index. The framework is chosen at the start of stage 1 against the [performance targets](#7-performance-and-waits) | Open: needs your choice |
+| O6 | Site technology | A static-site generator with content collections and pre-rendering · a single-page app · a server framework | Static, pre-rendered pages from the index, with a client-side search index. Built in stage 1 as a dependency-free Node generator (see [as built](#11-as-built)) | Working default: built; needs your confirmation |
 | O7 | Hosting and domain | GitHub Pages · another static host · a custom domain | GitHub Pages from this repository first; a custom domain once the name is confirmed (O13) | Working default: GitHub Pages |
 | O8 | What to publish to npm | Only the `loushing` CLI · plus one package per kit | Only the CLI: kits are fetched from GitHub at pinned tags. The name `agent-orchestration` is already taken on npm. | Working default: CLI only |
 | O9 | Private and work items | Out of scope · a separate private catalog read with the person's GitHub access · encryption | A separate private repository with the same layout, added as a source in the CLI in a later stage | Working default: later stage |
@@ -477,5 +477,64 @@ Later decisions live on the page they affect: O16-O17 on
 
 ## 11. As built
 
-Nothing is built yet. When implementation starts, record here where the product
-differs from this spec and why, in the same change as the code.
+Stage 1, "A catalog you can read", is built in `site/`. This records where the build
+made a choice the spec left open, or differs from it. Each is a working default you
+can overturn.
+
+**Run it.** From the repository root, with Node 24 and nothing to install:
+
+| Task | Command |
+| --- | --- |
+| Preview, rebuilding and reloading on every change | `node site\scripts\dev.mjs`, then open http://127.0.0.1:4180 |
+| Build once into `site/dist` | `node site\scripts\build.mjs` |
+| Tests: libraries, catalog and publication checks, design system, build and links | `node --test "site/test/*.test.mjs"` |
+
+**Technology ([O6](#10-decisions)).**
+
+- A dependency-free Node generator: catalog data, design tokens and view specs in,
+  folder-style static pages out (`items/<id>/index.html`, with `404.html` at the root).
+  No framework, no package installs, no client framework; one small script adds
+  search, filters, tabs, the theme switch and the Chopper toggle.
+- The build writes into a staging folder and swaps it in only when everything
+  succeeds. A catalog with any problem exits with the problems listed and writes
+  nothing. `OUT_DIR` and `CATALOG_ROOT` let tests build elsewhere and from a fixture.
+- Git history is read in one batch (`git cat-file --batch`); "What's new" and each
+  item's "Updated" date come from Git, and the catalog version is the latest change
+  date.
+
+**Cards and pages.**
+
+- A kit's card is a sidecar `external/<id>.card.md` kept in Loushing beside its
+  pointer `external/<id>.yaml`, with `partNotes` describing its parts, until the kit's
+  own repository carries one.
+- The view schema gained the blocks these pages needed (item body sections, adds
+  tree, kit anatomy, stack path, works with, source viewer, empty states with a page
+  title). Views stay pure data.
+- Get it shows tabs in the order Git, Ask your agent, Download, then Command, which
+  says "coming soon" until the CLI exists. Downloads carry no SHA-256 yet.
+- An agent a card doesn't list shows as "Not tried yet", never as unsupported.
+- The trust panel (what an item adds and changes) lives inside the adds tree.
+- Source files are shown without syntax highlighting.
+- The catalog is a tile grid with a live search in the sidebar that filters as you
+  type, without a submit button.
+
+**Design system.**
+
+- Fundamentals use container queries for their own narrow forms: a Metric stacks its
+  icon above the value and a Tile tightens its padding below 12rem; Tabs hide their
+  icons below 28rem so every tab fits.
+- Home stats are a 2×2 grid on phones; the item page's Get it column is 26rem wide.
+- The design-system suite (`site/test/design-system.test.mjs`) enforces tokens only,
+  current generated tokens and contrast, tier imports, compounds that never render
+  another compound, sealed fundamentals, documented components, views that are pure
+  data, and a Chopper that never takes clicks.
+
+**Publication check.** Built into the catalog check, strict and without an allowlist
+([as built](repository-organization.md#build-and-checks)).
+
+**Chopper.** The masters ship as PNG because there is no WebP encoder in a
+dependency-free build. No renders are approved yet, so pages show no cameos until
+the pilot runs.
+
+**Not built yet.** Real skills (stage 1 needs at least five from you), component
+stories, automated Lighthouse and axe runs, hosting and deployment (O7), and the CLI.

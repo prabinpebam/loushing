@@ -1,0 +1,51 @@
+/* Chopper's cameo zones (docs/design/chopper.md). A zone is empty and takes no space
+   until the picker fills it; a cameo never covers content or takes clicks, fades in
+   once, and is hidden when the visitor turns Chopper off or uses forced colours.
+   Reads only the chopper component tokens. */
+
+.chopper-zone:empty { display: none; }
+.chopper-zone {
+  position: relative;
+  z-index: var(--c-chopper-layer);
+  display: flex;
+  gap: var(--space-4);
+  pointer-events: none;
+  user-select: none;
+}
+.chopper-zone[data-align='end'] { justify-content: flex-end; }
+.chopper-zone[data-side='start'] { justify-content: flex-start; }
+.chopper-zone[data-side='end'] { justify-content: flex-end; }
+.chopper-zone[data-pair] { justify-content: space-between; }
+
+.chopper-zone img {
+  display: block;
+  width: auto;
+  height: var(--c-chopper-frame-sm);
+  filter: drop-shadow(0 0 var(--c-chopper-halo-blur) var(--c-chopper-halo-color));
+  animation: chopper-in var(--c-chopper-fade) var(--c-chopper-ease) both;
+}
+.chopper-zone[data-size='md'] img { height: var(--c-chopper-frame-md); }
+.chopper-zone[data-size='lg'] img { height: var(--c-chopper-frame-lg); }
+
+/* Where each zone sits in its host. */
+[data-zone-host] { position: relative; }
+.chopper-zone[data-zone='masthead-edge'] { position: absolute; right: 0; bottom: 0; }
+.chopper-zone[data-zone='tile-peek'] { position: absolute; right: var(--space-8); bottom: 100%; }
+.chopper-zone[data-zone='footer-ledge'] { position: absolute; left: 0; right: 0; bottom: 100%; padding-inline: var(--space-8); }
+.chopper-zone[data-zone='section-break'] { flex: none; }
+.chopper-zone[data-zone='gutter'] { position: absolute; top: var(--space-24); }
+.chopper-zone[data-zone='gutter'][data-align='start'] { right: 100%; }
+.chopper-zone[data-zone='gutter'][data-align='end'] { left: 100%; }
+
+@keyframes chopper-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+html[data-chopper='off'] .chopper-zone { display: none; }
+@media (forced-colors: active) {
+  .chopper-zone { display: none; }
+}
+@media print {
+  .chopper-zone { display: none; }
+}

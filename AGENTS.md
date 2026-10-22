@@ -1,12 +1,15 @@
 # Repository guidance
 
-This workspace is in initial planning setup. Read the [brief](docs/brief.md) before
-making product decisions. The workspace name is provisional.
+This workspace plans and builds Loushing, a catalog of the owner's AI skills and kits.
+Read the [brief](docs/brief.md) before making product decisions. The workspace name is
+provisional.
 
 ## Keep documentation and product separate
 
 - [docs/](docs/) is a Slate documentation host for plans, research, and specifications.
-  It is not the future skills-browser application.
+  It is not the skills-browser application, which lives in [site/](site/) and reads
+  [catalog/](catalog/), [skills/](skills/), [external/](external/),
+  [stacks/](stacks/) and [design/](design/).
 - [slate/](slate/), [agentic-craft/](agentic-craft/) and
   [agent-orchestration/](agent-orchestration/) are editable, pinned Git submodules
   connected to the owner's upstream repositories. Make reusable harness improvements
@@ -61,6 +64,17 @@ Check affected manifest paths and links and preview changed pages over HTTP.
 Keep preview servers bound to loopback. See the [README](README.md) for package-source
 constraints if later work needs dependencies.
 
+The site needs no installs either (Node 24):
+
+```powershell
+node site\scripts\dev.mjs          # preview at http://127.0.0.1:4180, rebuilds and reloads on change
+node site\scripts\build.mjs        # build once into site\dist
+node --test "site/test/*.test.mjs" # libraries, catalog and publication checks, design system, build
+```
+
+Keep a preview of the site running while working on it, so the owner can look at any
+time. The build refuses a catalog with any problem and writes nothing.
+
 ## Contribute to the harnesses
 
 Each submodule has its own Git history and `origin`. See the
@@ -90,10 +104,14 @@ This project uses the [agentic-craft](https://github.com/prabinpebam/agentic-cra
   [design/views/](design/views/); rules in
   [docs/design/design-system.md](docs/design/design-system.md), with
   [visual first](docs/design/visual-first.md) and [Chopper](docs/design/chopper.md).
-  Components and the library come with the site code in stage 1. Glossary: the
-  product spec's §8. Slate's theme and components belong only to documentation.
+  Components live in [site/src/components/](site/src/components/) (fundamentals,
+  compounds) and [site/src/layouts/](site/src/layouts/); the design-system suite is
+  `site/test/design-system.test.mjs`. Component stories and a generated library are
+  not built yet. Glossary: the product spec's §8. Slate's theme and components belong
+  only to documentation.
 - **Performance:** targets and budgets are in the product spec's §7; no benchmark or
-  baseline exists yet because there is no product implementation.
+  baseline has been recorded yet.
+- **Style lint:** `node .\agentic-craft\tools\lint-styles.mjs site\src`.
 - **Token commands:** `node .\agentic-craft\tools\check-tokens.mjs --src design\tokens --checks design\tokens\checks.json`;
   `node .\agentic-craft\tools\build-tokens.mjs --src design\tokens --css design\tokens\dist\tokens.css --md docs\design\tokens.md`
   (add `--check` to fail on stale output).
@@ -118,9 +136,10 @@ This project uses the [agent-orchestration](https://github.com/prabinpebam/agent
   `node .\slate\scripts\runtime-host.mjs check --repo . --host docs`; harness tests:
   `node --test .\agentic-craft\test\harness.test.mjs` and
   `node --test .\agent-orchestration\test\harness.test.mjs`; design tokens: the token
-  commands in the Craft facts above. Check affected
-  documentation paths, links, and HTTP rendering. Product unit/type/E2E/build
-  commands are not defined because there is no product implementation.
+  commands in the Craft facts above; site: `node --test "site/test/*.test.mjs"` (unit,
+  catalog, design system, build and links) and `node site\scripts\build.mjs`. Check
+  affected documentation paths, links, and HTTP rendering, and look at changed site
+  pages in the running preview (http://127.0.0.1:4180, `node site\scripts\dev.mjs`).
 - **Progress log:** use the active agent's session storage outside the repository
   for long-running work; no machine-specific path is committed. Do not create a
   product progress log during initial setup.

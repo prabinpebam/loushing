@@ -40,6 +40,9 @@ venv/
 # Build output, coverage and logs
 _site/
 dist/
+dist.old-*/
+dist.build-*/
+.build-*/
 build/
 coverage/
 *.log

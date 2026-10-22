@@ -1,0 +1,8 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "article",
+  "title": "For agents",
+  "regions": {
+    "header": [{ "type": "text", "src": "for-agents.md" }]
+  }
+}

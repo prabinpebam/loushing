@@ -1,0 +1,16 @@
+# Pointer: Slate lives in its own repository; Loushing pins one version.
+id: slate
+type: kit
+source:
+  repo: https://github.com/prabinpebam/slate
+  # No release tags yet: pinned to a full commit, never a branch.
+  ref: d594742a1a6582c5cb890fcb18e63bc798ced99e
+  card: about.md
+channels:
+  next: main
+# The kit has no about.md yet, so this pointer carries its card temporarily.
+inlineCard: slate.card.md
+parts:
+  skill: ["SKILL.md", "presentation/SKILL.md", "presentation/*/SKILL.md", "visualization/skills/*/SKILL.md"]
+  template: ["templates/*"]
+  tool: ["scripts/init-project.mjs", "scripts/runtime-host.mjs", "scripts/build-site.mjs", "scripts/build-canvas.mjs", "scripts/validate-*.mjs"]

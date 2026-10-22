@@ -1,0 +1,18 @@
+# Pointer: agentic-craft lives in its own repository; Loushing pins one version.
+id: agentic-craft
+type: kit
+source:
+  repo: https://github.com/prabinpebam/agentic-craft
+  # No release tags yet: pinned to a full commit, never a branch.
+  ref: 299dbaeebfb1c8fc392ba919a85e5a6529bc6d60
+  card: about.md
+channels:
+  next: main
+# The kit has no about.md yet, so this pointer carries its card temporarily.
+inlineCard: agentic-craft.card.md
+# Where the build finds the kit's parts at the pinned commit.
+parts:
+  skill: ["skills/*/SKILL.md"]
+  agent: ["agents/*.agent.md"]
+  template: ["templates/*"]
+  tool: ["tools/*.mjs"]

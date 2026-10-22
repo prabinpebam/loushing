@@ -1,0 +1,17 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "item",
+  "title": "{item.name}",
+  "regions": {
+    "header": [{ "type": "item-header", "item": { "from": "item" } }, { "type": "effects-chips", "item": { "from": "item" } }],
+    "get": [{ "type": "get-it-panel", "item": { "from": "item" } }],
+    "what": [{ "type": "item-body", "item": { "from": "item" }, "sections": ["what", "use"] }],
+    "try": [{ "type": "item-body", "item": { "from": "item" }, "sections": ["try"] }],
+    "inside": [{ "type": "kit-anatomy", "item": { "from": "item" } }],
+    "adds": [{ "type": "adds-tree", "item": { "from": "item" } }],
+    "how": [{ "type": "item-body", "item": { "from": "item" }, "sections": ["how", "good"] }],
+    "agents": [{ "type": "compat-grid", "item": { "from": "item" } }],
+    "related": [{ "type": "works-with", "item": { "from": "item" } }],
+    "source": [{ "type": "source-viewer", "item": { "from": "item" } }]
+  }
+}

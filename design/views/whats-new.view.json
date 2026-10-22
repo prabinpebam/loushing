@@ -1,0 +1,9 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "index",
+  "title": "What's new",
+  "regions": {
+    "head": [{ "type": "text", "markdown": "# What's new\n\nItems added, updated or pinned to a new version, newest first. Follow along with the [feed](/feed.xml)." }],
+    "results": [{ "type": "release-timeline", "items": { "from": "releases" } }]
+  }
+}

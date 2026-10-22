@@ -1,0 +1,8 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "message",
+  "title": "Page not found",
+  "regions": {
+    "body": [{ "type": "empty-state", "kind": "not-found", "pageTitle": true }]
+  }
+}

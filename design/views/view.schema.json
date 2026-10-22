@@ -52,10 +52,10 @@
         { "properties": { "type": { "const": "kit-anatomy" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
         { "properties": { "type": { "const": "stack-path" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
         { "properties": { "type": { "const": "works-with" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
-        { "properties": { "type": { "const": "item-body" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
+        { "properties": { "type": { "const": "item-body" }, "item": { "$ref": "#/$defs/query" }, "sections": { "type": "array", "description": "Which body parts to show, in order, so a view can split the body across regions", "items": { "enum": ["what", "use", "try", "how", "adds", "good", "after", "part"] } } }, "required": ["type", "item"] },
         { "properties": { "type": { "const": "source-viewer" }, "item": { "$ref": "#/$defs/query" } }, "required": ["type", "item"] },
-        { "properties": { "type": { "const": "text" }, "markdown": { "type": "string" } }, "required": ["type", "markdown"] },
-        { "properties": { "type": { "const": "empty-state" }, "kind": { "enum": ["no-results", "not-found", "gone", "empty-catalog"] } }, "required": ["type", "kind"] }
+        { "properties": { "type": { "const": "text" }, "markdown": { "type": "string" }, "src": { "type": "string", "description": "A Markdown file in site/src/content, for article bodies" } }, "required": ["type"], "anyOf": [{ "required": ["markdown"] }, { "required": ["src"] }] },
+        { "properties": { "type": { "const": "empty-state" }, "kind": { "enum": ["no-results", "not-found", "gone", "empty-catalog"] }, "hidden": { "type": "boolean", "description": "Rendered hidden for the client to show (no results)" }, "pageTitle": { "type": "boolean", "description": "The title is the page's h1, for a page that is only this message" } }, "required": ["type", "kind"] }
       ]
     }
   }

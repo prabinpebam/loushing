@@ -1,10 +1,28 @@
 # Loushing
 
-A workspace for planning a skills and resources library that is easy for humans and AI
-agents to browse, discover, and use.
+A catalog of AI skills and kits that is easy for humans and AI agents to browse,
+discover, understand and get.
 
-**Status:** harness setup only. "Loushing" is the working name taken from this
-workspace; product naming, organization, UX, UI, and implementation remain undecided.
+**Status:** stage 1, "A catalog you can read", is built in [site/](site/) and lists the
+first kits; real skills are added one or a few at a time. "Loushing" is the working
+name. The plan and spec live in the Slate documentation in [docs/](docs/).
+
+## Preview the site
+
+Prerequisites: Git and Node.js 24. Nothing to install.
+
+```powershell
+node site\scripts\dev.mjs          # http://127.0.0.1:4180, rebuilds and reloads on every change
+node site\scripts\build.mjs        # build once into site\dist
+node --test "site/test/*.test.mjs" # all site tests
+```
+
+The build reads the catalog ([catalog/](catalog/), [skills/](skills/),
+[external/](external/), [stacks/](stacks/)) and the design source ([design/](design/)),
+checks every item, including the publication check for secrets and internal hosts,
+and writes static pages plus `catalog.json`, `search-index.json`, `llms.txt` and a
+feed. A catalog with any problem is never built. See the product spec's
+[as built](docs/spec/product-spec.md#11-as-built) section for the choices made.
 
 ## Open the planning documentation
 
@@ -36,7 +54,9 @@ The preview serves only the documentation directory, not the repository.
 | [.github/skills/slate/SKILL.md](.github/skills/slate/SKILL.md) | Agent discovery adapter pointing to the canonical Slate skill |
 | [.github/skills/](.github/skills/), [.github/agents/](.github/agents/) | Craft's and Orchestration's installed skill and reviewer copies; refresh from their sources, do not edit these copies |
 | [AGENTS.md](AGENTS.md) | Repository-specific guidance and harness project facts for AI agents |
-| Future application code | Separate from the docs host and the harnesses; location and technology to be decided |
+| [site/](site/) | The catalog site: a dependency-free static generator, its components, styles and tests |
+| [catalog/](catalog/), [skills/](skills/), [external/](external/), [stacks/](stacks/) | The catalog: taxonomy, skills kept here, pointers to kits in their own repositories, and stacks |
+| [design/](design/) | The product's design source: tokens, view specs, and Chopper's character sheet and scenes |
 
 Start with the [documentation overview](docs/overview.md), [initial brief](docs/brief.md),
 and [working guide](docs/working-guide.md). The reader's search searches these planning
@@ -107,8 +127,8 @@ node --test .\agent-orchestration\test\harness.test.mjs
 Both installers are workspace-local, leave the Slate adapter in place, and preserve
 their own project facts and each other's sections in [AGENTS.md](AGENTS.md). Neither
 deletes files removed upstream; review the installed copies when updating. Templates
-stay in each harness's `templates/` folder until actual planning or work needs them;
-no placeholder product specs, work plans, or design system have been created.
+stay in each harness's `templates/` folder; the project's own spec and design system
+are in [docs/spec/](docs/spec/), [docs/design/](docs/design/) and [design/](design/).
 
 After pushing a harness change, commit its updated submodule pin and affected
 generated/installed files in the parent repository when ready.

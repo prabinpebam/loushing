@@ -1,0 +1,8 @@
+{
+  "$schema": "./view.schema.json",
+  "layout": "article",
+  "title": "Get started",
+  "regions": {
+    "header": [{ "type": "text", "src": "get-started.md" }]
+  }
+}

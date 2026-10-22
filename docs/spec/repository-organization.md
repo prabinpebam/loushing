@@ -172,3 +172,16 @@ records which catalog release it installed from.
 [O5](product-spec.md#10-decisions)). They share the catalog schema and are built and
 checked together. Neither depends on Slate, which serves only this planning
 documentation.
+
+**As built (stage 1).** The publication check runs inside the catalog check, on every
+text file of a skill (including `about.md`), every stack card and every pointer with
+its kit card. It looks for private keys, GitHub, AWS, Slack, Azure and API tokens,
+JWTs, secrets assigned to names such as `password` or `token` (only when the value
+mixes letters and digits, so prose and placeholders pass), internal host names
+(`.corp`, `.internal`, `.intranet`, `.lan`, `.local`, SharePoint, Azure DevOps
+organizations) and private IP addresses. A finding names the file, the line and the
+fix, and masks the value so the report never repeats a secret. There is no allowlist:
+a false positive is fixed by rewording. A catalog with any problem is never built, so
+nothing is written. A missing license fails the card check. Customer data and
+employer-confidential names still rely on review; the rules live in
+`site/scripts/lib/publication.mjs`.

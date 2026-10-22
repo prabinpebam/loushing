@@ -1,0 +1,96 @@
+# Loushing taxonomy: the controlled vocabularies every card is checked against.
+# Job areas are derived from real items (decision O4). Add an area only when real
+# items need it; keep at most eight. Only areas with at least one item are shown.
+
+areas:
+  - id: product-planning
+    title: Product and planning
+    summary: Decide what to build and what success means
+    icon: lightbulb
+  - id: agent-workflow
+    title: Running agent work
+    summary: Plan, check and hand over work an agent carries out
+    icon: route
+  - id: documentation
+    title: Documentation
+    summary: Turn notes and plans into pages people can browse
+    icon: menu_book
+
+tags:
+  - specs
+  - jobs-to-be-done
+  - definition-of-done
+  - design-system
+  - ui-copy
+  - performance
+  - execution-modes
+  - progress-review
+  - handoffs
+  - static-site
+  - diagrams
+  - presentations
+
+agents:
+  - id: copilot-vscode
+    title: VS Code Copilot
+    short: VS Code
+    install: copilot
+  - id: copilot-cli
+    title: Copilot CLI
+    short: Copilot CLI
+    install: copilot
+  - id: claude-code
+    title: Claude Code
+    short: Claude
+    install: claude-code
+  - id: codex
+    title: Codex
+    short: Codex
+    install: codex
+  - id: cursor
+    title: Cursor
+    short: Cursor
+    install: cursor
+  - id: agents
+    title: Any Agent Skills agent
+    short: Other agents
+    install: agents
+
+effects:
+  - id: runs-scripts
+    title: Runs scripts
+    line: Includes scripts your agent can run
+    without: run scripts
+    icon: terminal
+  - id: network
+    title: Uses the network
+    line: Can reach the internet
+    without: use the network
+    icon: public
+  - id: writes-outside-folder
+    title: Writes outside its folder
+    line: Writes files outside its own folder
+    without: write outside their folder
+    icon: drive_file_move
+  - id: needs-credentials
+    title: Needs credentials
+    line: Needs an account or a key
+    without: need credentials
+    icon: key
+
+statuses:
+  - id: experimental
+    title: Experimental
+    explain: May change or be removed. Pin a version if you depend on it.
+  - id: beta
+    title: Beta
+    explain: Works, may still change.
+  - id: stable
+    title: Stable
+    explain: Ready for everyday use.
+  - id: deprecated
+    title: Deprecated
+    explain: Still works, but use its replacement.
+  - id: moved
+    title: Moved
+    explain: Now lives in its own repository. Installing still works.
