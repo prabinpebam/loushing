@@ -64,6 +64,7 @@
 .l-footer__inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4) var(--space-8); padding-block: var(--space-8); }
 .l-footer__tribute { display: flex; align-items: center; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--text-sm); }
 .l-footer__tribute .f-icon { color: var(--color-accent); }
+.l-footer__owner { order: 1; flex-basis: 100%; color: var(--color-text-muted); font-size: var(--text-sm); }
 .l-footer__links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); list-style: none; font-size: var(--text-sm); }
 .l-footer__links li { display: flex; align-items: center; min-height: var(--size-control); }
 
@@ -86,7 +87,7 @@
 .l-index__end-line { color: var(--color-text-muted); font-size: var(--text-sm); }
 @media (min-width: 56rem) {
   .l-index:not([data-single]) .l-index__body { grid-template-columns: var(--size-tile-min) minmax(0, 1fr); }
-  .l-index__filters { position: sticky; top: calc(var(--space-16) + var(--space-6)); max-height: calc(100vh - var(--space-24)); overflow-y: auto; padding-right: var(--space-2); }
+  .l-index__filters { position: sticky; top: calc(var(--space-16) + var(--space-6)); max-height: calc(100vh - var(--space-24)); overflow-y: auto; padding: var(--space-2); margin: calc(var(--space-2) * -1); }
 }
 
 /* Item and path */
@@ -98,7 +99,9 @@
 .l-item__aside { min-width: 0; }
 @media (min-width: 72rem) {
   .l-item__grid { grid-template-columns: minmax(0, 1fr) calc(var(--size-tile-min) * 1.625); }
-  .l-item__aside { grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--space-16) + var(--space-6)); max-height: calc(100vh - var(--space-24)); overflow-y: auto; }
+  /* The scroll box reaches past the column by the shadow's spread, so cards inside keep
+     their shadows instead of being clipped at the edge. */
+  .l-item__aside { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-16); max-height: calc(100vh - var(--space-16)); overflow-y: auto; padding: var(--space-6); margin: calc(var(--space-6) * -1); }
   .l-item__main { grid-column: 1; grid-row: 1; }
 }
 

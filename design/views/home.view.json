@@ -4,14 +4,14 @@
   "title": "Loushing",
   "regions": {
     "masthead": [
-      { "type": "hero", "title": "Skills for the job in front of you", "standfirst": "Find one by describing your task. Understand it in a minute. Get it in one step.", "search": true }
+      { "type": "hero", "title": "The skills and kits I work with", "standfirst": "I’m Prabin. These are the AI agent skills and kits I use in my own work, kept here so I can find them again. If one looks useful to you, its page shows how to set it up.", "search": true }
     ],
     "pulse": [
       { "type": "stat-strip", "stats": { "from": "counts" } }
     ],
     "bento": [
       { "type": "area-tiles", "items": { "from": "areas", "sort": "order" } },
-      { "type": "stack-tiles", "heading": "Work well together", "items": { "from": "stacks", "limit": 3 } },
+      { "type": "stack-tiles", "heading": "How I combine them", "items": { "from": "stacks", "limit": 3 } },
       { "type": "item-tiles", "view": "bento", "heading": "Kits", "items": { "from": "items", "where": { "type": "kit" }, "sort": "name" } }
     ],
     "fresh": [

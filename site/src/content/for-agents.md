@@ -5,8 +5,9 @@ summary: The machine-readable files an agent can use to search the catalog and p
 
 # For agents
 
-Everything on this site is also available as plain files, so an agent can search the
-catalog and plan an install without reading the pages.
+Everything on this site is also available as plain files, so an agent can search my
+collection and plan an install without reading the pages. These are the items I use
+myself; nothing here is ranked or rated.
 
 | File | Use it to |
 | --- | --- |

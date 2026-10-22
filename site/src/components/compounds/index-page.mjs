@@ -77,7 +77,7 @@ const EMPTY = {
   'no-results': { icon: 'search_off', title: 'Nothing matches that yet', body: 'Try fewer words, or a word for the job rather than a tool.', action: { label: 'Clear search and filters', href: '/catalog', data: { 'clear-filters': 'true' } } },
   'not-found': { icon: 'explore', title: "This page isn't here", body: 'The address may be mistyped, or the page may have moved. Items keep their addresses, so try searching for it.', action: { label: 'Search the catalog', href: '/catalog' } },
   gone: { icon: 'history', title: 'This item was removed', body: 'Its page stays so links keep working. The catalog lists what to use instead.', action: { label: 'See the catalog', href: '/catalog' } },
-  'empty-catalog': { icon: 'inventory_2', title: 'Nothing here yet', body: 'Items appear as the owner adds them.', action: null },
+  'empty-catalog': { icon: 'inventory_2', title: 'Nothing here yet', body: 'Items appear here as I add them.', action: null },
 };
 
 /**

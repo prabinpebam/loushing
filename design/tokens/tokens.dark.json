@@ -1,9 +1,9 @@
 {
-  "$description": "Dark theme context: semantic colour roles and shadows. Warm night, not blue-black, so Chopper's cream reads as cream.",
+  "$description": "Dark theme context: semantic colour roles and shadows. Harbour night: cool ink surfaces with a cream halo so Chopper stays visible.",
   "color": {
     "text": {
       "$type": "color",
-      "$value": "{p.paper.100}",
+      "$value": "{p.mist.100}",
       "$description": "Body text and headings"
     },
     "text-muted": {
@@ -43,12 +43,12 @@
     },
     "action": {
       "$type": "color",
-      "$value": "{p.paper.100}",
-      "$description": "Primary buttons: cream"
+      "$value": "{p.harbour.300}",
+      "$description": "Primary buttons: light harbour"
     },
     "action-hover": {
       "$type": "color",
-      "$value": "{p.paper.0}",
+      "$value": "{p.harbour.200}",
       "$description": "Primary button hover"
     },
     "on-action": {
@@ -58,12 +58,12 @@
     },
     "accent": {
       "$type": "color",
-      "$value": "{p.coral.300}",
+      "$value": "{p.harbour.300}",
       "$description": "Accent text, selection and current location"
     },
     "accent-hover": {
       "$type": "color",
-      "$value": "{p.paper.100}",
+      "$value": "{p.mist.100}",
       "$description": "Accent hover"
     },
     "on-accent": {
@@ -98,7 +98,7 @@
     },
     "series-2": {
       "$type": "color",
-      "$value": "{p.teal.300}",
+      "$value": "{p.harbour.300}",
       "$description": "Chart series 2"
     },
     "series-3": {
@@ -115,6 +115,26 @@
       "$type": "color",
       "$value": "{p.sage.300}",
       "$description": "Chart series 5"
+    },
+    "tint-coral": {
+      "$type": "color",
+      "$value": "{p.coral.900}",
+      "$description": "Coral tint: kit badges and accented cards"
+    },
+    "tint-harbour": {
+      "$type": "color",
+      "$value": "{p.harbour.900}",
+      "$description": "Harbour tint: skill badges and secondary buttons"
+    },
+    "tint-gold": {
+      "$type": "color",
+      "$value": "{p.gold.900}",
+      "$description": "Gold tint: stack badges"
+    },
+    "scrollbar-thumb": {
+      "$type": "color",
+      "$value": "{p.night.600}",
+      "$description": "The scrollbar thumb at rest (decorative; it darkens to the outline on hover)"
     },
     "shadow-near": {
       "$type": "color",

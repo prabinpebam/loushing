@@ -63,10 +63,21 @@ a { color: inherit; }
 hr { border: 0; border-top: var(--border-hairline) solid var(--color-rule); margin: 0; }
 table { border-collapse: collapse; }
 
+/* The ring follows each element's own corners, so a pill stays a pill when focused. */
 :focus-visible {
   outline: var(--border-focus) solid var(--color-focus);
   outline-offset: var(--border-focus);
-  border-radius: var(--radius-sm);
+}
+
+/* Scrollbars: thin, quiet, in the theme's colours. */
+html { scrollbar-color: var(--color-scrollbar-thumb) transparent; }
+* { scrollbar-width: thin; }
+::-webkit-scrollbar { width: var(--space-2); height: var(--space-2); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: var(--radius-pill); background: var(--color-scrollbar-thumb); }
+::-webkit-scrollbar-corner { background: transparent; }
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
 }
 main:focus { outline: none; }
 
@@ -148,3 +159,23 @@ main:focus { outline: none; }
   transform: translateY(-200%);
 }
 .u-skip:focus { transform: none; }
+
+/* The dog-ear: the one accent for a card that matters most in its view. Its top-right
+   corner folds down in coral, like a page corner turned to mark the place. The surface
+   it sits on must be the page (c.ear.under). */
+.u-ear { position: relative; }
+.u-ear::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--c-ear-size);
+  height: var(--c-ear-size);
+  border-bottom-left-radius: var(--radius-md);
+  background: linear-gradient(to bottom left, var(--c-ear-under) 50%, var(--c-ear-color) 50%);
+  box-shadow: calc(var(--border-hairline) * -1) var(--border-hairline) var(--border-focus) var(--color-shadow-near);
+  pointer-events: none;
+}
+@media (forced-colors: active) {
+  .u-ear::after { display: none; }
+}

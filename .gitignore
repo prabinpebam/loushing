@@ -40,6 +40,8 @@ venv/
 # Build output, coverage and logs
 _site/
 dist/
+# Generated tokens are committed: the site build reads them and CI checks they're current.
+!design/tokens/dist/
 dist.old-*/
 dist.build-*/
 .build-*/

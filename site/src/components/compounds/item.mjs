@@ -62,7 +62,7 @@ export function ItemHeader({ item }, { model }) {
 
 /** Banner: a one-line notice inside a header. */
 function Banner({ icon, tone, text }) {
-  return html`<p class="c-banner" data-tone="${tone}">${Icon({ name: icon })}<span>${text}</span></p>`;
+  return html`<p class="c-banner u-ear" data-tone="${tone}">${Icon({ name: icon })}<span>${text}</span></p>`;
 }
 
 /**
@@ -74,7 +74,7 @@ function Banner({ icon, tone, text }) {
  */
 export function GetItPanel({ item }, { model }) {
   if (item.type === 'part') {
-    return html`<section class="c-getit" id="get-it" aria-labelledby="getit-title">
+    return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
   <p class="c-getit__line">${item.title} comes with ${item.kit.title}. Get the kit to use it.</p>
   ${Button({ label: `Get ${item.kit.title}`, icon: 'arrow_forward', kind: 'primary', href: url(`${item.kit.url}#get-it`) })}
@@ -82,7 +82,7 @@ export function GetItPanel({ item }, { model }) {
   }
   const agents = model.taxonomy.agents;
   const effects = (item.effects ?? []).map((e) => model.effectsById.get(e)).filter(Boolean);
-  return html`<section class="c-getit" id="get-it" aria-labelledby="getit-title" data-getit data-default-agent="${DEFAULT_AGENT}">
+  return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-getit data-default-agent="${DEFAULT_AGENT}">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
   <div class="c-getit__pickers">
     ${Select({ id: `agent-${item.id}`, label: 'Your agent', value: DEFAULT_AGENT, options: agents.map((a) => ({ value: a.id, label: a.title })), data: { 'agent-picker': 'true' } })}
@@ -144,7 +144,7 @@ export function CompatGrid({ item }, { model }) {
     const v = item.agents?.[a.id] ?? 'unknown';
     return html`<li class="c-compat__cell" data-value="${v}"><span class="c-compat__agent">${a.title}</span><span class="c-compat__value">${Icon({ name: words[v][1] })}${words[v][0]}</span></li>`;
   })}</ul>
-  <p class="c-compat__note"><strong>Tested</strong> means the owner used it with that agent. <strong>Expected</strong> means it follows the shared skill format and should work, but hasn't been tried. <strong>Not tried yet</strong> means the item doesn't say either way.</p>
+  <p class="c-compat__note"><strong>Tested</strong> means I use it with that agent. <strong>Expected</strong> means it follows the shared skill format and should work, but I haven’t tried it there. <strong>Not tried yet</strong> means the item doesn’t say either way.</p>
 </section>`;
 }
 
@@ -189,7 +189,7 @@ export function AddsTree({ item }, { model }) {
     <dl class="c-trust" id="trust" aria-label="Trust panel">
       <div><dt>${Icon({ name: 'bolt' })}Can do</dt><dd>${effects.length ? html`<ul>${effects.map((e) => html`<li>${e.line}</li>`)}</ul>` : 'Only instructions: no scripts, network or credentials.'}</dd></div>
       ${(item.requires ?? []).length > 0 && html`<div><dt>${Icon({ name: 'checklist' })}Needs</dt><dd><ul>${item.requires.map((r) => html`<li>${r}</li>`)}</ul></dd></div>`}
-      <div><dt>${Icon({ name: 'verified' })}License</dt><dd>${item.license === 'NOASSERTION' ? html`Not stated yet. ${item.licenseNote ?? 'Ask the owner before reusing it.'}` : item.license}${item.origin && html` · ${cap(item.origin)}`}</dd></div>
+      <div><dt>${Icon({ name: 'verified' })}License</dt><dd>${item.license === 'NOASSERTION' ? html`Not stated yet. ${item.licenseNote ?? 'Ask me before reusing it.'}` : item.license}${item.origin && html` · ${cap(item.origin)}`}</dd></div>
       ${item.source?.commit && html`<div><dt>${Icon({ name: 'fact_check' })}Pinned at</dt><dd><a href="${githubAt(item)}"><code>${short(item.source.commit)}</code></a>${item.updated && html`, ${formatDate(item.updated)}`}</dd></div>`}
       <div><dt>${Icon({ name: 'checklist' })}What Loushing checked</dt><dd>The card's fields, sections and links${item.type === 'kit' ? ', that the pinned commit exists and the parts it lists are there' : ''}${item.type === 'skill' ? ', the files, their sizes and hashes' : ''}.</dd></div>
     </dl>
@@ -292,8 +292,8 @@ function UseWhen(item, model) {
     }
     return line;
   };
-  return html`<section class="c-use" aria-label="Use it when, and not for">
-  <div class="c-use__col" data-tone="yes"><h3 class="c-use__title">${Icon({ name: 'check_circle' })}Use it when</h3><ul>${(item.useWhen ?? []).map((l) => html`<li>${l}</li>`)}</ul></div>
+  return html`<section class="c-use" aria-label="When I use it, and what it’s not for">
+  <div class="c-use__col" data-tone="yes"><h3 class="c-use__title">${Icon({ name: 'check_circle' })}When I use it</h3><ul>${(item.useWhen ?? []).map((l) => html`<li>${l}</li>`)}</ul></div>
   ${(item.notFor ?? []).length > 0 && html`<div class="c-use__col" data-tone="no"><h3 class="c-use__title">${Icon({ name: 'close' })}Not for</h3><ul>${item.notFor.map((l) => html`<li>${linkAlt(l)}</li>`)}</ul></div>`}
 </section>`;
 }

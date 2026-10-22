@@ -53,7 +53,7 @@ write('assets/site.css', css);
 // Fonts, client modules and the shared pure libraries the client imports.
 for (const f of readdirSync(join(src, 'vendor', 'fonts'))) copy(join(src, 'vendor', 'fonts', f), `assets/fonts/${f}`);
 let jsHash = '';
-for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib', ['search.mjs', 'picker.mjs']]]) {
+for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib', ['search.mjs', 'picker.mjs', 'listbox.mjs']]]) {
   for (const f of files) {
     const text = readFileSync(join(src, dir, f), 'utf8');
     jsHash += hash(text);
@@ -82,8 +82,8 @@ const page = (path, view, ctx = {}) => {
   pages++;
 };
 
-page('/', views.home, { headerSearch: false, description: 'A catalog of AI-agent skills, kits and stacks, each with a plain-language page and steps to get it for your agent.' });
-page('/catalog', views.catalog, { headerSearch: false, page: { results: model.items.length + model.parts.length, endLine: 'That’s everything in the catalog.' }, description: 'Search and filter every skill, kit and stack.' });
+page('/', views.home, { headerSearch: false, description: 'The AI agent skills and kits Prabin Pebam uses in his own work, each explained plainly, with how to set one up if you want to use it too.' });
+page('/catalog', views.catalog, { headerSearch: false, page: { results: model.items.length + model.parts.length, endLine: 'That’s everything I use so far.' }, description: 'Search and filter every skill, kit and stack I use.' });
 page('/whats-new', views['whats-new'], { page: { endLine: 'That’s the whole history so far.' }, description: 'Items added, updated or pinned to a new version.' });
 page('/get-started', views['get-started'], { description: 'What skills, kits and stacks are, and how to get one.', alternate: url('/get-started.md') });
 page('/for-agents', views['for-agents'], { description: 'Machine-readable files for agents.', alternate: url('/for-agents.md') });

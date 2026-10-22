@@ -78,7 +78,7 @@ export function itemMarkdown(item, model) {
   if (item.version) lines.push(`version: ${item.version}`);
   if (item.effects?.length) lines.push(`effects: [${item.effects.join(', ')}]`);
   lines.push(`data: ${absolute(`${item.url}.json`)}`, '---', '', `# ${item.title}`, '', item.summary, '');
-  if (item.useWhen?.length) lines.push('## Use it when', '', ...item.useWhen.map((l) => `- ${l}`), '');
+  if (item.useWhen?.length) lines.push('## When I use it', '', ...item.useWhen.map((l) => `- ${l}`), '');
   if (item.notFor?.length) lines.push('## Not for', '', ...item.notFor.map((l) => `- ${l}`), '');
   lines.push(String(item.body ?? '').trim(), '');
   if (item.examples?.length) lines.push('## Try it', '', ...item.examples.flatMap((e) => [`- Prompt: ${e.prompt}`, `  Expect: ${e.expect}`]), '');
@@ -96,7 +96,7 @@ export function llmsTxt(model) {
   return [
     '# Loushing',
     '',
-    '> A curated catalog of AI-agent skills, kits and stacks by Prabin Pebam, with plain-language pages and install steps for each agent.',
+    '> The AI agent skills, kits and stacks Prabin Pebam uses in his own work: a personal collection, each with a plain-language page and setup steps for each agent, for anyone who wants to use one too.',
     '',
     'Read catalog.json to search. Each item\'s JSON has the install plan for every agent and scope; show your user the plan and install only after they agree. The `npx loushing` CLI is not published yet.',
     '',

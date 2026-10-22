@@ -116,11 +116,20 @@ export function CopyField({ lines, copyLabel = 'Copy command', wrap = false, dat
 }
 
 /**
- * Select: a native select with a visible label.
+ * Select: a custom single-choice list (APG select-only combobox) over a native select.
+ * The native select is the value and the no-script fallback; the client shows the
+ * button and listbox, keeps the two in step and fires the native `change` event.
+ * @a11y combobox button (aria-expanded, aria-controls, aria-activedescendant) + listbox
+ * of options (aria-selected); the label names both.
+ * @key Down/Up/Enter/Space open; Up/Down/Home/End/PageUp/PageDown move; Enter/Space
+ * choose; Escape closes; Tab chooses and moves on; typing jumps to a match.
  * @param {{ id: string, label: string, options: { value: string, label: string }[], value?: string, data?: object }} props
  */
 export function Select({ id, label, options, value, data }) {
-  return html`<span class="f-select"><label class="f-select__label" for="${id}">${label}</label><span class="f-select__field"><select${attrs({ id, class: 'f-select__input', ...dataAttrs(data) })}>${options.map((o) => html`<option${attrs({ value: o.value, selected: o.value === value })}>${o.label}</option>`)}</select>${Icon({ name: 'keyboard_arrow_down' })}</span></span>`;
+  const sel = options.some((o) => o.value === value) ? value : options[0]?.value;
+  const current = options.find((o) => o.value === sel);
+  const optId = (v) => `${id}-opt-${String(v).replace(/[^a-z0-9_-]/gi, '-')}`;
+  return html`<span class="f-select" data-select><label class="f-select__label" id="${id}-label" for="${id}">${label}</label><span class="f-select__field"><select${attrs({ id, class: 'f-select__input', ...dataAttrs(data) })}>${options.map((o) => html`<option${attrs({ value: o.value, selected: o.value === sel })}>${o.label}</option>`)}</select><button${attrs({ class: 'f-select__button', type: 'button', role: 'combobox', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': `${id}-list`, 'aria-labelledby': `${id}-label`, tabindex: '-1' })}><span class="f-select__value">${current?.label ?? ''}</span></button>${Icon({ name: 'keyboard_arrow_down' })}</span><ul${attrs({ class: 'f-select__list', role: 'listbox', id: `${id}-list`, 'aria-labelledby': `${id}-label`, tabindex: '-1', hidden: true })}>${options.map((o) => html`<li${attrs({ class: 'f-select__option', role: 'option', id: optId(o.value), 'data-value': o.value, 'aria-selected': String(o.value === sel) })}><span>${o.label}</span>${Icon({ name: 'check' })}</li>`)}</ul></span>`;
 }
 
 /**
@@ -144,11 +153,12 @@ export function Toggle({ label, checked = false, data }) {
 /**
  * Tile: a rounded surface that frames one thing; the whole tile is the link when
  * `href` is given (one link per tile, no nested controls).
- * tone: raised (white card), sunken (cream well), accent (the one highlight per view).
+ * tone: raised (white card), sunken (a quiet well), accent (the one highlight per view:
+ * a coral tint with a folded "dog-ear" corner, u-ear).
  * @param {{ href?: string, tone?: 'raised'|'sunken'|'accent', children: any, data?: object, label?: string }} props
  */
 export function Tile({ href, tone = 'raised', children, data, label }) {
-  const a = { class: 'f-tile', 'data-tone': tone, 'aria-label': label, ...dataAttrs(data) };
+  const a = { class: tone === 'accent' ? 'f-tile u-ear' : 'f-tile', 'data-tone': tone, 'aria-label': label, ...dataAttrs(data) };
   return href ? html`<a${attrs({ ...a, href })}>${children}</a>` : html`<div${attrs(a)}>${children}</div>`;
 }
 

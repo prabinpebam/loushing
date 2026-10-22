@@ -71,7 +71,7 @@ const NAV = [
  * from the saved choice, so there is no flash.
  */
 export function Shell({ title, description, path, layout, main, assets, chopper, alternate, headerSearch = true }) {
-  const docTitle = title === 'Loushing' ? 'Loushing: skills, kits and stacks for AI agents' : `${title} · Loushing`;
+  const docTitle = title === 'Loushing' ? 'Loushing: the AI agent skills and kits I use' : `${title} · Loushing`;
   return html`<!doctype html>
 <html lang="en">
 <head>
@@ -105,6 +105,7 @@ ${main}
   ${Zone('footer-ledge')}
   <div class="l-footer__inner">
     <p class="l-footer__tribute">${Icon({ name: 'pets' })}<span>Chopper, a very good boy, keeps us company here.</span></p>
+    <p class="l-footer__owner">A personal collection by ${Link({ href: 'https://github.com/prabinpebam', label: 'Prabin Pebam', external: true })}. These work for me; take what’s useful.</p>
     ${Toggle({ label: 'Show Chopper', checked: true, data: { 'chopper-toggle': 'true' } })}
     <ul class="l-footer__links">
       <li>${Link({ href: 'https://github.com/prabinpebam/loushing', label: 'GitHub', external: true })}</li>

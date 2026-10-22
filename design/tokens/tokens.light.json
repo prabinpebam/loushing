@@ -13,27 +13,27 @@
     },
     "bg": {
       "$type": "color",
-      "$value": "{p.paper.50}",
+      "$value": "{p.mist.50}",
       "$description": "The page"
     },
     "bg-raised": {
       "$type": "color",
-      "$value": "{p.paper.0}",
+      "$value": "{p.mist.0}",
       "$description": "Cards, panels, inputs"
     },
     "bg-sunken": {
       "$type": "color",
-      "$value": "{p.paper.100}",
-      "$description": "Tiles and wells: Chopper's cream"
+      "$value": "{p.mist.100}",
+      "$description": "Tiles and wells: harbour mist"
     },
     "bg-hover": {
       "$type": "color",
-      "$value": "{p.paper.200}",
+      "$value": "{p.mist.200}",
       "$description": "Hover fill on sunken surfaces"
     },
     "rule": {
       "$type": "color",
-      "$value": "{p.paper.300}",
+      "$value": "{p.mist.300}",
       "$description": "Dividers (decorative, no contrast minimum)"
     },
     "outline": {
@@ -43,32 +43,32 @@
     },
     "action": {
       "$type": "color",
-      "$value": "{p.ink.900}",
-      "$description": "Primary buttons: ink"
+      "$value": "{p.harbour.600}",
+      "$description": "Primary buttons: harbour teal"
     },
     "action-hover": {
       "$type": "color",
-      "$value": "{p.ink.700}",
+      "$value": "{p.harbour.700}",
       "$description": "Primary button hover"
     },
     "on-action": {
       "$type": "color",
-      "$value": "{p.paper.50}",
+      "$value": "{p.mist.0}",
       "$description": "Text on a primary button"
     },
     "accent": {
       "$type": "color",
-      "$value": "{p.coral.700}",
+      "$value": "{p.harbour.600}",
       "$description": "Accent text, selection and current location"
     },
     "accent-hover": {
       "$type": "color",
-      "$value": "{p.coral.800}",
+      "$value": "{p.harbour.800}",
       "$description": "Accent hover"
     },
     "on-accent": {
       "$type": "color",
-      "$value": "{p.paper.0}",
+      "$value": "{p.mist.0}",
       "$description": "Text on an accent fill"
     },
     "decor": {
@@ -98,7 +98,7 @@
     },
     "series-2": {
       "$type": "color",
-      "$value": "{p.teal.600}",
+      "$value": "{p.harbour.600}",
       "$description": "Chart series 2"
     },
     "series-3": {
@@ -116,14 +116,34 @@
       "$value": "{p.sage.600}",
       "$description": "Chart series 5"
     },
+    "tint-coral": {
+      "$type": "color",
+      "$value": "{p.coral.100}",
+      "$description": "Coral tint: kit badges and accented cards"
+    },
+    "tint-harbour": {
+      "$type": "color",
+      "$value": "{p.harbour.100}",
+      "$description": "Harbour tint: skill badges and secondary buttons"
+    },
+    "tint-gold": {
+      "$type": "color",
+      "$value": "{p.gold.100}",
+      "$description": "Gold tint: stack badges"
+    },
+    "scrollbar-thumb": {
+      "$type": "color",
+      "$value": "{p.mist.300}",
+      "$description": "The scrollbar thumb at rest (decorative; it darkens to the outline on hover)"
+    },
     "shadow-near": {
       "$type": "color",
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.102,
-          0.0902,
-          0.0824
+          0.1059,
+          0.1216,
+          0.1373
         ],
         "alpha": 0.06
       },
@@ -134,9 +154,9 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.102,
-          0.0902,
-          0.0824
+          0.1059,
+          0.1216,
+          0.1373
         ],
         "alpha": 0.08
       },

@@ -1,7 +1,8 @@
 # Loushing
 
-A catalog of AI skills and kits that is easy for humans and AI agents to browse,
-discover, understand and get.
+The AI skills and kits I use in my own work, kept in one place, with a plain-language
+page for each and the steps to set it up. It's a personal collection, not a
+marketplace: these work for me, and if one looks useful to you, take it.
 
 **Status:** stage 1, "A catalog you can read", is built in [site/](site/) and lists the
 first kits; real skills are added one or a few at a time. "Loushing" is the working

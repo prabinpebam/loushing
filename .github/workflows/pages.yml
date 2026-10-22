@@ -1,0 +1,63 @@
+# Builds the Loushing site (site/) and publishes it to GitHub Pages.
+# The Slate docs host (docs/) is not deployed; it stays the local planning reader.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history and submodules: the catalog reads pinned kit commits and
+      # last-changed dates from git.
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check styles and tokens
+        run: |
+          node agentic-craft/tools/lint-styles.mjs site/src
+          node agentic-craft/tools/build-tokens.mjs --src design/tokens --css design/tokens/dist/tokens.css --md docs/design/tokens.md --check
+          node agentic-craft/tools/check-tokens.mjs --src design/tokens --checks design/tokens/checks.json
+
+      - name: Test
+        run: node --test "site/test/*.test.mjs"
+
+      - name: Build
+        env:
+          BASE: /loushing/
+          SITE_URL: https://prabinpebam.github.io
+        run: node site/scripts/build.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -42,7 +42,7 @@ export function StatStrip({ stats }) {
  */
 export function AreaTiles({ items }) {
   return html`<section class="c-areas" aria-labelledby="areas-title">
-  <h2 class="c-section-title" id="areas-title">Browse by job</h2>
+  <h2 class="c-section-title" id="areas-title">What I use them for</h2>
   <ul class="c-areas__grid">${items.map((a) => html`<li>${Tile({
     href: url(a.url),
     tone: 'raised',

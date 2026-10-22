@@ -1,15 +1,20 @@
 # Loushing: product spec
 
-Loushing is a catalog of AI-agent skills and kits, written and curated by one author,
-for the people and the AI agents who use them. A person finds the right item for the
-task in front of them, understands it in plain language and gets it working in their
-agent in one step. An agent can do the same through structured data. Loushing starts
-with your own skills, added a few at a time, and your larger systems: Slate,
-agentic-craft and agent-orchestration.
+Loushing is a personal project: the AI-agent skills and kits you use in your own work,
+kept in one place and explained plainly. It doesn't try to be a marketplace or the
+next big thing, and it never claims these are the best skills or tells anyone to use
+them. They work for you. If someone else wants to use one, each page shows how. A
+person finds an item by the task it helps with, understands it in plain language and,
+if they want it, gets it working in their agent in one step. An agent can do the same
+through structured data. Loushing starts with your own skills, added a few at a time,
+and your larger systems: Slate, agentic-craft and agent-orchestration.
 
 > **TL;DR.**
-> - **The promise:** find the right skill for the job in front of you, understand it in
->   a minute, and have it working in your agent in one step.
+> - **The promise:** the skills and kits I use, each explained plainly, and if you
+>   want to use one yourself, how to get it working in your agent in one step.
+> - **The framing:** personal, not a pitch. One person's working collection, in the
+>   author's own voice. No store, no rankings, no superlatives, no "you should"
+>   ([P9](#1-the-customer-promise), [voice](#8-copy)).
 > - **Who:** you as author and daily user; practitioners who get a link from you or
 >   find the catalog; AI agents working for any of them.
 > - **What a person can do:** find items by describing a task ([U1](#3-what-a-person-can-do));
@@ -26,12 +31,13 @@ agentic-craft and agent-orchestration.
 > - **Success:** the [Definitions of Done](definition-of-done.md). A first-time person
 >   decides about an item within a minute and has it working within three; adding a
 >   skill takes you under 15 minutes.
-> - **Look:** a clean, visual-first system in warm paper, ink and coral, with Chopper
->   in quiet background cameos. See the [design system](../design/design-system.md),
->   [visual first](../design/visual-first.md) and [Chopper](../design/chopper.md).
-> - **Open:** the names (kit, stack), the site technology, hosting, and how private
->   items work. Each has a working default in [§10](#10-decisions). The palette,
->   typeface, Chopper's tribute line and the logo are on the design pages.
+> - **Look:** a clean, visual-first system in the Harbour palette (mist, ink, harbour
+>   teal and coral), with Chopper in quiet background cameos. See the
+>   [design system](../design/design-system.md), [visual first](../design/visual-first.md)
+>   and [Chopper](../design/chopper.md).
+> - **Open:** the names (kit, stack) and how private items work. Each has a working
+>   default in [§10](#10-decisions). The site technology (O6) and hosting (O7) are
+>   decided. The typeface, Chopper's tribute line and the logo are on the design pages.
 
 Related pages: [content model](content-model.md) ·
 [repository organization](repository-organization.md) · [item pages](item-pages.md) ·
@@ -70,8 +76,12 @@ Related pages: [content model](content-model.md) ·
 
 ## 1. The customer promise
 
-**Find the right skill for the job in front of you, understand it in a minute, and have
-it working in your agent in one step.**
+**The skills and kits I use, each explained plainly. If you want to use one yourself,
+you can understand it in a minute and have it working in your agent in one step.**
+
+The promise is made by one person about their own tools. P1 to P8 describe what
+someone who wants an item can rely on; P9 describes how the whole site presents
+itself.
 
 | # | Promise | What breaks it |
 | --- | --- | --- |
@@ -83,11 +93,15 @@ it working in your agent in one step.**
 | P6 | **Agents are first-class users.** An agent can find, read and install items through structured data and plain commands. | An agent has to scrape HTML; a command waits for input with no machine-readable signal; the agent's data differs from the website. |
 | P7 | **Stays current, safely.** You can tell when an item changed and update it without losing your own edits or breaking links. | No way to know an update exists; an update overwrites local edits; a rename or move breaks an install or a shared link. |
 | P8 | **Adding an item takes minutes, from one source.** (For you, the author.) | The same information is written in two places; publishing needs website code changes; the catalog drifts from the source; a private item leaks. |
+| P9 | **Personal, not a pitch.** It reads as one person's working collection: what I use, when I reach for it and how it works for me, with how to get it for anyone who wants to. | Store or marketplace language ("discover", "the best", "top", "powerful", "supercharge"); claims that an item is better than others; telling the reader they should use it; popularity, ratings or download counts; a voice that speaks for a company or a community rather than the author. |
 
 **Not promised (non-goals), at least for the first release:**
 
-- Not an open marketplace: no third-party submissions, accounts, ratings, comments or
-  payments. Others can report problems through GitHub issues.
+- Not a marketplace, and not trying to look like one: no third-party submissions,
+  accounts, ratings, comments, popularity or payments. Others can report problems
+  through GitHub issues.
+- Not a recommendation: items are what work for the author, not claims about what
+  works best for anyone else.
 - Not a host or runner for skills: Loushing never executes an item on a server.
 - No listing of other authors' items, beyond "Also consider" links ([O10](#10-decisions)).
 - No usage tracking in the CLI ([O11](#10-decisions)).
@@ -397,6 +411,21 @@ service.
 
 ## 8. Copy
 
+**Voice: personal, not a pitch ([P9](#1-the-customer-promise)).** The site is written
+by its author, in the first person, about their own tools. It speaks to the reader as
+"you" only to explain how to get and use an item.
+
+| Do | Don't |
+| --- | --- |
+| "The skills and kits I use", "I reach for it when…", "It works for me with VS Code Copilot" | "The best skills for AI agents", "Discover powerful skills", "Supercharge your agent" |
+| "If you want to use one, here's how" | "You should install…", "Everyone needs…", "Join…" |
+| Say what an item does and when the author uses it | Compare items with other people's, or claim they're better |
+| Plain counts that describe the collection ("3 kits") | Popularity, ratings, downloads, "trusted by", "thousands of" |
+| "Tested: I use it with this agent" | "Certified", "official", "verified by the community" |
+
+The [copy check](#11-as-built) fails the build's tests when a page uses the banned
+pitch words. The rest is reviewed by hand against this table.
+
 **Glossary** (the site, CLI and pages use these words and no synonyms):
 
 | Term | Meaning | Not |
@@ -457,8 +486,8 @@ whether a website is worth building. Then A4 (kits), A10 (work devices), A8
 | O3 | Which item types besides skills and kits | Add agents, instructions, prompts, hooks and MCP configurations now · add each when the first real one arrives | Add each when the first real one arrives | Working default: skills, kits, stacks |
 | O4 | Job areas | Define now · derive from the first 10-15 items | Derive from real items with the [working rule](content-model.md#organization-facets-not-folders) | Working default: derive later |
 | O5 | Where the site and CLI code live | In Loushing (`site/`, `cli/`) · separate repositories | In Loushing: they share the schema, and one change can update both | Working default: in Loushing |
-| O6 | Site technology | A static-site generator with content collections and pre-rendering · a single-page app · a server framework | Static, pre-rendered pages from the index, with a client-side search index. Built in stage 1 as a dependency-free Node generator (see [as built](#11-as-built)) | Working default: built; needs your confirmation |
-| O7 | Hosting and domain | GitHub Pages · another static host · a custom domain | GitHub Pages from this repository first; a custom domain once the name is confirmed (O13) | Working default: GitHub Pages |
+| O6 | Site technology | A static-site generator with content collections and pre-rendering · a single-page app · a server framework | Static, pre-rendered pages from the index, with a client-side search index. Built in stage 1 as a dependency-free Node generator (see [as built](#11-as-built)) | Decided: as recommended |
+| O7 | Hosting and domain | GitHub Pages · another static host · a custom domain | GitHub Pages from this repository first; a custom domain once the name is confirmed (O13) | Decided: GitHub Pages, deployed by a workflow; the domain waits for O13 |
 | O8 | What to publish to npm | Only the `loushing` CLI · plus one package per kit | Only the CLI: kits are fetched from GitHub at pinned tags. The name `agent-orchestration` is already taken on npm. | Working default: CLI only |
 | O9 | Private and work items | Out of scope · a separate private catalog read with the person's GitHub access · encryption | A separate private repository with the same layout, added as a source in the CLI in a later stage | Working default: later stage |
 | O10 | Listing other authors' items | Never · as "Also consider" links · as full items | "Also consider" links only, with attribution | Working default: links only |
@@ -529,12 +558,32 @@ can overturn.
   another compound, sealed fundamentals, documented components, views that are pure
   data, and a Chopper that never takes clicks.
 
+- Every control is custom and drawn from tokens: rounded pill buttons, a custom
+  Select (a listbox over the native select, which stays as the no-script fallback),
+  custom facet checkboxes and a thin themed scrollbar. The palette is Harbour (see
+  [design decisions](../design/design-system.md#decisions-on-this-page)).
+- The highlight for a card is a folded corner (the dog-ear), not a side border.
+
+**Copy check (P9).** `site/test/copy.test.mjs` builds a neutral fixture catalog, so
+only the site's own words are checked, then fails if any page, attribute or agent
+file uses a pitch, store or preaching word ("the best", "powerful", "marketplace",
+"you should", "the owner" and others) or a word the copy rules ban. It also checks
+that Home introduces the author and that every page's footer says it is a personal
+collection. Item content is the item's own text and isn't checked.
+
 **Publication check.** Built into the catalog check, strict and without an allowlist
 ([as built](repository-organization.md#build-and-checks)).
 
+**Hosting ([O7](#10-decisions)).** `.github/workflows/pages.yml` runs on every push
+to `main`: it checks styles and tokens, runs the tests, builds with
+`BASE=/loushing/` and deploys `site/dist` to https://prabinpebam.github.io/loushing/.
+The checkout takes full history and the submodules, because the catalog reads pinned
+kit commits and dates from Git. The Slate docs host is not deployed.
+
 **Chopper.** The masters ship as PNG because there is no WebP encoder in a
-dependency-free build. No renders are approved yet, so pages show no cameos until
-the pilot runs.
+dependency-free build. Four pilot renders exist as drafts
+([pilot](../design/chopper.md#the-pilot)); pages show only approved renders, so
+there are no cameos until you approve them.
 
 **Not built yet.** Real skills (stage 1 needs at least five from you), component
-stories, automated Lighthouse and axe runs, hosting and deployment (O7), and the CLI.
+stories, automated Lighthouse and axe runs, a custom domain (O13), and the CLI.

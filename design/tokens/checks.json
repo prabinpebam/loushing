@@ -160,6 +160,26 @@
       "fg": "color.series-5",
       "bg": "color.bg-sunken",
       "min": 3
+    },
+    {
+      "fg": "color.text",
+      "bg": "color.tint-coral",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text",
+      "bg": "color.tint-harbour",
+      "min": 4.5
+    },
+    {
+      "fg": "color.text",
+      "bg": "color.tint-gold",
+      "min": 4.5
+    },
+    {
+      "fg": "color.action",
+      "bg": "color.tint-harbour",
+      "min": 4.5
     }
   ]
 }

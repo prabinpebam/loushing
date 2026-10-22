@@ -1,9 +1,10 @@
 /**
  * The site's only script: progressive enhancement over pages that work without it.
- * Tabs, copy buttons, theme and Chopper switches, the Get it pickers, catalog
- * filtering and Chopper's cameo picker. Pure logic lives in /assets/lib (tier 0).
+ * Tabs, copy buttons, theme and Chopper switches, the Get it pickers, custom selects,
+ * catalog filtering and Chopper's cameo picker. Pure logic lives in /assets/lib (tier 0).
  */
 import { search, facetCounts, filtersToQuery, queryToFilters } from '../lib/search.mjs';
+import { comboAction, openIndex, moveIndex, typeahead } from '../lib/listbox.mjs';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -120,6 +121,116 @@ function initGetIt() {
   picker.addEventListener('change', () => { store.set('loushing.agent', picker.value); apply(); });
   for (const r of scopes) r.addEventListener('change', () => { store.set('loushing.scope', r.value); apply(); });
   apply();
+}
+
+/* Select: the custom listbox over each native select (APG select-only combobox). */
+function initSelects() {
+  for (const root of $$('[data-select]')) {
+    const native = $('select', root);
+    const button = $('.f-select__button', root);
+    const list = $('[role=listbox]', root);
+    const label = $('.f-select__label', root);
+    const value = $('.f-select__value', button);
+    const options = $$('[role=option]', list);
+    const labels = options.map((o) => o.textContent.trim());
+    if (!native || !button || !list || !options.length) continue;
+    let active = -1;
+    let buffer = '';
+    let bufferTimer;
+    const isOpen = () => button.getAttribute('aria-expanded') === 'true';
+    const selectedIndex = () => Math.max(0, options.findIndex((o) => o.dataset.value === native.value));
+
+    const show = () => {
+      const i = selectedIndex();
+      options.forEach((o, k) => o.setAttribute('aria-selected', String(k === i)));
+      value.textContent = labels[i];
+    };
+    const setActive = (i) => {
+      active = i;
+      options.forEach((o, k) => { if (k === i) o.dataset.active = 'true'; else delete o.dataset.active; });
+      if (i >= 0) {
+        button.setAttribute('aria-activedescendant', options[i].id);
+        options[i].scrollIntoView({ block: 'nearest' });
+      } else button.removeAttribute('aria-activedescendant');
+    };
+    const place = () => {
+      const r = button.getBoundingClientRect();
+      const gap = 4;
+      const below = innerHeight - r.bottom - gap * 2;
+      const above = r.top - gap * 2;
+      const want = list.scrollHeight + list.offsetHeight - list.clientHeight;
+      const up = want > below && above > below;
+      list.style.left = `${r.left}px`;
+      list.style.width = `${r.width}px`;
+      list.style.maxHeight = `${Math.max(120, Math.min(want, up ? above : below))}px`;
+      list.style.top = up ? 'auto' : `${r.bottom + gap}px`;
+      list.style.bottom = up ? `${innerHeight - r.top + gap}px` : 'auto';
+    };
+    const open = (i) => {
+      list.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+      place();
+      setActive(i);
+      addEventListener('scroll', place, true);
+      addEventListener('resize', place);
+    };
+    const close = () => {
+      list.hidden = true;
+      button.setAttribute('aria-expanded', 'false');
+      setActive(-1);
+      removeEventListener('scroll', place, true);
+      removeEventListener('resize', place);
+    };
+    const commit = (i) => {
+      if (i < 0) return;
+      const changed = native.value !== options[i].dataset.value;
+      native.value = options[i].dataset.value;
+      show();
+      if (changed) native.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const type = (key) => {
+      clearTimeout(bufferTimer);
+      buffer += key;
+      bufferTimer = setTimeout(() => { buffer = ''; }, 500);
+      const from = isOpen() ? active : selectedIndex();
+      const i = typeahead(buffer, labels, from);
+      if (i < 0) return;
+      if (isOpen()) setActive(i);
+      else commit(i);
+    };
+
+    button.addEventListener('click', () => (isOpen() ? close() : open(selectedIndex())));
+    button.addEventListener('blur', () => { if (isOpen()) close(); });
+    button.addEventListener('keydown', (e) => {
+      const action = comboAction(e.key, isOpen(), { alt: e.altKey, typing: buffer.length > 0 });
+      if (!action || e.ctrlKey || e.metaKey) return;
+      if (action === 'select-tab') { commit(active); close(); return; }
+      e.preventDefault();
+      if (action === 'open') open(openIndex(e.key, selectedIndex(), options.length));
+      else if (action === 'close') close();
+      else if (action === 'select') { commit(active); close(); }
+      else if (action === 'move') setActive(moveIndex(e.key, active, options.length));
+      else if (action === 'type') type(e.key);
+    });
+    list.addEventListener('pointerdown', (e) => e.preventDefault());
+    list.addEventListener('click', (e) => {
+      const o = e.target.closest('[role=option]');
+      if (!o) return;
+      commit(options.indexOf(o));
+      close();
+      button.focus();
+    });
+    list.addEventListener('pointermove', (e) => {
+      const o = e.target.closest('[role=option]');
+      if (o && options.indexOf(o) !== active) setActive(options.indexOf(o));
+    });
+    label?.addEventListener('click', (e) => { e.preventDefault(); button.focus(); });
+    native.addEventListener('change', show);
+
+    show();
+    button.tabIndex = 0;
+    root.dataset.ready = 'true';
+  }
 }
 
 /* Catalog: search and facets filter and rank the cells in place; the URL keeps the state. */
@@ -250,6 +361,7 @@ initCopy();
 initTheme();
 initChopperToggle();
 initGetIt();
+initSelects();
 initCatalog();
 if ('requestIdleCallback' in window) requestIdleCallback(() => initChopper());
 else setTimeout(initChopper, 200);

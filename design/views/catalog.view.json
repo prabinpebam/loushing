@@ -3,7 +3,7 @@
   "layout": "index",
   "title": "Catalog",
   "regions": {
-    "head": [{ "type": "text", "markdown": "# Catalog\n\nEvery skill, kit and stack, with the parts inside each kit. Search by the job you have, then narrow it down." }],
+    "head": [{ "type": "text", "markdown": "# Catalog\n\nEverything I use: skills, kits and stacks, with the parts inside each kit. Search by the job, then narrow it down." }],
     "filters": [{ "type": "facet-bar", "facets": ["type", "area", "agent", "effects", "status"] }],
     "results": [{ "type": "item-tiles", "view": "tiles", "items": { "from": "search" } }, { "type": "empty-state", "kind": "no-results", "hidden": true }]
   }

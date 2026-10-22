@@ -127,3 +127,37 @@ test('install: skill plans per agent and scope, with a pinned commit', () => {
   assert.equal(downloadUrl(item), 'https://github.com/prabinpebam/loushing/archive/abcdef1234567.zip');
   assert.equal(plan(item, { agent: { id: 'x', install: 'x', title: 'X' }, scope: 'project' }).supported, false);
 });
+import { comboAction, openIndex, moveIndex, typeahead } from '../src/lib/listbox.mjs';
+
+test('listbox: keys map to combobox actions', () => {
+  assert.equal(comboAction('ArrowDown', false), 'open');
+  assert.equal(comboAction('Enter', false), 'open');
+  assert.equal(comboAction(' ', false), 'open');
+  assert.equal(comboAction('v', false), 'type');
+  assert.equal(comboAction('Tab', false), null);
+  assert.equal(comboAction('Escape', true), 'close');
+  assert.equal(comboAction('Enter', true), 'select');
+  assert.equal(comboAction('ArrowUp', true, { alt: true }), 'select');
+  assert.equal(comboAction('Tab', true), 'select-tab');
+  assert.equal(comboAction('PageDown', true), 'move');
+  assert.equal(comboAction(' ', true, { typing: true }), 'type');
+  assert.equal(comboAction('Shift', true), null);
+});
+
+test('listbox: opening, moving and type-ahead stay inside the list', () => {
+  assert.equal(openIndex('ArrowDown', 2, 5), 2);
+  assert.equal(openIndex('Home', 2, 5), 0);
+  assert.equal(openIndex('End', 2, 5), 4);
+  assert.equal(openIndex('Enter', 9, 5), 4);
+  assert.equal(openIndex('Enter', 0, 0), -1);
+  assert.equal(moveIndex('ArrowDown', 4, 5), 4);
+  assert.equal(moveIndex('ArrowUp', 0, 5), 0);
+  assert.equal(moveIndex('PageDown', 1, 30), 11);
+  assert.equal(moveIndex('PageUp', 3, 30), 0);
+  const labels = ['VS Code Copilot', 'Copilot CLI', 'Claude Code', 'Codex', 'Cursor'];
+  assert.equal(typeahead('cl', labels, 0), 2);
+  assert.equal(typeahead('c', labels, 1), 2);
+  assert.equal(typeahead('cc', labels, 2), 3);
+  assert.equal(typeahead('c', labels, 4), 1);
+  assert.equal(typeahead('z', labels, 0), -1);
+});

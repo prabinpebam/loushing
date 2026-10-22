@@ -484,12 +484,27 @@ repository.
 | The pilot | | 4 renders | About $0.40 |
 | The full library | | 89 renders and 5 cast sheets | About $10 |
 
+### The pilot
+
 The pilot draws 4 renders that test the hardest things: `nap-curled` at small and at
 medium (does the line stay the same across sizes?), `peek-over` at small (a partial
 figure drawn small) and `tail-chase` at large (motion and a curled tail from an
 unusual angle). It tests [A15](../spec/product-spec.md#9-assumptions-and-risks)
 and A17, and sets k ([O33](#decisions-on-this-page)). Set pieces follow once the
 squirrel's sheet is approved.
+
+**What the pilot found.** All 4 renders are drafts in `design/chopper/source/`,
+waiting for your approval. The character and the style hold against the sheet. But
+the model draws every render at about one scale, whatever the size class asks for:
+the line is about 5 px in the master and the figure about 300 px wide. So the
+three size classes come out nearly the same size. At k = 1.25 that's about a 2 px
+line on screen (2.4 px for the peek), not the planned 1.5 px. The options for O33:
+
+| Option | What changes | Trade-off |
+| --- | --- | --- |
+| One scale, k ≈ 1.67, larger zones (recommended) | Draw every render at the scale the model holds, reduce all by the same k, and size the cameo zones to fit | A line of about 3 px in the master becomes about 1.5 px on screen, as planned; the zones get bigger |
+| Keep k = 1.25 | Accept a line of about 2 px | Chopper reads a little heavier than the interface's lines |
+| Retry with a scale reference | Add a ruler image to every prompt | Costs more renders; the model may still ignore it |
 
 ## Checks
 
@@ -518,6 +533,6 @@ squirrel's sheet is approved.
 | O28 | How often he appears | At most 2 moments and 3 images per page, 1 moment per screenful, 1.5 screens apart, no repeat within 8 moments; a new pick on every page view | Working default; tuned by A14 |
 | O29 | Image format and budget | WebP with alpha at 1x and 2x, at most 30 KB each and 90 KB per page; transparent PNG masters in the repository | Working default |
 | O32 | Is he the logo or favicon? | No: a wordmark logo keeps him a background character, never the brand's face | Open: needs your choice |
-| O33 | The drawing standard | A 1.5 px ink line in every image; three size classes drawn separately; one reduction factor k = 1.25 for all, confirmed by the pilot | Working default: the pilot sets k |
+| O33 | The drawing standard | A 1.5 px ink line in every image; three size classes drawn separately; one reduction factor k = 1.25 for all, confirmed by the pilot | Needs your decision: the pilot found the model holds one scale (see [the pilot](#the-pilot)); recommended k ≈ 1.67 with larger zones |
 | O34 | Props and supporting cast | Home-life props, at most 2 per image; a cast of squirrel, pigeons, sparrows, butterfly and robot vacuum, each with its own approved sheet; set pieces of 2 images | Working default |
 | O35 | Stories and time of day | Day-in-his-life stories that carry across pages, favouring the visitor's local time of day | Working default; tuned by A14 |

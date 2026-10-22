@@ -5,18 +5,19 @@ summary: What skills, kits and stacks are, and how to get one into your project.
 
 # Get started
 
-Loushing is a catalog of things that make AI coding agents better at a job: skills,
-kits and stacks. Every item has a page that says what it does in plain words, and a
-**Get it** panel with the exact steps for your agent.
+Loushing is my personal collection: the skills, kits and stacks I use when I work with
+AI coding agents. I keep them here so I can find and set them up again. They work for
+me; if one looks useful to you, take it. Every item has a page that says what it does
+in plain words, and a **Get it** panel with the exact steps for your agent.
 
-## What's in the catalog
+## What's in here
 
 - **Skill:** one folder of instructions (a `SKILL.md`, sometimes with references and
   scripts) that your agent loads when a task needs it.
 - **Kit:** a set of skills, agents, templates and tools that work as one system, with
   its own setup. Each piece inside a kit is a **part**, and has a short page of its own.
-- **Stack:** a few kits or skills that work well together, in order, with what each
-  hands to the next.
+- **Stack:** a few kits or skills I use together, in order, with what each hands to
+  the next.
 
 ## Get one
 
@@ -39,8 +40,8 @@ the trust panel:
 - **Writes outside its folder:** it changes files beyond its own folder.
 - **Needs credentials:** it needs an account or a key.
 
-**Tested** next to an agent means the owner used it with that agent. **Expected** means
-it follows the shared skill format and should work, but hasn't been tried there yet.
+**Tested** next to an agent means I use it with that agent. **Expected** means it
+follows the shared skill format and should work, but I haven't tried it there yet.
 
 ## Coming soon
 

@@ -3,7 +3,8 @@
 The rules that keep every Loushing screen consistent: one token source, four tiers of
 sealed components, and views assembled entirely from data. The method comes from
 agentic-craft's design-system skill. This page applies it to Loushing and sets the
-look: modern and clean, warm paper and ink, and one hand-drawn character.
+look: modern and clean, harbour mist, ink and teal with a coral spark, and one
+hand-drawn character.
 
 > **TL;DR.**
 > - **Is there strict discipline?** The method existed through Craft (tokens only, four
@@ -11,9 +12,11 @@ look: modern and clean, warm paper and ink, and one hand-drawn character.
 >   product design system until now. It now has a token source that passes every
 >   contrast check in light, dark and more-contrast, a component inventory, a view
 >   format, and the list of checks that enforce it.
-> - **The look:** a clean system with one hand-drawn character. Warm paper, ink and a
->   coral accent, all sampled from [Chopper's](chopper.md) character sheet; everything
->   except Chopper is crisp and geometric ([O22](#decisions-on-this-page)).
+> - **The look:** a clean system with one hand-drawn character. The Harbour palette:
+>   mist, ink and harbour teal, with coral for the one highlight per view; everything
+>   except [Chopper](chopper.md) is crisp and geometric ([O22](#decisions-on-this-page)).
+>   Every control is custom: pill buttons, a custom Select, custom checkboxes and a
+>   thin scrollbar. A highlighted card gets a folded corner, the dog-ear.
 > - **The rules:** components read tokens only, never raw values or primitives;
 >   fundamentals are sealed; screens are [view specs](#views-from-data) made of blocks;
 >   [visual first](visual-first.md) decides how each piece of information is shown;
@@ -21,8 +24,7 @@ look: modern and clean, warm paper and ink, and one hand-drawn character.
 > - **Now vs stage 1:** tokens, contrast checks and the token reference run today.
 >   Components, the library and the style, copy, accessibility and Chopper checks start
 >   with the site code in stage 1.
-> - **Open:** the palette (O22) and the typeface (O23) are working defaults for your
->   review.
+> - **Open:** the typeface (O23) is a working default for your review.
 
 Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
 [tokens](tokens.md) · [product spec](../spec/product-spec.md#5-views) ·
@@ -55,7 +57,7 @@ Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
   <article class="slate-card">
     <p class="slate-card__kicker">Chopper</p>
     <p class="slate-card__metric">0 of 89</p>
-    <p class="slate-card__body">Renders approved. The character sheet, scenes, set pieces, stories, drawing standard and generation skill are ready.</p>
+    <p class="slate-card__body">Renders approved; 4 pilot drafts wait for your review. The character sheet, scenes, set pieces, stories, drawing standard and generation skill are ready.</p>
   </article>
   <article class="slate-card">
     <p class="slate-card__kicker">Enforcement</p>
@@ -72,8 +74,12 @@ Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
     <p class="slate-card__body">Crisp geometry, generous space, rounded tiles and pill buttons. The only hand-drawn thing on screen is Chopper, so he reads as a character, not as a style.</p>
   </article>
   <article class="slate-card">
-    <h3 class="slate-card__title">Warm paper, ink and coral</h3>
-    <p class="slate-card__body">The background is a whisper of his cream coat, text and primary buttons are his ink line, and the accent is a deeper shade of his tongue. Dark mode is warm night, not blue-black.</p>
+    <h3 class="slate-card__title">Harbour: mist, ink, teal and coral</h3>
+    <p class="slate-card__body">A cool mist page, ink text, harbour teal for buttons, links and the current place, and coral kept for the one highlight in a view. Dark mode is harbour night, with a soft halo so Chopper stays visible.</p>
+  </article>
+  <article class="slate-card">
+    <h3 class="slate-card__title">The dog-ear</h3>
+    <p class="slate-card__body">A highlighted card gets a coral folded corner and a soft tint, not a side border. One per view, at most.</p>
   </article>
   <article class="slate-card">
     <h3 class="slate-card__title">Show, then tell</h3>
@@ -92,17 +98,18 @@ value is the generated [token reference](tokens.md).
 
 | Role | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `color.bg` | Paper `#fdfbf7` | Night `#1b1816` | The page |
-| `color.bg-raised` | White | Night 800 | Cards, panels, inputs |
-| `color.bg-sunken` | Cream `#f8f1e7` | Night 700 | Tiles and wells |
-| `color.text` | Ink `#1a1715` | Cream | Body text and headings |
-| `color.text-muted` | Warm grey ink | Night 300 | Meta and secondary text |
-| `color.action` | Ink | Cream | Primary buttons |
-| `color.accent` | Coral 700 `#a8412f` | Coral 300 | Links, selection, current place |
-| `color.focus` | Coral 700 | Coral 300 | The focus ring |
-| `color.decor` | Coral 400 | Coral 400 | Illustration highlights only; never text or controls |
-| `color.positive`, `color.negative` | Green 700, crimson 700 | Green 400, red 400 | Status; crimson is kept apart from the coral accent |
-| `color.series-1…5` | Coral, teal, gold, blue, sage at 600-700 | The same at 300 | Charts and data visuals |
+| `color.bg` | Mist `#f8fafd` | Night `#14181b` | The page |
+| `color.bg-raised` | White | Ink `#1b1f23` | Cards, panels, inputs |
+| `color.bg-sunken` | Mist 100 `#eef3f7` | Night 700 | Tiles and wells |
+| `color.text` | Ink `#1b1f23` | Mist 100 | Body text and headings |
+| `color.text-muted` | Ink 600 | Night 300 | Meta and secondary text |
+| `color.action` | Harbour teal `#1d5f7a` | Harbour 300 | Primary buttons, with white (light) or night (dark) text |
+| `color.accent` | Harbour teal | Harbour 300 | Links, selection, current place |
+| `color.focus` | Coral 700 `#b04f27` | Coral 300 | The focus ring |
+| `color.decor` | Coral `#f08a5d` | Coral `#f08a5d` | Illustration highlights and the dog-ear; never text or controls |
+| `color.tint-coral`, `tint-harbour`, `tint-gold` | Coral, harbour and gold 100 | The same at 900 | Badge fills, secondary buttons and highlighted cards |
+| `color.positive`, `color.negative` | Green 700, crimson 700 | Green 400, red 400 | Status; crimson is kept apart from coral |
+| `color.series-1…5` | Coral, harbour, gold, blue, sage at 600-700 | The same at 300 | Charts and data visuals |
 
 ### Contrast
 
@@ -111,20 +118,20 @@ at 4.5:1 and outlines, focus and chart series at 3:1.
 
 <div class="slate-metrics">
   <div class="slate-metric">
-    <p class="slate-metric__value">17.3:1</p>
+    <p class="slate-metric__value">15.9:1</p>
     <p class="slate-metric__label">Text on the page, light</p>
   </div>
   <div class="slate-metric">
-    <p class="slate-metric__value">15.8:1</p>
+    <p class="slate-metric__value">16.0:1</p>
     <p class="slate-metric__label">Text on the page, dark</p>
   </div>
   <div class="slate-metric">
-    <p class="slate-metric__value">5.9:1</p>
-    <p class="slate-metric__label">Coral accent on the page, light</p>
+    <p class="slate-metric__value">6.8:1</p>
+    <p class="slate-metric__label">Harbour teal links on the page, light</p>
   </div>
   <div class="slate-metric">
-    <p class="slate-metric__value">3.07:1</p>
-    <p class="slate-metric__label">Tightest pair: dark outline on a sunken tile (minimum 3)</p>
+    <p class="slate-metric__value">3.4:1</p>
+    <p class="slate-metric__label">Dark outline on a sunken tile (minimum 3)</p>
   </div>
 </div>
 
@@ -286,6 +293,6 @@ before it reaches a page.
 
 | # | Question | Recommendation | Decided |
 | --- | --- | --- | --- |
-| O22 | Visual direction and palette | Warm paper, ink and coral sampled from Chopper's character sheet; a clean, geometric system around one hand-drawn character | Working default: needs your review |
+| O22 | Visual direction and palette | The Harbour palette: mist, ink, harbour teal and coral; a clean, geometric system around one hand-drawn character | Decided: Harbour, from your palette |
 | O23 | Typeface | Inter Variable, self-hosted as a Latin subset, with JetBrains Mono for code; no web font service | Working default: needs your review |
 | O24 | Where design source lives | `design/` holds tokens, view specs and Chopper; components and layouts live with the site code in `site/` | Working default |

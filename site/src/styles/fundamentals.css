@@ -10,7 +10,8 @@
   vertical-align: middle;
 }
 
-/* Button */
+/* Button: primary is a solid harbour pill; secondary a soft harbour tint; quiet is text
+   until hovered. All share one height, one radius and the same press. */
 .f-button {
   display: inline-flex;
   align-items: center;
@@ -18,24 +19,29 @@
   gap: var(--space-2);
   min-height: var(--c-button-height);
   padding: 0 var(--c-button-padding-inline);
-  border: var(--border-hairline) solid var(--color-outline);
+  border: 0;
   border-radius: var(--c-button-radius);
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  font-weight: var(--weight-medium);
+  background: var(--color-tint-harbour);
+  color: var(--color-action);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-ui);
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+  transition: background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
-.f-button[data-kind='primary'] { border-color: transparent; background: var(--color-action); color: var(--color-on-action); }
-.f-button[data-kind='quiet'] { border-color: transparent; background: transparent; color: var(--color-action); }
+.f-button .f-icon { width: var(--text-lg); height: var(--text-lg); }
+.f-button[data-kind='primary'] { background: var(--color-action); color: var(--color-on-action); box-shadow: var(--shadow-raised); }
+.f-button[data-kind='quiet'] { background: transparent; }
 .f-button:active { transform: scale(var(--scale-press)); }
-.f-button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.f-button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; transform: none; }
 @media (hover: hover) {
-  .f-button:hover { background: var(--color-bg-hover); }
-  .f-button[data-kind='primary']:hover { background: var(--color-action-hover); }
-  .f-button[data-kind='quiet']:hover { background: var(--color-bg-hover); color: var(--color-action-hover); }
+  .f-button:hover { box-shadow: inset 0 0 0 var(--border-hairline) var(--color-action); }
+  .f-button[data-kind='primary']:hover { background: var(--color-action-hover); box-shadow: var(--shadow-raised); }
+  .f-button[data-kind='quiet']:hover { background: var(--color-tint-harbour); box-shadow: none; }
+}
+@media (forced-colors: active) {
+  .f-button { border: var(--border-hairline) solid ButtonText; }
 }
 
 /* IconButton */
@@ -115,9 +121,9 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
   text-transform: uppercase;
   white-space: nowrap;
 }
-.f-badge[data-value='kit'] { background: var(--color-series-1); color: var(--color-on-accent); }
-.f-badge[data-value='skill'] { background: var(--color-series-2); color: var(--color-on-accent); }
-.f-badge[data-value='stack'] { background: var(--color-series-3); color: var(--color-on-accent); }
+.f-badge[data-value='kit'] { background: var(--color-tint-coral); }
+.f-badge[data-value='skill'] { background: var(--color-tint-harbour); }
+.f-badge[data-value='stack'] { background: var(--color-tint-gold); }
 .f-badge[data-kind='status'] { background: transparent; border: var(--border-hairline) solid var(--color-outline); color: var(--color-text-muted); }
 .f-badge[data-value='stable'] { border-color: var(--color-positive); color: var(--color-positive); }
 .f-badge[data-value='experimental'] { border-color: var(--color-accent); color: var(--color-accent); }
@@ -152,13 +158,14 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
 .f-search__input:focus-visible { outline-offset: 0; border-radius: var(--radius-pill); }
 .f-search__submit {
   min-height: var(--size-control);
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-6);
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-action);
   color: var(--color-on-action);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 .f-search__submit:active { transform: scale(var(--scale-press)); }
 .f-search[data-size='lg'] .f-search__field { flex-basis: calc(var(--size-tile-min) * 1.25); }
@@ -195,6 +202,7 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
   padding: 0 var(--space-3);
   border: 0;
   border-bottom: var(--border-focus) solid transparent;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
@@ -230,39 +238,82 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
 .f-copy__button {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: var(--size-control);
-  margin-left: auto;
-  padding: 0 var(--space-3);
+  margin: var(--space-2) var(--space-2) var(--space-2) auto;
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-pill);
-  background: transparent;
+  background: var(--color-tint-harbour);
   color: var(--color-action);
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 .f-copy__button[data-copied] { color: var(--color-positive); }
 .f-copy__button:active { transform: scale(var(--scale-press)); }
 @media (hover: hover) {
-  .f-copy__button:hover { background: var(--color-bg-hover); }
+  .f-copy__button:hover { box-shadow: inset 0 0 0 var(--border-hairline) var(--color-action); }
 }
 
-/* Select */
-.f-select { display: inline-flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+/* Select: a custom listbox over a native select. Without script the native select
+   shows (styled as a pill); once the client is ready, the button and list take over. */
+.f-select { position: relative; display: inline-flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .f-select__label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-text-muted); }
 .f-select__field { position: relative; display: flex; align-items: center; }
-.f-select__input {
+.f-select__input, .f-select__button {
   width: 100%;
   min-height: var(--size-control);
   padding: 0 var(--space-12) 0 var(--space-4);
   border: var(--border-hairline) solid var(--color-outline);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--color-bg-raised);
+  color: var(--color-text);
+  text-align: left;
   appearance: none;
   cursor: pointer;
 }
-.f-select__field > .f-icon { position: absolute; right: var(--space-3); pointer-events: none; }
+.f-select__button { display: none; align-items: center; font-weight: var(--weight-medium); }
+.f-select__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-select__field > .f-icon { position: absolute; right: var(--space-4); color: var(--color-text-muted); pointer-events: none; transition: transform var(--duration-fast) var(--ease-standard); }
+.f-select[data-ready] .f-select__input { display: none; }
+.f-select[data-ready] .f-select__button { display: flex; }
+.f-select__button[aria-expanded='true'] { border-color: var(--color-action); }
+.f-select__button[aria-expanded='true'] + .f-icon { transform: rotate(180deg); color: var(--color-action); }
+.f-select__list {
+  position: fixed;
+  z-index: var(--layer-overlay);
+  display: grid;
+  gap: var(--border-hairline);
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: var(--border-hairline) solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-raised);
+  list-style: none;
+}
+.f-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--size-control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.f-select__option .f-icon { visibility: hidden; color: var(--color-accent); }
+.f-select__option[data-active] { background: var(--color-bg-hover); }
+.f-select__option[aria-selected='true'] { color: var(--color-accent); font-weight: var(--weight-semibold); }
+.f-select__option[aria-selected='true'] .f-icon { visibility: visible; }
+@media (hover: hover) {
+  .f-select__input:hover, .f-select__button:hover { border-color: var(--color-action); }
+}
+@media (forced-colors: active) {
+  .f-select__option[data-active] { outline: var(--border-focus) solid Highlight; }
+}
 
 /* Segmented */
 .f-segmented { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; padding: 0; border: 0; }
@@ -340,7 +391,7 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
   text-decoration: none;
 }
 .f-tile[data-tone='raised'] { background: var(--color-bg-raised); box-shadow: var(--shadow-raised); }
-.f-tile[data-tone='accent'] { background: var(--color-accent); color: var(--color-on-accent); }
+.f-tile[data-tone='accent'] { background: var(--c-ear-tint); }
 a.f-tile { transition: transform var(--duration-base) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard); }
 a.f-tile:active { transform: scale(var(--scale-press)); }
 @media (hover: hover) {
