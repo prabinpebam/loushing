@@ -21,11 +21,16 @@ scenes with one render per size, set pieces and story threads.
 - **Scene:** one image idea (action, pose, mood, facing, props). `subject` set means a
   cast member is drawn instead of Chopper; `standalone: false` means it is only ever a
   set piece part.
-- **Render:** one scene drawn for one size class (`sm`, `md`, `lg`). Each render is
+- **Render:** one scene drawn for one size class (`sm`, `md`, `lg`, `strip`, `tall`). Each render is
   generated separately and has its own status: planned, draft, approved or retired.
 - **Moment:** what appears in one place at one time: one scene, or one set piece.
 - **Set piece:** two scenes placed at the left and right ends of the same zone, facing
   each other.
+- **Strip:** one 3:1 image holding a whole scene, Chopper and a cast member or prop,
+  shown on its own line in a section break or the footer from medium screens up. The
+  scene lists its cast in `cast`. Prefer a strip over a set piece: one drawing keeps
+  the two figures at one scale.
+- **Tall:** one 1:2 image for the side gutter on very wide screens.
 - **Thread (story):** ordered beats; each beat is a scene or a set piece; each thread
   has a daypart.
 
@@ -43,8 +48,9 @@ scenes with one render per size, set pieces and story threads.
    per approved render, about $0.15 per cast sheet.
 4. **The references.** Every call passes
    `design/chopper/reference/character-sheet.png`. A cast part also passes its
-   approved cast sheet. Never generate Chopper or the cast from text alone, and never
-   use a cast member whose sheet is not approved.
+   cast sheet (`design/chopper/reference/cast-sheet.png`, one sheet for the whole cast)
+   as the second image. Never generate Chopper or the cast from text alone. While the
+   cast sheet is a draft, scenes using it stay drafts.
 
 ## The drawing standard (read before every render)
 
@@ -56,6 +62,8 @@ drawn for its size and every master is reduced by the same factor.
 | `sm` | 56 | 20 px | 50 px | 3.75 px |
 | `md` | 96 | 34 px | 85 px | 3.75 px |
 | `lg` | 160 | 56 px | 140 px | 3.75 px |
+| `strip` | 160 high | 28 px | as `sm` | 3.75 px |
+| `tall` | 400 high | 28 px | as `sm` | 3.75 px |
 
 `k` is `drawing.masterFactor`. The pilot found the model draws every render at about
 one scale (a line of about 5 px in the master), so the working default is k ≈ 1.67,
@@ -66,10 +74,19 @@ is measured from the top of the fringe to the chin, whatever the pose.
   its own. The build trims every master to its alpha bounds and reduces it by exactly
   `1/k` (2x) and `1/(2k)` (1x).
 - If a draft is off scale, redraw it with a stronger scale line. Never rescale to fit.
-- The canvas is the smallest the model allows, from `drawing.canvases`: `wide`
-  (1024x640) by default, `tall` (640x1024) for upright figures taller than wide,
-  `square` (816x816) for compact ones. The figure is drawn small on it, with the rest
-  left empty.
+- The canvas comes from `drawing.canvases`. The model sizes a figure to its canvas or
+  grid cell, so the canvas sets the scale:
+
+  | Canvas | Size | Use | Scale found |
+  | --- | --- | --- | --- |
+  | `grid4x2` | 2048x1024 | 8 small cameos per call, one per cell | Matches the pilots (line 3.5 to 4.7 master px). The standard for `sm` |
+  | `grid2x2` | 2048x1280 | 4 per call | About 1.5x larger (line 5 to 7); usable for `md` only |
+  | `strip` | 2304x768 | One `strip` scene | On scale (line 4.7 to 5.0) |
+  | `upright` | 768x1536 | One `tall` scene | On scale |
+  | `wide`, `tall`, `square` | 1024x640, 640x1024, 816x816 | One cameo per call | On scale (the pilots) |
+
+- The widest aspect the model accepts is **3:1**; it rejects 4:1. Both sides must be
+  multiples of 16.
 
 ## Character lock (Chopper renders)
 
@@ -166,20 +183,36 @@ New-Item -ItemType Directory -Force design\chopper\drafts, design\chopper\source
 8. **Clean up.** Leave drafts in `design/chopper/drafts/` (ignored by Git) or delete
    them; never commit them.
 
+## Workflow for a grid (8 small cameos per call)
+
+1. Choose 8 `sm` scenes. Write one prompt: the character lock and style lock once, then
+   "A 4 by 2 grid of 8 separate drawings of Chopper on a 2048x1024 transparent canvas,
+   one per cell, each centred in its cell with wide empty transparent gutters between
+   cells; no grid lines, no borders", then one numbered scene line per cell (row by
+   row, left to right). For a peeking scene, add that he is cut off cleanly by a
+   straight horizontal line at the bottom of his cell.
+2. Generate at `--size 2048x1024 --quality high --n 1`. A low-quality probe first is
+   cheap insurance when trying a new grid shape.
+3. Slice along the cells, trim each to its alpha bounds, and check no figure crosses a
+   cell edge (an ink pixel on a cell border means it touched its neighbour: redraw).
+4. Measure, QA and record each slice as its own render (`canvas: grid4x2`), with the
+   shared prompt saved beside each master and its cell named in the prompt file.
+
 The site build, not this skill, trims, reduces by `1/k` and writes the shipped WebP
 files (1x and 2x) from the masters.
 
-## Cast sheets (before any cast render)
+## The cast sheet (before any cast render)
 
-A cast member (`cast` in `scenes.json`) needs its own sheet before any scene uses it.
+The whole cast (`cast` in `scenes.json`) shares one sheet,
+`design/chopper/reference/cast-sheet.png`, with its prompt beside it.
 
-1. Prompt: the cast lock, then "a character sheet for this character: front, left
-   side, right side, and three poses, on a transparent background, no text", then the
-   style lock. Pass Chopper's sheet as the style reference.
-2. Draft four at low quality on `1536x1024`, pick one, finalise at high quality to
-   `design\chopper\reference\cast-<id>.png`.
-3. Show it to the owner beside Chopper's sheet. Only on their approval set the cast
-   member's `status: approved`.
+1. Prompt: each cast member's description, "drawn as supporting characters in exactly
+   the art style of Chopper's character sheet, each shown from two or three angles, on
+   a transparent background, no text", then the style lock. Pass Chopper's sheet as
+   the style reference.
+2. Generate on `1536x1024` at high quality to the path above.
+3. Show it to the owner beside Chopper's sheet. Only on their approval set each cast
+   member's `status: approved`. Redrawing it means redrawing the scenes drawn from it.
 
 ## Set pieces
 

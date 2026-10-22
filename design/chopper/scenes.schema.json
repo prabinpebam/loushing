@@ -70,7 +70,13 @@
           "poses": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/pose" } },
           "size": { "$ref": "#/$defs/size" },
           "minBreakpoint": { "enum": ["none", "sm", "md", "lg", "xl"], "description": "Smallest breakpoint token at which the zone exists" },
-          "align": { "enum": ["start", "end", "either"], "description": "Which side of the zone a single scene sits on. Set pieces need either" }
+          "align": { "enum": ["start", "end", "either"], "description": "Which side of the zone a single scene sits on. Set pieces need either" },
+          "extraSizes": {
+            "type": "object",
+            "propertyNames": { "$ref": "#/$defs/size" },
+            "additionalProperties": { "enum": ["none", "sm", "md", "lg", "xl"] },
+            "description": "Further size classes the zone also takes, each from its own minimum breakpoint (a strip needs room). Tried before the zone's own size"
+          }
         }
       }
     },
@@ -98,7 +104,7 @@
         "additionalProperties": false,
         "properties": {
           "description": { "type": "string" },
-          "sheet": { "type": "string", "description": "design/chopper/reference/cast-<id>.png" },
+          "sheet": { "type": "string", "description": "The cast sheet the character is drawn from, under design/chopper/reference/" },
           "status": { "enum": ["planned", "draft", "approved", "retired"] }
         }
       }
@@ -118,7 +124,7 @@
   },
   "$defs": {
     "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-    "size": { "enum": ["sm", "md", "lg"] },
+    "size": { "enum": ["sm", "md", "lg", "strip", "tall"], "description": "sm, md, lg: one figure; strip: an ultra-wide 3:1 scene across a zone; tall: a 1:2 scene for a narrow upright space" },
     "zone": { "enum": ["masthead-edge", "gutter", "section-break", "tile-peek", "footer-ledge", "list-end", "empty-companion"] },
     "pose": { "enum": ["lying", "sitting", "standing", "running", "peeking", "playing"] },
     "renderStatus": { "enum": ["planned", "draft", "approved", "retired"] },
@@ -160,6 +166,7 @@
         "facing": { "enum": ["left", "right", "front", "back"], "description": "Generated as drawn; never mirrored, because the black patch is asymmetric" },
         "zones": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/zone" } },
         "props": { "type": "array", "maxItems": 2, "items": { "$ref": "#/$defs/id" }, "description": "IDs from props, at most rules.maxPropsPerImage" },
+        "cast": { "type": "array", "maxItems": 2, "items": { "$ref": "#/$defs/id" }, "description": "Cast IDs drawn in the same image as him: only in a strip or tall scene, where the space between them is part of the drawing. Generated with the cast sheet as a second reference" },
         "renders": {
           "type": "object",
           "minProperties": 1,

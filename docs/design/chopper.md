@@ -121,8 +121,9 @@ nothing unsafe for a dog.
 | Butterfly | Small, pale yellow, about the size of his ear | As a prop, or in set pieces |
 | Robot vacuum | Round, low and grey, with one small light; it never touches him | In set pieces |
 
-Each cast member gets its own small character sheet in his style. You approve it
-before any scene uses it, and it is passed as a reference with his. The cast is never
+The cast is drawn on one shared cast sheet in his style
+(`design/chopper/reference/cast-sheet.png`), a draft for you to approve. Every scene
+with a cast member passes it as a second reference after his. The cast is never
 larger than he is, never appears without him, and is never caught, hurt or
 threatening. He barks boldly, never fearfully, and every story ends well.
 
@@ -386,7 +387,7 @@ is drawn for the size it is shown at, and all of them share one line width.
     <p class="slate-metric__label">The one reduction factor, for every image</p>
   </div>
   <div class="slate-metric">
-    <p class="slate-metric__value">3</p>
+    <p class="slate-metric__value">5</p>
     <p class="slate-metric__label">Size classes, each drawn separately</p>
   </div>
 </div>
@@ -415,6 +416,21 @@ is drawn for the size it is shown at, and all of them share one line width.
   sets them, and zones never stretch them; the zone height only reserves space.
 - **Measured, not eyeballed.** Every approved render records its measured line width
   (within 20% of 1.5 px) and head height (within 10% of its class).
+
+### Panoramas and tall scenes
+
+Two more size classes hold whole scenes, with Chopper and a cast member or prop in
+one image, at the same scale and line as the small cameos:
+
+| Size class | Canvas | Frame | Where | From |
+| --- | --- | --- | --- | --- |
+| Strip | 2304 × 768 (3:1) | 160 px high, about 450 to 650 px wide | A section break or the footer ledge, on its own line, centred | Medium screens up |
+| Tall | 768 × 1536 (1:2) | 400 px high, about 100 px wide | The side gutter | Very wide screens |
+
+3:1 is the widest canvas the image model accepts; it rejects 4:1. A strip takes the
+place of a two-image set piece: one drawing, so the two figures share a scale by
+construction. A scene lists its cast in `cast`. On a narrower screen a zone falls back
+to its own size, and a scene without a render for it doesn't show.
 
 ## Motion
 
@@ -524,6 +540,32 @@ so you can judge them where they're used rather than as loose files:
 - Known gap: the trimmed PNGs are 120 to 170 KB each, over the 30 KB budget (O29),
   until a WebP step exists.
 
+### The second batch
+
+33 more renders, all drafts on the site for review: 24 small, 3 medium, 5 strips and
+1 tall. Together with the cast sheet, the batch took 14 high-quality calls.
+
+- **Eight at a time.** Small cameos are drawn as a 4 × 2 grid on a 2048 × 1024 canvas,
+  one scene per cell, then sliced along the transparent gutters. The model sizes a
+  figure to its cell, so the grid sets the scale: a 4 × 2 grid matches the pilots
+  (line about 3.5 to 4.7 master px), while a 2 × 2 grid on 2048 × 1280 draws him
+  about 1.5 times larger. Three 2 × 2 cells (big-yawn, sit-wait, leash-wait) were kept
+  as medium renders for that reason.
+- **One scene per call** for strips and the tall scene, with the cast sheet as the
+  second reference. They came out on scale (line 4.7 to 5.0 master px).
+- **Stories use them.** The squirrel, vacuum and balcony stories now tell their middle
+  beat with a strip instead of a set piece still waiting for images.
+
+Review links (strips need a medium screen; the tall scene a very wide one):
+
+| Scene | Link |
+| --- | --- |
+| Strips | `/?chopper-scene=balcony-bark`, `vacuum-tail`, `squirrel-wait`, `sparrow-dash`, `ball-far` |
+| Tall | `/get-started?chopper-scene=bubble-gaze` |
+| Medium | `/catalog?chopper-scene=big-yawn`, `sit-wait`, `leash-wait` |
+| Peeks | `/?chopper-scene=peek-ball`, `peek-paw`, `peek-sleepy`, `peek-ears` |
+| Small | `/?chopper-scene=zoomies` and any other small scene by its ID |
+
 ## Checks
 
 | Check | Fails when |
@@ -552,5 +594,5 @@ so you can judge them where they're used rather than as loose files:
 | O29 | Image format and budget | WebP with alpha at 1x and 2x, at most 30 KB each and 90 KB per page; transparent PNG masters in the repository | Working default |
 | O32 | Is he the logo or favicon? | No: a wordmark logo keeps him a background character, never the brand's face | Open: needs your choice |
 | O33 | The drawing standard | A 1.5 px ink line in every image; three size classes drawn separately; one reduction factor k = 1.25 for all, confirmed by the pilot | Working default: k ≈ 1.67, applied to the drafts on the site for review (see [the pilot](#the-pilot)); needs your confirmation |
-| O34 | Props and supporting cast | Home-life props, at most 2 per image; a cast of squirrel, pigeons, sparrows, butterfly and robot vacuum, each with its own approved sheet; set pieces of 2 images | Working default |
+| O34 | Props and supporting cast | Home-life props, at most 2 per image; a cast of squirrel, pigeons, sparrows, butterfly and robot vacuum on one shared cast sheet; scenes with the cast drawn as one strip image, set pieces of 2 images where a strip doesn't fit | Working default; the cast sheet is a draft that needs your approval |
 | O35 | Stories and time of day | Day-in-his-life stories that carry across pages, favouring the visitor's local time of day | Working default; tuned by A14 |

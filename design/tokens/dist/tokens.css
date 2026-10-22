@@ -107,6 +107,8 @@
   --c-chopper-frame-sm: 56px;
   --c-chopper-frame-md: 96px;
   --c-chopper-frame-lg: 160px;
+  --c-chopper-frame-strip: 160px;
+  --c-chopper-frame-tall: 400px;
   --c-chopper-halo-color: var(--color-chopper-halo);
   --c-chopper-halo-blur: 10px;
   --c-chopper-fade: var(--duration-slow);

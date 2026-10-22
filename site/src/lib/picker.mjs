@@ -4,8 +4,9 @@
  *
  * pickMoments(zones, library, visit, hour, seed) -> { moments, visit }
  *   zones    the layout's zones on this page, top to bottom:
- *            [{ id, top, viewportHeight, available }] where `available` is false when the
- *            zone is below its minimum width
+ *            [{ id, top, viewportHeight, available, sizes }] where `available` is false when the
+ *            zone is below its minimum width, and `sizes` (optional) lists the size classes
+ *            it takes at this width, extra sizes first (see zoneSizes)
  *   library  design/chopper/scenes.json
  *   visit    this visit's state: { thread, beat, history, told, review }
  *            review is optional: { scene: id } or { story: threadId }
@@ -36,34 +37,46 @@ export function rng(seed) {
 // they are reviewed in place).
 const shown = (library, render) => !!render && (library.rules?.statusesShown ?? ['approved']).includes(render.status);
 
+/** The size classes a zone takes here: its extra sizes whose breakpoint is met, then its own. */
+export function zoneSizes(library, zoneId, reached = () => true) {
+  const zone = library.zones[zoneId];
+  if (!zone) return [];
+  return [...Object.entries(zone.extraSizes ?? {}).filter(([, bp]) => reached(bp)).map(([size]) => size), zone.size];
+}
+
 /** The images a scene or set piece needs in a zone, or null when it doesn't fit there. */
-export function fit(library, kind, id, zoneId) {
+export function fit(library, kind, id, zoneId, sizes = zoneSizes(library, zoneId)) {
   const zone = library.zones[zoneId];
   if (!zone) return null;
   if (kind === 'scene') {
     const scene = library.scenes.find((s) => s.id === id);
     if (!scene || scene.status === 'retired' || !scene.zones.includes(zoneId) || !zone.poses.includes(scene.pose)) return null;
-    const render = scene.renders?.[zone.size];
-    if (!shown(library, render)) return null;
-    return [{ scene: scene.id, size: zone.size, side: zone.align === 'either' ? 'end' : zone.align, file: `${scene.id}.${zone.size}` }];
+    const size = sizes.find((sz) => shown(library, scene.renders?.[sz]));
+    if (!size) return null;
+    const single = size === zone.size || size === 'tall';
+    const side = single ? (zone.align === 'either' ? 'end' : zone.align) : 'fill';
+    return [{ scene: scene.id, size, side, file: `${scene.id}.${size}` }];
   }
   const piece = library.setPieces.find((p) => p.id === id);
   if (!piece || piece.status === 'retired' || !piece.zones.includes(zoneId)) return null;
-  const images = [];
-  for (const part of piece.parts) {
-    const scene = library.scenes.find((s) => s.id === part.scene);
-    const render = scene?.renders?.[zone.size];
-    if (!shown(library, render)) return null;
-    images.push({ scene: scene.id, size: zone.size, side: part.side, file: `${scene.id}.${zone.size}` });
+  for (const size of sizes.filter((sz) => sz !== 'strip' && sz !== 'tall')) {
+    const images = [];
+    for (const part of piece.parts) {
+      const scene = library.scenes.find((s) => s.id === part.scene);
+      const render = scene?.renders?.[size];
+      if (!shown(library, render)) break;
+      images.push({ scene: scene.id, size, side: part.side, file: `${scene.id}.${size}` });
+    }
+    if (images.length === piece.parts.length) return images;
   }
-  return images;
+  return null;
 }
 
 /** Every standalone moment (scene or set piece) that fits a zone. */
-export function candidates(library, zoneId) {
+export function candidates(library, zoneId, sizes = zoneSizes(library, zoneId)) {
   const out = [];
-  for (const s of library.scenes) if (s.standalone !== false && fit(library, 'scene', s.id, zoneId)) out.push({ kind: 'scene', id: s.id });
-  for (const p of library.setPieces) if (fit(library, 'setPiece', p.id, zoneId)) out.push({ kind: 'setPiece', id: p.id });
+  for (const s of library.scenes) if (s.standalone !== false && fit(library, 'scene', s.id, zoneId, sizes)) out.push({ kind: 'scene', id: s.id });
+  for (const p of library.setPieces) if (fit(library, 'setPiece', p.id, zoneId, sizes)) out.push({ kind: 'setPiece', id: p.id });
   return out;
 }
 
@@ -80,7 +93,7 @@ export function pickMoments(zones, library, visit = {}, hour = 12, seed = 1) {
   const usable = zones.filter((z) => z.available !== false && library.zones[z.id]);
 
   const place = (zone, kind, id) => {
-    const imgs = fit(library, kind, id, zone.id);
+    const imgs = fit(library, kind, id, zone.id, zone.sizes);
     if (!imgs) return false;
     if (moments.length >= rules.maxPerPage || images + imgs.length > rules.maxImagesPerPage) return false;
     const gap = (zone.viewportHeight ?? 0) * rules.minGapViewports;
@@ -98,7 +111,7 @@ export function pickMoments(zones, library, visit = {}, hour = 12, seed = 1) {
   }
 
   // A zone turns on only once it has enough choices (review links bypass this).
-  const live = review?.story ? usable : usable.filter((z) => candidates(library, z.id).length >= rules.minCandidatesPerZone);
+  const live = review?.story ? usable : usable.filter((z) => candidates(library, z.id, z.sizes).length >= rules.minCandidatesPerZone);
   if (!live.length) return { moments, visit: state };
 
   // Story: continue this visit's thread, or start one that suits the time of day.
@@ -132,7 +145,7 @@ export function pickMoments(zones, library, visit = {}, hour = 12, seed = 1) {
     if (used.has(zone.id) || moments.length >= rules.maxPerPage) continue;
     const recent = new Set(state.history);
     const shown = new Set(moments.map((m) => m.id));
-    const all = candidates(library, zone.id).filter((c) => !shown.has(c.id));
+    const all = candidates(library, zone.id, zone.sizes).filter((c) => !shown.has(c.id));
     const fresh = all.filter((c) => !recent.has(c.id));
     const pool = fresh.length ? fresh : all;
     for (let tries = 0; tries < pool.length; tries++) {

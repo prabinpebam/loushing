@@ -17,12 +17,15 @@
 .chopper-zone[data-side='start'] { justify-content: flex-start; }
 .chopper-zone[data-side='end'] { justify-content: flex-end; }
 .chopper-zone[data-pair] { justify-content: space-between; }
+.chopper-zone[data-side='fill'] { justify-content: center; }
 
 /* Each image keeps its drawn scale: its width and height attributes come from the
    build, one reduction for every render. The frame only reserves the zone's height. */
 .chopper-zone[data-size='sm'] { min-height: var(--c-chopper-frame-sm); }
 .chopper-zone[data-size='md'] { min-height: var(--c-chopper-frame-md); }
 .chopper-zone[data-size='lg'] { min-height: var(--c-chopper-frame-lg); }
+.chopper-zone[data-size='strip'] { min-height: var(--c-chopper-frame-strip); }
+.chopper-zone[data-size='tall'] { min-height: var(--c-chopper-frame-tall); }
 .chopper-zone img {
   display: block;
   flex: none;
@@ -42,6 +45,11 @@
 .chopper-zone[data-zone='gutter'] { position: absolute; top: var(--space-24); }
 .chopper-zone[data-zone='gutter'][data-align='start'] { right: 100%; }
 .chopper-zone[data-zone='gutter'][data-align='end'] { left: 100%; }
+/* A strip is one wide scene: in a section break it takes its own line above the rule, and
+   on the footer the footer drops by the strip's frame so the scene never covers content. */
+.f-divider:has(> .chopper-zone[data-size='strip']) { flex-wrap: wrap; }
+.chopper-zone[data-zone='section-break'][data-size='strip'] { order: -1; flex-basis: 100%; }
+.l-footer:has(> .chopper-zone[data-size='strip']) { margin-top: calc(var(--space-16) + var(--c-chopper-frame-strip)); }
 
 @keyframes chopper-in {
   from { opacity: 0; }

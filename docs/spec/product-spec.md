@@ -582,9 +582,12 @@ kit commits and dates from Git. The Slate docs host is not deployed.
 
 **Chopper.** The masters ship as PNG because there is no WebP encoder in a
 dependency-free build; the build trims each to its drawing and sizes it at one
-reduction, k ≈ 1.67. The four pilot renders are drafts, shown on the site so you can
-review them in place ([pilot](../design/chopper.md#the-pilot)); once enough are
-approved, drafts stop showing.
+reduction, k ≈ 1.67. 37 renders are drafts, shown on the site so you can review them
+in place ([pilot](../design/chopper.md#the-pilot) and
+[second batch](../design/chopper.md#the-second-batch)); once enough are approved,
+drafts stop showing. Zones can take extra size classes from a breakpoint
+(`extraSizes`): a 3:1 strip in section breaks and the footer from medium screens up,
+and a tall scene in the gutter on very wide screens.
 
 **Not built yet.** Real skills (stage 1 needs at least five from you), component
 stories, automated Lighthouse and axe runs, a custom domain (O13), and the CLI.

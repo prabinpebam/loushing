@@ -316,14 +316,15 @@ async function initChopper() {
   chopperDone = true;
   let library;
   try {
-    const [{ pickMoments }, res] = await Promise.all([import('../lib/picker.mjs'), fetch(`${base}assets/chopper/library.json`)]);
+    const [{ pickMoments, zoneSizes }, res] = await Promise.all([import('../lib/picker.mjs'), fetch(`${base}assets/chopper/library.json`)]);
     library = await res.json();
     const minWidth = { none: 0, sm: 40, md: 56, lg: 72, xl: 90 };
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const zones = $$('.chopper-zone[data-zone]').map((el) => {
       const def = library.zones[el.dataset.zone];
       const host = el.closest('[data-zone-host]') ?? el.parentElement;
-      return { el, id: el.dataset.zone, top: host.getBoundingClientRect().top + scrollY, viewportHeight: innerHeight, available: !!def && innerWidth >= (minWidth[def.minBreakpoint] ?? 0) * rem };
+      const reached = (bp) => innerWidth >= (minWidth[bp] ?? 0) * rem;
+      return { el, id: el.dataset.zone, top: host.getBoundingClientRect().top + scrollY, viewportHeight: innerHeight, available: !!def && reached(def.minBreakpoint), sizes: def ? zoneSizes(library, el.dataset.zone, reached) : [] };
     }).sort((a, b) => a.top - b.top);
 
     let visit = {};

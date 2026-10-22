@@ -6,7 +6,7 @@ import { parseYaml, frontMatter } from '../src/lib/yaml.mjs';
 import { renderMarkdown, sections, plainText } from '../src/lib/markdown.mjs';
 import { esc, html, raw } from '../src/lib/html.mjs';
 import { stem, tokenize, indexDoc, search, facetCounts, filtersToQuery, queryToFilters } from '../src/lib/search.mjs';
-import { daypart, rng, fit, candidates, pickMoments } from '../src/lib/picker.mjs';
+import { daypart, rng, fit, candidates, pickMoments, zoneSizes } from '../src/lib/picker.mjs';
 import { plan, SKILL_TARGETS, downloadUrl } from '../src/lib/install.mjs';
 import { decodePng, encodePng, alphaBounds, trimToAlpha } from '../scripts/lib/png.mjs';
 
@@ -118,9 +118,29 @@ test('picker: drafts show only when the rules list them', () => {
   assert.equal(fit(review, 'scene', 'planned', 'section-break'), null, 'planned renders never show');
 });
 
+test('picker: a zone takes its extra sizes only from their breakpoint, before its own size', () => {
+  const wide = {
+    ...library,
+    zones: { ...library.zones, 'section-break': { ...library.zones['section-break'], extraSizes: { strip: 'md' } } },
+    scenes: [...library.scenes, { id: 'vista', pose: 'lying', zones: ['section-break'], renders: { strip: { status: 'approved' } }, status: 'active' }],
+  };
+  assert.deepEqual(zoneSizes(wide, 'section-break'), ['strip', 'sm']);
+  assert.deepEqual(zoneSizes(wide, 'section-break', (bp) => bp !== 'md'), ['sm'], 'too narrow for a strip');
+  assert.deepEqual(fit(wide, 'scene', 'vista', 'section-break'), [{ scene: 'vista', size: 'strip', side: 'fill', file: 'vista.strip' }]);
+  assert.equal(fit(wide, 'scene', 'vista', 'section-break', ['sm']), null, 'no strip on a narrow screen');
+  assert.equal(fit(wide, 'scene', 'nap', 'section-break')[0].size, 'sm', 'a scene without a strip keeps the zone size');
+  const narrow = pickMoments([{ id: 'section-break', top: 0, viewportHeight: 800, sizes: ['sm'] }], wide, { review: { scene: 'vista' } }, 12, 1);
+  assert.equal(narrow.moments.length, 0);
+});
+
 test('picker: the real scene library loads and every shown render has a master', () => {
   const real = JSON.parse(readFileSync(new URL('../../design/chopper/scenes.json', import.meta.url), 'utf8'));
   for (const s of real.scenes) for (const z of s.zones) assert.ok(real.zones[z], `${s.id}: unknown zone ${z}`);
+  for (const s of real.scenes) for (const size of Object.keys(s.renders ?? {})) {
+    assert.ok(s.zones.some((z) => zoneSizes(real, z).includes(size)), `${s.id}.${size}: none of its zones takes that size`);
+    assert.ok(real.drawing.sizes[size], `${s.id}.${size}: unknown size class`);
+  }
+  for (const s of real.scenes) for (const c of s.cast ?? []) assert.ok(real.cast[c], `${s.id}: unknown cast ${c}`);
   for (const p of real.setPieces) for (const part of p.parts) assert.ok(real.scenes.some((s) => s.id === part.scene), `${p.id}: unknown scene ${part.scene}`);
   for (const t of real.threads) for (const b of t.beats) assert.ok(real.scenes.some((s) => s.id === b.scene) || real.setPieces.some((p) => p.id === b.setPiece), `${t.id}: unknown beat`);
   const shown = new Set(real.rules.statusesShown ?? ['approved']);
