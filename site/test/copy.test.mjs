@@ -34,7 +34,8 @@ function walk(dir, out = []) {
 const visibleText = (html) => html
   .replace(/<(script|style|pre|code)[\s\S]*?<\/\1>/gi, ' ')
   .replace(/<[^>]+>/g, ' ')
-  .replace(/&#39;|&rsquo;/g, '’')
+  .replace(/&rsquo;/g, '’')
+  .replace(/&#39;/g, "'")
   .replace(/\s+/g, ' ');
 
 const tmp = mkdtempSync(join(tmpdir(), 'loushing-copy-'));
@@ -63,6 +64,15 @@ test('no page uses pitch, store or preaching words', () => {
   for (const name of ['llms.txt', 'get-started.md', 'for-agents.md']) {
     const text = readFileSync(join(out, name), 'utf8');
     for (const m of text.matchAll(banned)) hits.push(`${name}: "${m[0]}"`);
+  }
+  assert.deepEqual(hits, []);
+});
+
+test('visible copy uses curly apostrophes', () => {
+  const hits = [];
+  for (const f of files.filter((n) => n.endsWith('.html'))) {
+    const text = visibleText(readFileSync(f, 'utf8'));
+    for (const m of text.matchAll(/[A-Za-z]'(s|t|re|ll|m|ve|d)\b/g)) hits.push(`${f.slice(out.length)}: …${text.slice(Math.max(0, m.index - 30), m.index + 30)}…`);
   }
   assert.deepEqual(hits, []);
 });

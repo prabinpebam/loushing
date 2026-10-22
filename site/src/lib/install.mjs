@@ -57,7 +57,7 @@ function kitPlan(item, { agent, scope }) {
   const scopes = c.scopes ?? ['project'];
   if (!scopes.includes(scope)) return unsupported(scope, `${item.title} installs into one project at a time; it has no setup for all your projects.`);
   if (c.agents?.supported && !c.agents.supported.includes(agent.id)) {
-    return unsupported(scope, `${item.title} supports ${c.agents.supported.length === 1 ? 'one agent' : 'only some agents'} so far. ${agent.title} isn't one of them.`);
+    return unsupported(scope, `${item.title} supports ${c.agents.supported.length === 1 ? 'one agent' : 'only some agents'} so far. ${agent.title} isn’t one of them.`);
   }
   const dir = item.id;
   const fill = (a) => a.replace('{projectDir}', '.');

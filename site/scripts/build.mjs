@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { loadCatalog } from './lib/catalog.mjs';
 import { buildModel } from './lib/model.mjs';
 import { catalogJson, feedXml, itemJson, itemMarkdown, llmsTxt, searchIndex } from './lib/outputs.mjs';
+import { decodePng, encodePng, trimToAlpha } from './lib/png.mjs';
 import { renderView } from '../src/render.mjs';
 import { setBase, url } from '../src/lib/urls.mjs';
 import { frontMatter } from '../src/lib/yaml.mjs';
@@ -62,11 +63,12 @@ for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib'
 }
 write('assets/favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path fill="#a8412f" d="${iconPaths('pets')[0]}"/></svg>`);
 
-// Chopper: only approved renders reach the site; the picker shows nothing until then.
+// Chopper: renders whose status the library shows (rules.statusesShown) reach the site,
+// trimmed to the figure. Every render is shown at the same reduction, so line weight
+// matches across images: CSS px = master px / (2 × drawing.masterFactor).
 const scenes = JSON.parse(readFileSync(join(root, 'design', 'chopper', 'scenes.json'), 'utf8'));
 const library = chopperLibrary(scenes);
 write('assets/chopper/library.json', JSON.stringify(library));
-for (const file of library.files) copy(join(root, 'design', 'chopper', 'source', file), `assets/chopper/${file}`);
 
 const assets = { css: [`${url('/assets/site.css')}?v=${hash(css)}`], js: `${url('/assets/client/app.js')}?v=${hash(jsHash)}` };
 const chopper = { renders: library.renderCount };
@@ -117,7 +119,9 @@ function swapIn() {
     } catch (e) {
       // Windows can briefly lock a folder that is being read; try again shortly.
       if (attempt >= 20) throw e;
-      if (existsSync(old) && !existsSync(finalDist)) renameSync(old, finalDist);
+      try {
+        if (existsSync(old) && !existsSync(finalDist)) renameSync(old, finalDist);
+      } catch { /* still locked; the next attempt tries again */ }
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
     }
   }
@@ -126,6 +130,7 @@ function swapIn() {
 
 function chopperLibrary(data) {
   const shown = new Set(data.rules?.statusesShown ?? ['approved']);
+  const scale = 2 * (data.drawing?.masterFactor ?? 1);
   const files = [];
   const scenesOut = [];
   for (const s of data.scenes ?? []) {
@@ -134,13 +139,16 @@ function chopperLibrary(data) {
     for (const [size, r] of Object.entries(s.renders ?? {})) {
       if (!shown.has(r.status)) continue;
       // Masters are design/chopper/source/<id>.<size>.png. Stage 1 gap: no WebP 1x/2x
-      // conversion yet (no dependency-free encoder), so the master ships as is.
+      // conversion yet (no dependency-free encoder), so the trimmed master ships as PNG.
       const file = `${s.id}.${size}.png`;
-      if (!existsSync(join(root, 'design', 'chopper', 'source', file))) {
-        console.warn(`Chopper: ${s.id} (${size}) is approved but design/chopper/source/${file} is missing; it won't show.`);
+      const master = join(root, 'design', 'chopper', 'source', file);
+      if (!existsSync(master)) {
+        console.warn(`Chopper: ${s.id} (${size}) is ${r.status} but design/chopper/source/${file} is missing; it won't show.`);
         continue;
       }
-      renders[size] = { status: r.status, canvas: r.canvas };
+      const img = trimToAlpha(decodePng(readFileSync(master)), 2);
+      write(`assets/chopper/${file}`, encodePng(img));
+      renders[size] = { status: r.status, canvas: r.canvas, width: Math.round(img.width / scale), height: Math.round(img.height / scale) };
       files.push(file);
     }
     if (Object.keys(renders).length) scenesOut.push({ ...s, renders });

@@ -10,7 +10,7 @@ AI coding agents. I keep them here so I can find and set them up again. They wor
 me; if one looks useful to you, take it. Every item has a page that says what it does
 in plain words, and a **Get it** panel with the exact steps for your agent.
 
-## What's in here
+## What’s in here
 
 - **Skill:** one folder of instructions (a `SKILL.md`, sometimes with references and
   scripts) that your agent loads when a task needs it.
@@ -41,9 +41,9 @@ the trust panel:
 - **Needs credentials:** it needs an account or a key.
 
 **Tested** next to an agent means I use it with that agent. **Expected** means it
-follows the shared skill format and should work, but I haven't tried it there yet.
+follows the shared skill format and should work, but I haven’t tried it there yet.
 
 ## Coming soon
 
 A one-line command, `npx loushing add <id>`, that shows the plan and installs after you
-agree. Until it's published, use Git or Ask your agent.
+agree. Until it’s published, use Git or Ask your agent.

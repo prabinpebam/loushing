@@ -333,9 +333,10 @@ and barking to his left.
 `scenes.json` holds every part: the props and cast, each scene (ID, action, pose,
 mood, facing, zones, props, and one **render** per size it is used at), the set
 pieces, and the stories. Each render has a status (planned, draft, approved or
-retired); only approved renders are shown, and each must have its master image, its
-saved prompt and its measurements. A scene is retired rather than deleted, so review
-links keep working.
+retired). Approved renders are shown, and each must have its master image, its
+saved prompt and its measurements. While renders are reviewed, `rules.statusesShown`
+also lists `draft`, so drafts appear on the site and are judged in place. A scene is
+retired rather than deleted, so review links keep working.
 
 ## How a moment is chosen
 
@@ -506,6 +507,23 @@ line on screen (2.4 px for the peek), not the planned 1.5 px. The options for O3
 | Keep k = 1.25 | Accept a line of about 2 px | Chopper reads a little heavier than the interface's lines |
 | Retry with a scale reference | Add a ruler image to every prompt | Costs more renders; the model may still ignore it |
 
+**Reviewed in place.** The drafts are on the site now, at the recommended k ≈ 1.67,
+so you can judge them where they're used rather than as loose files:
+
+- The build trims each master to its drawing (plus 2 px) and gives the page its size
+  in CSS pixels, master pixels ÷ (2 × k). Every image gets the same reduction, so
+  the figures come out about 90 to 105 px wide with a line of about 1.5 px.
+- Zones reserve their frame height and let the image keep its natural size.
+- `rules.statusesShown` includes `draft`, and `rules.minCandidatesPerZone` is 1, so a
+  zone with one draft can show it. Put it back to 4 once enough renders are approved.
+- Review links show one scene: `/?chopper-scene=peek-over` (wide screens),
+  `/?chopper-scene=nap-curled`, `/catalog?chopper-scene=nap-curled` and
+  `/404.html?chopper-scene=tail-chase`. A plain reload picks a fresh moment.
+- The soft cream glow on dark backgrounds is the planned halo, not a fringe: the
+  masters' edges are dark ink.
+- Known gap: the trimmed PNGs are 120 to 170 KB each, over the 30 KB budget (O29),
+  until a WebP step exists.
+
 ## Checks
 
 | Check | Fails when |
@@ -533,6 +551,6 @@ line on screen (2.4 px for the peek), not the planned 1.5 px. The options for O3
 | O28 | How often he appears | At most 2 moments and 3 images per page, 1 moment per screenful, 1.5 screens apart, no repeat within 8 moments; a new pick on every page view | Working default; tuned by A14 |
 | O29 | Image format and budget | WebP with alpha at 1x and 2x, at most 30 KB each and 90 KB per page; transparent PNG masters in the repository | Working default |
 | O32 | Is he the logo or favicon? | No: a wordmark logo keeps him a background character, never the brand's face | Open: needs your choice |
-| O33 | The drawing standard | A 1.5 px ink line in every image; three size classes drawn separately; one reduction factor k = 1.25 for all, confirmed by the pilot | Needs your decision: the pilot found the model holds one scale (see [the pilot](#the-pilot)); recommended k ≈ 1.67 with larger zones |
+| O33 | The drawing standard | A 1.5 px ink line in every image; three size classes drawn separately; one reduction factor k = 1.25 for all, confirmed by the pilot | Working default: k ≈ 1.67, applied to the drafts on the site for review (see [the pilot](#the-pilot)); needs your confirmation |
 | O34 | Props and supporting cast | Home-life props, at most 2 per image; a cast of squirrel, pigeons, sparrows, butterfly and robot vacuum, each with its own approved sheet; set pieces of 2 images | Working default |
 | O35 | Stories and time of day | Day-in-his-life stories that carry across pages, favouring the visitor's local time of day | Working default; tuned by A14 |

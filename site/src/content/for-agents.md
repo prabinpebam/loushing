@@ -13,7 +13,7 @@ myself; nothing here is ranked or rated.
 | --- | --- |
 | [catalog.json](/catalog.json) | List or search every item, with its summary, agents, effects and links |
 | `/items/<id>.json` | Read one item: its card, files with sizes and SHA-256 hashes, and the install plan for every agent and scope |
-| `/items/<id>.md` | Read one item's page as plain Markdown |
+| `/items/<id>.md` | Read one item’s page as plain Markdown |
 | [llms.txt](/llms.txt) | Start here: what the site is and where the files are |
 | [feed.xml](/feed.xml) | Follow items as they are added and updated |
 
@@ -30,4 +30,4 @@ show its output.
 ## Coming soon
 
 A command-line tool with JSON output for agents: `npx loushing find "<task>" --json`,
-`info`, `add`, `list`, `outdated` and `update`. It isn't published yet.
+`info`, `add`, `list`, `outdated` and `update`. It isn’t published yet.

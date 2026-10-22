@@ -8,6 +8,7 @@
   position: relative;
   z-index: var(--c-chopper-layer);
   display: flex;
+  align-items: flex-end;
   gap: var(--space-4);
   pointer-events: none;
   user-select: none;
@@ -17,19 +18,24 @@
 .chopper-zone[data-side='end'] { justify-content: flex-end; }
 .chopper-zone[data-pair] { justify-content: space-between; }
 
+/* Each image keeps its drawn scale: its width and height attributes come from the
+   build, one reduction for every render. The frame only reserves the zone's height. */
+.chopper-zone[data-size='sm'] { min-height: var(--c-chopper-frame-sm); }
+.chopper-zone[data-size='md'] { min-height: var(--c-chopper-frame-md); }
+.chopper-zone[data-size='lg'] { min-height: var(--c-chopper-frame-lg); }
 .chopper-zone img {
   display: block;
-  width: auto;
-  height: var(--c-chopper-frame-sm);
+  flex: none;
+  max-width: 100%;
+  height: auto;
   filter: drop-shadow(0 0 var(--c-chopper-halo-blur) var(--c-chopper-halo-color));
   animation: chopper-in var(--c-chopper-fade) var(--c-chopper-ease) both;
 }
-.chopper-zone[data-size='md'] img { height: var(--c-chopper-frame-md); }
-.chopper-zone[data-size='lg'] img { height: var(--c-chopper-frame-lg); }
 
 /* Where each zone sits in its host. */
 [data-zone-host] { position: relative; }
-.chopper-zone[data-zone='masthead-edge'] { position: absolute; right: 0; bottom: 0; }
+/* The landing grid gap sits between the masthead and the pulse tiles; rest on the tiles' top edge. */
+.chopper-zone[data-zone='masthead-edge'] { position: absolute; right: var(--space-4); bottom: calc(-1 * var(--space-12)); }
 .chopper-zone[data-zone='tile-peek'] { position: absolute; right: var(--space-8); bottom: 100%; }
 .chopper-zone[data-zone='footer-ledge'] { position: absolute; left: 0; right: 0; bottom: 100%; padding-inline: var(--space-8); }
 .chopper-zone[data-zone='section-break'] { flex: none; }

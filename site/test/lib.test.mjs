@@ -1,13 +1,14 @@
 // Tier 0 logic: parsing, search, the Chopper picker and install plans.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { parseYaml, frontMatter } from '../src/lib/yaml.mjs';
 import { renderMarkdown, sections, plainText } from '../src/lib/markdown.mjs';
 import { esc, html, raw } from '../src/lib/html.mjs';
 import { stem, tokenize, indexDoc, search, facetCounts, filtersToQuery, queryToFilters } from '../src/lib/search.mjs';
 import { daypart, rng, fit, candidates, pickMoments } from '../src/lib/picker.mjs';
 import { plan, SKILL_TARGETS, downloadUrl } from '../src/lib/install.mjs';
+import { decodePng, encodePng, alphaBounds, trimToAlpha } from '../scripts/lib/png.mjs';
 
 test('yaml: maps, lists, nesting and front matter', () => {
   const data = parseYaml('id: slate\ntags:\n  - docs\n  - diagrams\nsource:\n  repo: https://github.com/a/b\n  commit: abc123\nbeta: true\ncount: 3\n');
@@ -109,11 +110,34 @@ test('picker: follows the story, respects limits and spacing, and stays off when
   assert.equal(pickMoments(zones, thin, { review: { scene: 'sit' } }, 12, 7).moments[0].id, 'sit', 'review links bypass the threshold');
 });
 
-test('picker: the real scene library loads and has no approved renders without files', () => {
+test('picker: drafts show only when the rules list them', () => {
+  const drafts = { ...library, scenes: [...library.scenes, { id: 'draft-nap', pose: 'lying', zones: ['section-break'], renders: { sm: { status: 'draft' } }, status: 'active' }] };
+  assert.equal(fit(drafts, 'scene', 'draft-nap', 'section-break'), null, 'approved only by default');
+  const review = { ...drafts, rules: { ...drafts.rules, statusesShown: ['approved', 'draft'] } };
+  assert.equal(fit(review, 'scene', 'draft-nap', 'section-break').length, 1);
+  assert.equal(fit(review, 'scene', 'planned', 'section-break'), null, 'planned renders never show');
+});
+
+test('picker: the real scene library loads and every shown render has a master', () => {
   const real = JSON.parse(readFileSync(new URL('../../design/chopper/scenes.json', import.meta.url), 'utf8'));
   for (const s of real.scenes) for (const z of s.zones) assert.ok(real.zones[z], `${s.id}: unknown zone ${z}`);
   for (const p of real.setPieces) for (const part of p.parts) assert.ok(real.scenes.some((s) => s.id === part.scene), `${p.id}: unknown scene ${part.scene}`);
   for (const t of real.threads) for (const b of t.beats) assert.ok(real.scenes.some((s) => s.id === b.scene) || real.setPieces.some((p) => p.id === b.setPiece), `${t.id}: unknown beat`);
+  const shown = new Set(real.rules.statusesShown ?? ['approved']);
+  for (const s of real.scenes) for (const [size, r] of Object.entries(s.renders ?? {})) {
+    if (shown.has(r.status)) assert.ok(existsSync(new URL(`../../design/chopper/source/${s.id}.${size}.png`, import.meta.url)), `${s.id}.${size} is ${r.status} but has no master`);
+  }
+});
+
+test('png: decodes, trims to the drawing and round-trips losslessly', () => {
+  const width = 6; const height = 4; const data = new Uint8Array(width * height * 4);
+  for (let y = 1; y < 3; y++) for (let x = 2; x < 5; x++) data.set([200, 100 + x, 50 + y, 255], (y * width + x) * 4);
+  const img = decodePng(encodePng({ width, height, data }));
+  assert.deepEqual([img.width, img.height], [width, height]);
+  assert.deepEqual(Array.from(img.data), Array.from(data));
+  assert.deepEqual(alphaBounds(img), { x: 2, y: 1, width: 3, height: 2 });
+  const trimmed = trimToAlpha(img, 1);
+  assert.deepEqual([trimmed.width, trimmed.height], [5, 4]);
 });
 
 test('install: skill plans per agent and scope, with a pinned commit', () => {

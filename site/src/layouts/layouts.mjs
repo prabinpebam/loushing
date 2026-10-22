@@ -62,7 +62,7 @@ function itemFrame(r, order, kind) {
 const NAV = [
   { href: '/catalog', label: 'Catalog' },
   { href: '/get-started', label: 'Get started' },
-  { href: '/whats-new', label: "What's new" },
+  { href: '/whats-new', label: "What’s new" },
   { href: '/for-agents', label: 'For agents' },
 ];
 
@@ -84,7 +84,7 @@ ${description && html`<meta name="description" content="${description}">`}
 <link rel="preload" href="${url('/assets/fonts/inter-latin-wght-normal.woff2')}" as="font" type="font/woff2" crossorigin>
 ${assets.css.map((h) => html`<link rel="stylesheet" href="${h}">`)}
 ${alternate && html`<link rel="alternate" type="text/markdown" href="${alternate}">`}
-<link rel="alternate" type="application/rss+xml" title="Loushing: what's new" href="${url('/feed.xml')}">
+<link rel="alternate" type="application/rss+xml" title="Loushing: what’s new" href="${url('/feed.xml')}">
 <script>${raw(THEME_BOOT)}</script>
 <script type="module" src="${assets.js}"></script>
 </head>

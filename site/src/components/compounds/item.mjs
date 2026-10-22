@@ -103,15 +103,15 @@ function PlanView(item, agent, scope, model) {
     const supported = Object.entries(item.agents ?? {}).filter(([, v]) => v !== 'unsupported').map(([a]) => model.agentsById.get(a)?.title ?? a);
     const clone = item.source?.commit ? [`git clone ${item.source.repo}.git ${item.id}`, `git -C ${item.id} checkout ${item.source.commit}`] : [];
     body = html`<div class="c-getit__unsupported">
-  <p class="c-getit__notice">${Icon({ name: 'info' })}<span>${p.reason}${scope === 'project' && supported.length ? ` It's set up for ${supported.join(' and ')}.` : ''}</span></p>
+  <p class="c-getit__notice">${Icon({ name: 'info' })}<span>${p.reason}${scope === 'project' && supported.length ? ` It’s set up for ${supported.join(' and ')}.` : ''}</span></p>
   ${clone.length > 0 && html`<p class="c-getit__line">You can still get the files and set them up by hand:</p>${CopyField({ lines: clone })}`}
 </div>`;
   } else {
     const tabs = [
-      { id: 'git', label: 'Git', icon: 'fork_right', panel: html`${CopyField({ lines: p.git })}<p class="c-getit__hint">Run these in your project's folder.${p.inputs?.length ? ` Replace ${p.inputs.map((i) => `“${i.example}” with your ${i.ask.toLowerCase()}`).join(', ')}.` : ''}</p>` },
-      { id: 'ask', label: 'Ask your agent', icon: 'chat', panel: html`${CopyField({ lines: [p.ask], copyLabel: 'Copy prompt', wrap: true })}<p class="c-getit__hint">Paste this into your agent's chat. It shows you the plan before changing anything.</p>` },
+      { id: 'git', label: 'Git', icon: 'fork_right', panel: html`${CopyField({ lines: p.git })}<p class="c-getit__hint">Run these in your project’s folder.${p.inputs?.length ? ` Replace ${p.inputs.map((i) => `“${i.example}” with your ${i.ask.toLowerCase()}`).join(', ')}.` : ''}</p>` },
+      { id: 'ask', label: 'Ask your agent', icon: 'chat', panel: html`${CopyField({ lines: [p.ask], copyLabel: 'Copy prompt', wrap: true })}<p class="c-getit__hint">Paste this into your agent’s chat. It shows you the plan before changing anything.</p>` },
       p.download && { id: 'download', label: 'Download', icon: 'download', panel: html`${Button({ label: 'Download ZIP', icon: 'download', kind: 'secondary', href: p.download })}<p class="c-getit__hint">The repository at commit ${short(item.source.commit)}, from GitHub. GitHub builds the ZIP on request, so it has no fixed checksum; the commit is the fingerprint.</p>` },
-      { id: 'command', label: 'Command', icon: 'terminal', panel: html`${CopyField({ lines: [p.command] })}<p class="c-getit__hint">${Badge({ label: 'Coming soon', kind: 'status', value: 'soon' })} The Loushing command isn't published yet. Use Git or Ask your agent for now.</p>` },
+      { id: 'command', label: 'Command', icon: 'terminal', panel: html`${CopyField({ lines: [p.command] })}<p class="c-getit__hint">${Badge({ label: 'Coming soon', kind: 'status', value: 'soon' })} The Loushing command isn’t published yet. Use Git or Ask your agent for now.</p>` },
     ].filter(Boolean);
     const first = p.adds[0];
     body = html`${Tabs({ id, label: 'Ways to get it', tabs, selected: 'git' })}
@@ -191,7 +191,7 @@ export function AddsTree({ item }, { model }) {
       ${(item.requires ?? []).length > 0 && html`<div><dt>${Icon({ name: 'checklist' })}Needs</dt><dd><ul>${item.requires.map((r) => html`<li>${r}</li>`)}</ul></dd></div>`}
       <div><dt>${Icon({ name: 'verified' })}License</dt><dd>${item.license === 'NOASSERTION' ? html`Not stated yet. ${item.licenseNote ?? 'Ask me before reusing it.'}` : item.license}${item.origin && html` · ${cap(item.origin)}`}</dd></div>
       ${item.source?.commit && html`<div><dt>${Icon({ name: 'fact_check' })}Pinned at</dt><dd><a href="${githubAt(item)}"><code>${short(item.source.commit)}</code></a>${item.updated && html`, ${formatDate(item.updated)}`}</dd></div>`}
-      <div><dt>${Icon({ name: 'checklist' })}What Loushing checked</dt><dd>The card's fields, sections and links${item.type === 'kit' ? ', that the pinned commit exists and the parts it lists are there' : ''}${item.type === 'skill' ? ', the files, their sizes and hashes' : ''}.</dd></div>
+      <div><dt>${Icon({ name: 'checklist' })}What Loushing checked</dt><dd>The card’s fields, sections and links${item.type === 'kit' ? ', that the pinned commit exists and the parts it lists are there' : ''}${item.type === 'skill' ? ', the files, their sizes and hashes' : ''}.</dd></div>
     </dl>
   </div>
 </section>`;
@@ -206,7 +206,7 @@ export function KitAnatomy({ item }) {
   if (!item.groups) return html``;
   const hub = item.partItems.find((p) => p.hub);
   return html`<section class="c-anatomy" id="inside" aria-labelledby="inside-title">
-  <h2 class="c-section-title" id="inside-title">What's inside</h2>
+  <h2 class="c-section-title" id="inside-title">What’s inside</h2>
   ${hub && html`<div class="c-anatomy__hub">${Tile({ href: url(hub.url), tone: 'accent', children: html`<span class="c-anatomy__hub-kicker">${Icon({ name: 'explore' })}Start here</span><span class="c-anatomy__hub-name"><code>${hub.name}</code></span><span class="c-anatomy__hub-line">${item.anatomy.hubLine}</span>` })}</div>`}
   <div class="c-anatomy__groups">${item.groups.map((g) => html`<section class="c-anatomy__group" data-kind="${g.kind}" aria-labelledby="g-${g.kind}">
     <h3 class="c-anatomy__group-title" id="g-${g.kind}">${Icon({ name: g.icon })}${g.title}<span class="c-anatomy__count">${g.parts.length}</span></h3>
@@ -307,7 +307,7 @@ function TryIt(item) {
 }
 
 function PartBody(item) {
-  return html`<section class="c-body__section" aria-labelledby="s-what"><h2 class="c-section-title" id="s-what">What it does</h2><p>${item.hub ? html`This is the kit's starting point: it routes to the other parts.` : html`It's one of ${item.kit.title}'s parts. Your agent loads it from the kit when a task needs it.`}</p></section>`;
+  return html`<section class="c-body__section" aria-labelledby="s-what"><h2 class="c-section-title" id="s-what">What it does</h2><p>${item.hub ? html`This is the kit’s starting point: it routes to the other parts.` : html`It’s one of ${item.kit.title}’s parts. Your agent loads it from the kit when a task needs it.`}</p></section>`;
 }
 
 /**
@@ -342,7 +342,7 @@ function SourceFile(f, item, open) {
   const isMd = /\.md$/i.test(f.path);
   const name = f.path.split('/').pop();
   const content = f.text == null
-    ? html`<p class="c-source__binary">${bytes(f.size)}${f.sha256 && html` · SHA-256 <code>${f.sha256.slice(0, 16)}…</code>`}. Too large or not text, so it isn't shown here.</p>`
+    ? html`<p class="c-source__binary">${bytes(f.size)}${f.sha256 && html` · SHA-256 <code>${f.sha256.slice(0, 16)}…</code>`}. Too large or not text, so it isn’t shown here.</p>`
     : isMd
       ? html`<div class="prose c-source__md">${md(stripFront(f.text), item, { headingShift: 2, idPrefix: `src-${name.replace(/\W/g, '')}-` })}</div>`
       : html`<pre class="c-source__code"><code>${f.text.split(/\r?\n/).map((l) => html`<span class="c-source__line">${l}</span>\n`)}</code></pre>`;

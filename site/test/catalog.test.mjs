@@ -85,5 +85,5 @@ test('the real catalog loads cleanly, with a plan for every agent and scope', ()
   }
   const slate = model.byId.get('slate');
   assert.equal(slate.plans['claude-code:project'].supported, false);
-  assert.match(slate.plans['claude-code:project'].reason, /Claude Code isn't one of them/);
+  assert.match(slate.plans['claude-code:project'].reason, /Claude Code isn’t one of them/);
 });

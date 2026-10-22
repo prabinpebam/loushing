@@ -57,7 +57,9 @@ drawn for its size and every master is reduced by the same factor.
 | `md` | 96 | 34 px | 85 px | 3.75 px |
 | `lg` | 160 | 56 px | 140 px | 3.75 px |
 
-`k` is `drawing.masterFactor` (1.25 until the pilot confirms or changes it). Head height
+`k` is `drawing.masterFactor`. The pilot found the model draws every render at about
+one scale (a line of about 5 px in the master), so the working default is k ≈ 1.67,
+pending the owner's confirmation (O33). Head height
 is measured from the top of the fringe to the chin, whatever the pose.
 
 - Never reuse a render at another size, never upscale, and never resize one image on
@@ -223,7 +225,9 @@ A cast member (`cast` in `scenes.json`) needs its own sheet before any scene use
 - **Fresh on every view.** The picker runs in the browser on every page view,
   including reloads, never at build time.
 - **A zone needs a choice.** A zone shows nothing until it has at least
-  `minCandidatesPerZone` (4) approved moments at its size. Review links bypass this.
+  `minCandidatesPerZone` (4) shown moments at its size. Review links bypass this.
+  While renders are reviewed in place, `statusesShown` adds `draft` and the minimum
+  drops to 1; restore both once enough renders are approved.
 - **Set pieces fit or skip.** Both parts in the same zone and screenful, from `md`
   width, left part left; otherwise the set piece is not a candidate.
 - **Natural size.** Width and height attributes are the 1x file's size, with a 1x/2x

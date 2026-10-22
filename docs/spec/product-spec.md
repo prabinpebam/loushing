@@ -581,9 +581,10 @@ The checkout takes full history and the submodules, because the catalog reads pi
 kit commits and dates from Git. The Slate docs host is not deployed.
 
 **Chopper.** The masters ship as PNG because there is no WebP encoder in a
-dependency-free build. Four pilot renders exist as drafts
-([pilot](../design/chopper.md#the-pilot)); pages show only approved renders, so
-there are no cameos until you approve them.
+dependency-free build; the build trims each to its drawing and sizes it at one
+reduction, k ≈ 1.67. The four pilot renders are drafts, shown on the site so you can
+review them in place ([pilot](../design/chopper.md#the-pilot)); once enough are
+approved, drafts stop showing.
 
 **Not built yet.** Real skills (stage 1 needs at least five from you), component
 stories, automated Lighthouse and axe runs, a custom domain (O13), and the CLI.

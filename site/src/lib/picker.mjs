@@ -32,7 +32,9 @@ export function rng(seed) {
   };
 }
 
-const approved = (render) => render && render.status === 'approved';
+// A render shows when the library's rules show its status (approved, plus drafts while
+// they are reviewed in place).
+const shown = (library, render) => !!render && (library.rules?.statusesShown ?? ['approved']).includes(render.status);
 
 /** The images a scene or set piece needs in a zone, or null when it doesn't fit there. */
 export function fit(library, kind, id, zoneId) {
@@ -42,7 +44,7 @@ export function fit(library, kind, id, zoneId) {
     const scene = library.scenes.find((s) => s.id === id);
     if (!scene || scene.status === 'retired' || !scene.zones.includes(zoneId) || !zone.poses.includes(scene.pose)) return null;
     const render = scene.renders?.[zone.size];
-    if (!approved(render)) return null;
+    if (!shown(library, render)) return null;
     return [{ scene: scene.id, size: zone.size, side: zone.align === 'either' ? 'end' : zone.align, file: `${scene.id}.${zone.size}` }];
   }
   const piece = library.setPieces.find((p) => p.id === id);
@@ -51,7 +53,7 @@ export function fit(library, kind, id, zoneId) {
   for (const part of piece.parts) {
     const scene = library.scenes.find((s) => s.id === part.scene);
     const render = scene?.renders?.[zone.size];
-    if (!approved(render)) return null;
+    if (!shown(library, render)) return null;
     images.push({ scene: scene.id, size: zone.size, side: part.side, file: `${scene.id}.${zone.size}` });
   }
   return images;

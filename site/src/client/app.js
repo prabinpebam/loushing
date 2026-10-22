@@ -287,7 +287,7 @@ async function initCatalog() {
     status.textContent = n === 1 ? '1 item' : `${n} items`;
     if (q) status.textContent += ` for “${q}”`;
     hiddenNote.hidden = !hiddenByAgent;
-    hiddenNote.textContent = hiddenByAgent ? `${hiddenByAgent === 1 ? '1 more item matches' : `${hiddenByAgent} more items match`} but isn't set up for the agents you picked.` : '';
+    hiddenNote.textContent = hiddenByAgent ? `${hiddenByAgent === 1 ? '1 more item matches' : `${hiddenByAgent} more items match`} but isn’t set up for the agents you picked.` : '';
     if (empty) empty.hidden = n > 0;
     grid.hidden = n === 0;
 
@@ -307,7 +307,7 @@ async function initCatalog() {
   run(false);
 }
 
-/* Chopper: fill the layout's zones with approved renders, a story at a time. */
+/* Chopper: fill the layout's zones with the renders the library shows, a story at a time. */
 let chopperDone = false;
 async function initChopper() {
   if (chopperDone || document.documentElement.dataset.chopper === 'off') return;
@@ -342,12 +342,15 @@ async function initChopper() {
       if (m.images.length > 1) zone.dataset.pair = 'true';
       else zone.dataset.side = m.images[0].side;
       for (const img of m.images) {
+        const render = library.scenes.find((s) => s.id === img.scene)?.renders?.[img.size];
         const el = new Image();
         el.alt = '';
         el.decoding = 'async';
         el.loading = 'lazy';
+        if (render?.width) { el.width = render.width; el.height = render.height; }
         el.src = `${base}assets/chopper/${img.file}.png`;
         el.dataset.side = img.side;
+        if (render?.status && render.status !== 'approved') el.dataset.status = render.status;
         zone.append(el);
       }
     }
@@ -363,5 +366,5 @@ initChopperToggle();
 initGetIt();
 initSelects();
 initCatalog();
-if ('requestIdleCallback' in window) requestIdleCallback(() => initChopper());
+if ('requestIdleCallback' in window) requestIdleCallback(() => initChopper(), { timeout: 2000 });
 else setTimeout(initChopper, 200);
