@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | Purpose | Capture the brief, evidence, designs, decisions, and specifications | Help humans and AI agents browse, discover, and use skills and related resources |
 | Implementation | Slate documentation harness | Separate application code; technology undecided |
-| Current state | Set up and ready for the next brief | Not designed or implemented |
+| Current state | Draft product spec and benchmark research | Specified as a draft; not implemented |
 
 Slate's navigation, search, and themes belong to this documentation reader.
 They do not determine the future product's information architecture or UI.
@@ -19,6 +19,14 @@ They do not determine the future product's information architecture or UI.
 | Read | Use it to |
 | --- | --- |
 | [Initial brief](brief.md) | See the confirmed intent and the questions still open |
+| [Product spec](spec/product-spec.md) | Review the promise, jobs, what a person can do, flows, views, assumptions and the decisions waiting on you |
+| [Benchmarks](research/benchmarks.md) | Review the customer promises and jobs that similar catalogs and marketplaces address |
+| [Content model](spec/content-model.md) | See what skills, kits and stacks are, the item card, relationships and facets |
+| [Repository organization](spec/repository-organization.md) | See what lives in Loushing and what lives in its own repository |
+| [Item pages](spec/item-pages.md) | See the plain-language detail page for each type of item |
+| [Distribution and install](spec/distribution.md) | See the `npx loushing` strategy, Git and download routes, and security |
+| [Agent access](spec/agent-access.md) | See how AI agents find, read and install items |
+| [Definitions of Done](spec/definition-of-done.md) | See what success means and the five delivery stages |
 | [Working guide](working-guide.md) | Preview, author, organize, and validate these documents |
 
 ## Three editable harnesses
@@ -50,11 +58,10 @@ Orchestration works without a Craft spec for code tasks; it then states a short 
 done when, and limits in its own work plan. Neither execution nor documentation
 redefines product intent, and Craft does not prescribe how the work is run.
 
-## Ready for your next input
+## Waiting on you
 
-The next planning conversation can start with representative skills and resources,
-current pain points, target tasks, or design references. Those inputs will guide the
-organization, human and agent journeys, UX/UI, and implementation specifications.
-
-No inventory, taxonomy, product design, technical stack, or delivery plan has been
-invented at this stage. "Loushing" is only a working name from the workspace folder.
+The spec is a draft. Its recommendations are working defaults until you decide them in
+the [decisions table](spec/product-spec.md#10-decisions). Most urgent: the names for
+multi-part systems and curated sets (kit and stack), the site technology and hosting,
+and which of your skills to publish first. No skills have been imported, and the job
+areas will be derived from the first real items. "Loushing" is still a working name.

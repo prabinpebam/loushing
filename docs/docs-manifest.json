@@ -1,27 +1,16 @@
 {
   "version": 2,
   "entries": [
-    {
-      "path": "overview.md",
-      "title": "Overview",
-      "order": 0,
-      "icon": "home",
-      "type": "page"
-    },
-    {
-      "path": "brief.md",
-      "title": "Initial brief",
-      "order": 1,
-      "icon": "flag",
-      "type": "page",
-      "status": "draft"
-    },
-    {
-      "path": "working-guide.md",
-      "title": "Working guide",
-      "order": 2,
-      "icon": "construction",
-      "type": "page"
-    }
+    { "path": "overview.md", "title": "Overview", "order": 0, "icon": "home", "type": "page" },
+    { "path": "brief.md", "title": "Initial brief", "order": 1, "icon": "flag", "type": "page", "status": "draft" },
+    { "path": "spec/product-spec.md", "title": "Product spec", "group": "Product spec", "order": 10, "icon": "target", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/content-model.md", "title": "Content model", "group": "Product spec", "order": 11, "icon": "category", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/repository-organization.md", "title": "Repository organization", "group": "Product spec", "order": 12, "icon": "folder_open", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/item-pages.md", "title": "Item pages", "group": "Product spec", "order": 13, "icon": "article", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/distribution.md", "title": "Distribution and install", "group": "Product spec", "order": 14, "icon": "download", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/agent-access.md", "title": "Agent access", "group": "Product spec", "order": 15, "icon": "smart_toy", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "spec/definition-of-done.md", "title": "Definitions of Done", "group": "Product spec", "order": 16, "icon": "task_alt", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "research/benchmarks.md", "title": "Benchmarks", "group": "Research", "order": 20, "icon": "compare", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "working-guide.md", "title": "Working guide", "order": 30, "icon": "construction", "type": "page" }
   ]
 }
