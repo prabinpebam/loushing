@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "path": "overview.md",
+      "title": "Overview",
+      "order": 0,
+      "icon": "home",
+      "type": "page"
+    },
+    {
+      "path": "brief.md",
+      "title": "Initial brief",
+      "order": 1,
+      "icon": "flag",
+      "type": "page",
+      "status": "draft"
+    },
+    {
+      "path": "working-guide.md",
+      "title": "Working guide",
+      "order": 2,
+      "icon": "construction",
+      "type": "page"
+    }
+  ]
+}
