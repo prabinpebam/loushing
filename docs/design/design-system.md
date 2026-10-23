@@ -88,7 +88,7 @@ Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
   </article>
   <article class="slate-card">
     <h3 class="slate-card__title">Quiet motion</h3>
-    <p class="slate-card__body">Short, functional transitions by default. Experimental lighting can opt into slow off-frame shadow drift; it starts off, can be stopped independently, and freezes for reduced motion.</p>
+    <p class="slate-card__body">Short, functional transitions by default. Experimental lighting is on by default in Loushing, with slow off-frame shadow drift; it can be turned off, the drift can be stopped independently, and it freezes for reduced motion.</p>
   </article>
 </div>
 

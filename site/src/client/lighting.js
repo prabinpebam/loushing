@@ -1,6 +1,9 @@
 import { LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, lightingProperties, lightingMotion, upgradeLighting, validateLighting } from '../lib/lighting.mjs';
 import { createLightRenderer } from './light-renderer.js';
 
+// Loushing shows long shadows from the first visit; the portable engine stays opt-in.
+const SITE_DEFAULTS = Object.freeze({ ...LIGHT_DEFAULTS, enabled: true });
+
 /** DOM adapter for the portable engine and its shared shadow layer. */
 export function initLighting() {
   const root = document.documentElement;
@@ -22,7 +25,7 @@ export function initLighting() {
   const forced = matchMedia('(forced-colors: active)');
   const key = `loushing.lighting.v${LIGHT_SCHEMA}`;
   const legacyKeys = [2, 1].map((version) => ({ version, key: `loushing.lighting.v${version}` }));
-  let settings = { ...LIGHT_DEFAULTS };
+  let settings = { ...SITE_DEFAULTS };
   let warning = '';
   let upgraded = false;
   let renderer = null;
@@ -99,7 +102,7 @@ export function initLighting() {
       show();
     }
     if (event.target.closest('[data-lighting-reset]')) {
-      settings = { ...LIGHT_DEFAULTS, enabled: settings.enabled };
+      settings = { ...SITE_DEFAULTS, enabled: settings.enabled };
       save();
       show();
     }

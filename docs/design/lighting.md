@@ -474,12 +474,13 @@ from the site's sources, so change the site first and copy into the kit.
 ## Working decisions
 
 The owner was unavailable for the first defaults question. On 23 October 2026 the
-owner set the default light and motion from the Lighting panel (LO3, LO6). The other
+owner set the default light and motion from the Lighting panel (LO3, LO6), and asked
+for long shadows to be on by default in Loushing (LO1). The other
 rows are reversible working defaults, **not owner-approved product decisions**.
 
 | ID | Decision | Working default | Approval |
 | --- | --- | --- | --- |
-| LO1 | Initial appearance | Lighting off; independent of system/light/dark | Awaiting review |
+| LO1 | Initial appearance | Long shadows on for a first visit; a saved choice wins; independent of system/light/dark. The portable engine and kit stay off until a host turns them on | Owner set, 23 Oct 2026 |
 | LO2 | Controls | Visible Long shadows switch beside theme; compact Lighting disclosure | Awaiting review |
 | LO3 | Motion | Off-frame shadows on and animated, at 5×; separate objects with their own speeds and directions, at least one shadow always in view; reduced motion always wins | Owner set, 23 Oct 2026 |
 | LO4 | Renderer | Dependency-free WebGL2 shadows that work out area-light visibility per pixel, one canvas per scroll frame; edges stay CSS | Awaiting visual review |
@@ -487,7 +488,7 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 | LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
 | LO7 | Bounced light | On at 100 %, physically scaled; adjustable 0–200 % | Awaiting visual review |
 
-**Try it:** at the site preview, turn on **Long shadows**. Watch the off-frame
+**Try it:** open the site in a private window: **Long shadows** is already on. Watch the off-frame
 shadows for a minute: several drift across at different speeds, some each way, and
 there's always at least one in view. Open an item page
 and scroll fast, and to the very end: the Get it panel's shadow stays attached, and

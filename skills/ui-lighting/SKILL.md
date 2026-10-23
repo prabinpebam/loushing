@@ -200,7 +200,8 @@ The defaults are the owner's chosen look. Don't change them unless asked:
 | Motion speed (`speed`) | 5× | 1–10× |
 
 To start with lighting on, or with another look, pass
-`mountLighting({ defaults: { enabled: true } })`. Reset returns to these defaults and
+`mountLighting({ defaults: { enabled: true } })`; Loushing, the reference host,
+starts on. Reset returns to these defaults and
 keeps the switch where it is.
 
 ### 9. Verify

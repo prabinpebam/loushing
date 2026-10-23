@@ -507,6 +507,15 @@ test('control panel covers every setting, with labels and no duplicate IDs', () 
   assert.match(markup, /<fieldset[^>]+ disabled>/, 'no-script fallback is honest');
 });
 
+test('Loushing turns long shadows on by default while the portable engine stays opt-in', () => {
+  assert.equal(LIGHT_DEFAULTS.enabled, false);
+  const adapter = readFileSync(new URL('../src/client/lighting.js', import.meta.url), 'utf8');
+  assert.match(adapter, /const SITE_DEFAULTS = Object\.freeze\(\{ \.\.\.LIGHT_DEFAULTS, enabled: true \}\);/);
+  assert.match(adapter, /let settings = \{ \.\.\.SITE_DEFAULTS \};/, 'a first visit starts with long shadows on');
+  assert.match(adapter, /settings = \{ \.\.\.SITE_DEFAULTS, enabled: settings\.enabled \};/, 'reset keeps the switch where it is');
+  assert.doesNotMatch(adapter, /\{ \.\.\.LIGHT_DEFAULTS \}/);
+});
+
 test('only elevated surfaces opt in, and the lighting system stays independent of Loushing', () => {
   assert.match(String(Tile({ tone: 'sunken', children: '' })), /data-elevation="0"/);
   assert.match(String(Tile({ children: '' })), /data-elevation="2"/);
