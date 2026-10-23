@@ -31,7 +31,7 @@ export function Hero({ title, standfirst, search }, { model }) {
 export function StatStrip({ stats }) {
   return html`<ul class="c-stats" aria-label="The catalog in numbers">
   ${stats.counts.map((c) => html`<li class="c-stats__item">${Tile({ tone: 'sunken', children: Metric({ value: c.value, label: c.label, icon: c.icon }) })}</li>`)}
-  ${stats.latest && html`<li class="c-stats__item">${Tile({ tone: 'sunken', children: Metric({ value: formatDate(stats.latest, 'short'), label: 'last updated', icon: 'schedule', kind: 'date' }) })}</li>`}
+  ${stats.latest && html`<li class="c-stats__item">${Tile({ tone: 'sunken', children: Metric({ value: formatDate(stats.latest, 'compact'), label: 'last updated', icon: 'schedule', kind: 'date' }) })}</li>`}
 </ul>`;
 }
 

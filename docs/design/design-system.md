@@ -148,6 +148,7 @@ at 4.5:1 and outlines, focus and chart series at 3:1.
 | Chopper frames | sm 56 · md 96 · lg 160 px | The one size exception to rem: drawn images keep their [drawn scale](chopper.md#drawn-for-its-size), so text zoom never resizes them |
 | Motion | fast 120 · base 200 · slow 320 ms; standard and bounce easings | Bounce is for Chopper's settle only |
 | Layers | cameo 0 · raised 1 · sticky 100 · overlay 300 · toast 500 | Chopper is always below everything interactive |
+| Header glass | Page colour at 70 % over a 12 px Gaussian blur of the page behind | Nothing painted on the glass. Solid bar for more contrast, forced colours and reduced transparency, and where backdrop blur isn't supported |
 | Breakpoints | sm 40 · md 56 · lg 72 · xl 90 rem | Side gutters (and gutter cameos) only from xl |
 
 ### Token rules

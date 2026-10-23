@@ -17,6 +17,21 @@
   background: var(--color-bg);
   border-bottom: var(--border-hairline) solid var(--color-rule);
 }
+/* Frosted glass: the page shows through an even blur under a tint; nothing is painted
+   on the glass itself. More contrast, forced colours and reduced transparency keep
+   the solid bar. */
+@supports (backdrop-filter: none) or (-webkit-backdrop-filter: none) {
+  @media (forced-colors: none) and (prefers-contrast: no-preference) {
+    .l-header {
+      background: color-mix(in srgb, var(--color-bg) calc(var(--c-header-glass-tint) * 100%), transparent);
+      -webkit-backdrop-filter: blur(var(--c-header-glass-blur));
+      backdrop-filter: blur(var(--c-header-glass-blur));
+    }
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .l-header { background: var(--color-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 .l-header__inner {
   display: flex;
   flex-wrap: wrap;

@@ -13,6 +13,7 @@ export function formatDate(iso, style = 'long') {
   const m = d.getUTCMonth();
   const y = d.getUTCFullYear();
   if (style === 'month') return `${LONG[m]} ${y}`;
+  if (style === 'compact') return `${day} ${MONTHS[m]} \u2019${String(y).slice(-2)}`;
   return `${day} ${style === 'short' ? MONTHS[m] : LONG[m]} ${y}`;
 }
 
