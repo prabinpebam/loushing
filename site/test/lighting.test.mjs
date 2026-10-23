@@ -624,6 +624,8 @@ test('only elevated surfaces opt in, and the lighting system stays independent o
   assert.doesNotMatch(renderer, /uOffFrameStep/, 'off-frame shadows never depend on where another frame’s surfaces were');
   assert.match(renderer, /const own = casters\.filter\(\(box\) => !box\.post\);/, 'off-frame shadows do not shade walls, so the bounce never lags the scroll');
   assert.doesNotMatch(renderer, /uGoboLift/);
+  assert.match(renderer, /target\.isConnected && !wrapper\.contains\(target\)/, 'the layer’s own detached leftovers never trigger a rebuild');
+  assert.ok(renderer.indexOf('observer?.takeRecords();') > renderer.indexOf('sets[k].host.append(floors.outer)'), 'a rebuild drops its own mutation records only after its last write, so an idle page never rebuilds every frame');
   const lib = readFileSync(new URL('../src/lib/lighting.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');
   const generated = readFileSync(new URL('../../design/tokens/dist/tokens.css', import.meta.url), 'utf8');

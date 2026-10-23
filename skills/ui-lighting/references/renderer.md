@@ -157,7 +157,10 @@ as a class or `data-theme`; `update` alone doesn't re-read colours.
 - On scroll, resize, layout changes (a `MutationObserver` and a `ResizeObserver` on
   `<body>`), pointer, focus and transition events, and theme changes, for
   600 ms after each change, so transitions settle. A lost WebGL context is restored
-  and redrawn.
+  and redrawn. The layer's own writes never count as changes: a rebuild drops the
+  records of its sticky measurements once it has finished, and records on detached
+  nodes are ignored, so the layer never rebuilds itself every frame (which would
+  restart every sticky and scroll frame's animations).
 - Every 33 ms while the off-frame objects move. The page group doesn't redraw while
   only they move.
 - Idle pages don't redraw.

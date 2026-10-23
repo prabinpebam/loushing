@@ -739,7 +739,6 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       chains.set(el, chain);
       if (!wanted.has(chain.key)) wanted.set(chain.key, chain);
     }
-    observer?.takeRecords();
     for (const [key, layer] of layers) {
       if (wanted.has(key)) continue;
       for (const animation of layer.animations) animation.cancel();
@@ -761,6 +760,8 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       layer.drawn = null;
       layer.floors.forEach((floors, k) => sets[k].host.append(floors.outer));
     });
+    // Measuring sticky surfaces wrote their style; those records are the layer's own.
+    observer?.takeRecords();
     stats.frames = layers.size - 2;
   }
 
@@ -1219,8 +1220,10 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     scheme.addEventListener('change', () => { readInk(); reflow(); }, { signal: listening.signal });
     const resize = new ResizeObserver(reflow);
     resize.observe(document.body);
+    // Detached targets are the layer's own leftovers (a canvas moved out of a dropped
+    // chain); answering them would rebuild on every frame.
     observer = new MutationObserver((records) => {
-      if (records.some(({ target }) => !wrapper.contains(target))) reflow();
+      if (records.some(({ target }) => target.isConnected && !wrapper.contains(target))) reflow();
     });
     observer.observe(document.body, { subtree: true, childList: true, attributes: true });
     const theme = new MutationObserver(() => { readInk(); reflow(); });
