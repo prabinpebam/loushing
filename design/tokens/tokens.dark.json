@@ -1,6 +1,11 @@
 {
   "$description": "Dark theme context: semantic colour roles and shadows. Harbour night: cool ink surfaces with a cream halo so Chopper stays visible.",
   "color": {
+    "lighting-ink": {
+      "$type": "color",
+      "$value": { "colorSpace": "srgb", "components": [0, 0, 0], "hex": "#000000" },
+      "$description": "Dark shadow ink; selected tints mix toward black rather than glowing"
+    },
     "text": {
       "$type": "color",
       "$value": "{p.mist.100}",
@@ -25,6 +30,11 @@
       "$type": "color",
       "$value": "{p.night.700}",
       "$description": "Tiles and wells"
+    },
+    "bg-slot": {
+      "$type": "color",
+      "$value": "{p.night.850}",
+      "$description": "Empty placeholder slots that complete a card grid's last row"
     },
     "bg-hover": {
       "$type": "color",

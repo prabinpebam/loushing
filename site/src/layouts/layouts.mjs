@@ -9,6 +9,7 @@ import { html, raw } from '../lib/html.mjs';
 import { url } from '../lib/urls.mjs';
 import { Divider, Icon, IconButton, Link, SearchBox, Toggle } from '../components/fundamentals.mjs';
 import { ResultsStatus } from '../components/compounds/index-page.mjs';
+import { LightingPanel } from '../components/compounds/lighting.mjs';
 
 /** A cameo zone: empty until the picker fills it with an approved render. */
 export function Zone(id, align) {
@@ -95,7 +96,11 @@ ${alternate && html`<link rel="alternate" type="text/markdown" href="${alternate
     <a class="l-header__brand" href="${url('/')}" aria-label="Loushing home">${Icon({ name: 'pets' })}<span>Loushing</span></a>
     <nav class="l-header__nav" aria-label="Main"><ul>${NAV.map((n) => html`<li>${Link({ href: url(n.href), label: n.label, current: path === n.href })}</li>`)}</ul></nav>
     ${headerSearch && html`<div class="l-header__search">${SearchBox({ id: 'header-search', label: 'Search the catalog', placeholder: 'Search skills and kits', action: url('/catalog') })}</div>`}
-    ${IconButton({ label: 'Theme: match my system', icon: 'contrast', data: { 'theme-toggle': 'true' } })}
+    <div class="l-header__appearance">
+      ${Toggle({ label: 'Long shadows', data: { 'lighting-toggle': 'true' }, disabled: true })}
+      ${LightingPanel()}
+      ${IconButton({ label: 'Theme: match my system', icon: 'contrast', data: { 'theme-toggle': 'true' } })}
+    </div>
   </div>
 </header>
 <main id="main" class="l-main" tabindex="-1">

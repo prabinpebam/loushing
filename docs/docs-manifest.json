@@ -14,6 +14,7 @@
     { "path": "design/visual-first.md", "title": "Visual first", "group": "Design", "order": 18, "icon": "dashboard", "type": "page", "status": "draft", "updated": "2026-10-22" },
     { "path": "design/chopper.md", "title": "Chopper", "group": "Design", "order": 19, "icon": "pets", "type": "page", "status": "draft", "updated": "2026-10-22" },
     { "path": "design/tokens.md", "title": "Tokens", "group": "Design", "order": 20, "icon": "data_object", "type": "page", "status": "draft", "updated": "2026-10-22" },
+    { "path": "design/lighting.md", "title": "Lighting system", "group": "Design", "order": 20.5, "icon": "light_mode", "type": "page", "status": "draft", "updated": "2026-10-23" },
     { "path": "research/benchmarks.md", "title": "Benchmarks", "group": "Research", "order": 21, "icon": "compare", "type": "page", "status": "draft", "updated": "2026-10-22" },
     { "path": "working-guide.md", "title": "Working guide", "order": 30, "icon": "construction", "type": "page" }
   ]

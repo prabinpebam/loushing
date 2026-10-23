@@ -27,6 +27,7 @@ hand-drawn character.
 > - **Open:** the typeface (O23) is a working default for your review.
 
 Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
+[lighting system](lighting.md) ·
 [tokens](tokens.md) · [product spec](../spec/product-spec.md#5-views) ·
 [item pages](../spec/item-pages.md) ·
 [Definitions of Done](../spec/definition-of-done.md).
@@ -87,7 +88,7 @@ Related pages: [visual first](visual-first.md) · [Chopper](chopper.md) ·
   </article>
   <article class="slate-card">
     <h3 class="slate-card__title">Quiet motion</h3>
-    <p class="slate-card__body">Short, functional transitions. Nothing loops. Every motion has a reduced-motion form, usually none.</p>
+    <p class="slate-card__body">Short, functional transitions by default. Experimental lighting can opt into slow off-frame shadow drift; it starts off, can be stopped independently, and freezes for reduced motion.</p>
   </article>
 </div>
 
@@ -180,7 +181,7 @@ CopyField, Toggle, Tooltip, Skeleton, Divider, Tile, Metric.
 | --- | --- | --- |
 | Hero | The page's promise and the search box | `hero` |
 | StatStrip | Catalog counts and freshness as number tiles | `stat-strip` |
-| AreaTile, ItemTile, StackTile | Job areas, items and stacks as tiles, in bento, tile or list arrangements | `area-tiles`, `item-tiles`, `stack-tiles` |
+| AreaTile, ItemTile, StackTile | Job areas, items and stacks as tiles, in bento, tile or list arrangements; a short last row of item tiles is completed with faint placeholder slots | `area-tiles`, `item-tiles`, `stack-tiles` |
 | FacetBar | Filters with counts, held in the URL | `facet-bar` |
 | ItemHeader | Type badge, name, summary, status, version, agent chips | `item-header` |
 | GetItPanel | Install methods as tabs, a copyable command, the effects line | `get-it-panel` |
@@ -190,7 +191,7 @@ CopyField, Toggle, Tooltip, Skeleton, Divider, Tile, Metric.
 | KitAnatomy | A kit's parts in groups, and how they connect | `kit-anatomy` |
 | StackPath | A stack's members in order, with what each hands to the next | `stack-path` |
 | ReleaseTimeline | Releases, newest first | `release-timeline` |
-| WorksWith | Related items as small cards with the relation | `works-with` |
+| WorksWith | Related items as small cards with the relation; a short last row is completed with faint placeholder slots | `works-with` |
 | ItemBody | The card's plain-language sections, as text | `item-body` |
 | SourceViewer | Read-only files at the pinned version | `source-viewer` |
 | EmptyState | No results, not found, gone, empty catalog: what happened and what to do | `empty-state` |

@@ -74,7 +74,7 @@ function Banner({ icon, tone, text }) {
  */
 export function GetItPanel({ item }, { model }) {
   if (item.type === 'part') {
-    return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title">
+    return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-elevation="3">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
   <p class="c-getit__line">${item.title} comes with ${item.kit.title}. Get the kit to use it.</p>
   ${Button({ label: `Get ${item.kit.title}`, icon: 'arrow_forward', kind: 'primary', href: url(`${item.kit.url}#get-it`) })}
@@ -82,7 +82,7 @@ export function GetItPanel({ item }, { model }) {
   }
   const agents = model.taxonomy.agents;
   const effects = (item.effects ?? []).map((e) => model.effectsById.get(e)).filter(Boolean);
-  return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-getit data-default-agent="${DEFAULT_AGENT}">
+  return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-elevation="3" data-getit data-default-agent="${DEFAULT_AGENT}">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
   <div class="c-getit__pickers">
     ${Select({ id: `agent-${item.id}`, label: 'Your agent', value: DEFAULT_AGENT, options: agents.map((a) => ({ value: a.id, label: a.title })), data: { 'agent-picker': 'true' } })}
@@ -251,9 +251,12 @@ export function WorksWith({ item }, { model }) {
   if (!rel.length) return html``;
   return html`<section class="c-works" id="works-with" aria-labelledby="works-title">
   <h2 class="c-section-title" id="works-title">Works well with</h2>
-  <ul class="c-works__grid">${rel.map((r) => html`<li>${Tile({ href: url(r.other.url), tone: 'raised', children: html`<span class="c-works__kind">${Icon({ name: r.kind === 'feedsInto' ? 'east' : r.kind === 'picksUpFrom' ? 'arrow_back' : r.kind === 'inStack' ? 'stacks' : 'link' })}${RELATION_TITLES[r.kind] ?? r.kind}</span><span class="c-works__title">${r.other.title}</span><span class="c-works__reason">${r.reason}</span>` })}</li>`)}</ul>
+  <ul class="c-works__grid" data-slots>${rel.map((r) => html`<li>${Tile({ href: url(r.other.url), tone: 'raised', children: html`<span class="c-works__kind">${Icon({ name: r.kind === 'feedsInto' ? 'east' : r.kind === 'picksUpFrom' ? 'arrow_back' : r.kind === 'inStack' ? 'stacks' : 'link' })}${RELATION_TITLES[r.kind] ?? r.kind}</span><span class="c-works__title">${r.other.title}</span><span class="c-works__reason">${r.reason}</span>` })}</li>`)}${slot()}</ul>
 </section>`;
 }
+
+/** A faint placeholder the script copies into a short last row; inert without it. */
+const slot = () => html`<template data-slot-template><li class="c-slot" data-slot aria-hidden="true">${Icon({ name: 'pets' })}</li></template>`;
 
 const SECTION_TITLES = { what: 'What it does', how: 'How it works', adds: 'What it adds to your project', good: 'Good to know', after: 'After setup' };
 

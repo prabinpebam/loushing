@@ -8,6 +8,7 @@ import { esc, html, raw } from '../src/lib/html.mjs';
 import { stem, tokenize, indexDoc, search, facetCounts, filtersToQuery, queryToFilters } from '../src/lib/search.mjs';
 import { daypart, rng, fit, candidates, pickMoments, zoneSizes } from '../src/lib/picker.mjs';
 import { plan, SKILL_TARGETS, downloadUrl } from '../src/lib/install.mjs';
+import { emptySlots } from '../src/lib/slots.mjs';
 import { decodePng, encodePng, alphaBounds, trimToAlpha } from '../scripts/lib/png.mjs';
 
 test('yaml: maps, lists, nesting and front matter', () => {
@@ -204,4 +205,15 @@ test('listbox: opening, moving and type-ahead stay inside the list', () => {
   assert.equal(typeahead('cc', labels, 2), 3);
   assert.equal(typeahead('c', labels, 4), 1);
   assert.equal(typeahead('z', labels, 0), -1);
+});
+
+test('slots: a short last row gets the empty cells that complete it', () => {
+  assert.equal(emptySlots(3, 4), 1);
+  assert.equal(emptySlots(5, 4), 3);
+  assert.equal(emptySlots(4, 4), 0);
+  assert.equal(emptySlots(8, 4), 0);
+  assert.equal(emptySlots(1, 3), 2);
+  assert.equal(emptySlots(3, 1), 0, 'one column needs none');
+  assert.equal(emptySlots(0, 4), 0, 'an empty grid stays empty');
+  assert.equal(emptySlots(3, Number.NaN), 0);
 });

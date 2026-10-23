@@ -30,7 +30,7 @@ export function Icon({ name, label }) {
  */
 export function Button({ label, icon, kind = 'secondary', href, external = false, data, disabled = false }) {
   const inner = html`${icon && Icon({ name: icon })}<span class="f-button__label">${label}</span>${external && Icon({ name: 'north_east' })}`;
-  const a = { class: 'f-button', 'data-kind': kind, ...dataAttrs(data) };
+  const a = { class: 'f-button', 'data-kind': kind, 'data-elevation': kind === 'primary' ? '1' : null, ...dataAttrs(data) };
   if (href) return html`<a${attrs({ ...a, href, rel: external ? 'noopener' : null, target: external ? '_blank' : null })}>${inner}</a>`;
   return html`<button${attrs({ ...a, type: 'button', disabled })}>${inner}</button>`;
 }
@@ -144,10 +144,24 @@ export function Segmented({ name, label, options, value, hideLabel = false, data
 /**
  * Toggle: an on/off setting as a switch.
  * @a11y role=switch with aria-checked; the label is the setting, not the state.
- * @param {{ label: string, checked?: boolean, data?: object }} props
+ * @param {{ label: string, checked?: boolean, data?: object, disabled?: boolean }} props
  */
-export function Toggle({ label, checked = false, data }) {
-  return html`<button${attrs({ class: 'f-toggle', type: 'button', role: 'switch', 'aria-checked': String(checked), ...dataAttrs(data) })}><span class="f-toggle__track" aria-hidden="true"><span class="f-toggle__thumb"></span></span><span>${label}</span></button>`;
+export function Toggle({ label, checked = false, data, disabled = false }) {
+  return html`<button${attrs({ class: 'f-toggle', type: 'button', role: 'switch', 'aria-checked': String(checked), disabled, ...dataAttrs(data) })}><span class="f-toggle__track" aria-hidden="true"><span class="f-toggle__thumb"></span></span><span>${label}</span></button>`;
+}
+
+/**
+ * LightInput: a labelled native range or colour input with its current value.
+ * Not for text entry; values, limits and labels come from the lighting contract.
+ * @a11y Native input; range output is associated by for; the label stays visible.
+ * @key Arrows/Home/End adjust ranges (native).
+ * @param {{ id: string, label: string, type?: 'range'|'color', value: string|number, min?: number, max?: number, step?: number, unit?: string, data?: object }} props
+ */
+export function LightInput({ id, label, type = 'range', value, min, max, step, unit = '', data }) {
+  return html`<div class="f-lightinput">
+    <div class="f-lightinput__label"><label for="${id}">${label}</label>${type === 'range' && html`<output for="${id}">${value}${unit}</output>`}</div>
+    <input${attrs({ id, type, value, min, max, step, 'data-unit': unit, ...dataAttrs(data) })}>
+  </div>`;
 }
 
 /**
@@ -158,7 +172,7 @@ export function Toggle({ label, checked = false, data }) {
  * @param {{ href?: string, tone?: 'raised'|'sunken'|'accent', children: any, data?: object, label?: string }} props
  */
 export function Tile({ href, tone = 'raised', children, data, label }) {
-  const a = { class: tone === 'accent' ? 'f-tile u-ear' : 'f-tile', 'data-tone': tone, 'aria-label': label, ...dataAttrs(data) };
+  const a = { class: tone === 'accent' ? 'f-tile u-ear' : 'f-tile', 'data-tone': tone, 'data-elevation': tone === 'sunken' ? '0' : tone === 'accent' ? '3' : '2', 'aria-label': label, ...dataAttrs(data) };
   return href ? html`<a${attrs({ ...a, href })}>${children}</a>` : html`<div${attrs(a)}>${children}</div>`;
 }
 

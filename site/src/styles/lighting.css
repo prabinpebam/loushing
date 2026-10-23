@@ -1,0 +1,41 @@
+/*
+ * Portable opt-in lighting. Only its public data attributes and --data-light-* inputs
+ * are required; no product selectors. The host supplies the --lighting-* tokens and
+ * --layer-lighting, a stacking level above page content and below sticky bars,
+ * menus and notifications.
+ * Named tier-0 escape: lighting styles only explicitly opted-in surface wrappers.
+ * A lit surface's own box-shadow becomes its directional rims. Cast shadows are not
+ * CSS: one shared canvas ([data-light-layer]) draws every shadow from the light, and
+ * multiplies it over the page, so overlapping shadows never darken each other.
+ */
+:root {
+  --light-highlight: color-mix(in srgb, var(--data-light-highlight-tint) var(--data-light-highlight), transparent);
+  --light-shadow-ink: light-dark(var(--data-light-shadow-tint), color-mix(in srgb, var(--data-light-shadow-tint) calc(var(--lighting-dark-tint) * 100%), var(--color-lighting-ink)));
+  --light-edge-shadow: color-mix(in srgb, var(--light-shadow-ink) var(--data-light-intensity), transparent);
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  [data-lighting='on'] [data-elevation]:not([data-elevation='0']) {
+    box-shadow: var(--data-light-rim);
+  }
+}
+
+[data-light-layer] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  overflow: clip;
+  contain: strict;
+  pointer-events: none;
+  z-index: var(--layer-lighting);
+  mix-blend-mode: multiply;
+}
+[data-light-layer] canvas {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: block;
+}
+@media (prefers-contrast: more), (forced-colors: active), print {
+  [data-light-layer] { display: none !important; }
+}

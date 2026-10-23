@@ -1,6 +1,11 @@
 {
   "$description": "Light theme context: semantic colour roles and shadows.",
   "color": {
+    "lighting-ink": {
+      "$type": "color",
+      "$value": "{p.ink.900}",
+      "$description": "Non-emissive shadow ink mixed with the chosen tint"
+    },
     "text": {
       "$type": "color",
       "$value": "{p.ink.900}",
@@ -25,6 +30,11 @@
       "$type": "color",
       "$value": "{p.mist.100}",
       "$description": "Tiles and wells: harbour mist"
+    },
+    "bg-slot": {
+      "$type": "color",
+      "$value": "{p.mist.100}",
+      "$description": "Empty placeholder slots that complete a card grid's last row"
     },
     "bg-hover": {
       "$type": "color",

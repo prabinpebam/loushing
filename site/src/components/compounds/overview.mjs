@@ -60,9 +60,12 @@ export function ItemTiles({ items, view = 'tiles', heading }) {
   const id = heading ? `h-${heading.toLowerCase().replace(/[^a-z]+/g, '-')}` : null;
   return html`<section class="c-items" data-view="${view}"${id ? html` aria-labelledby="${id}"` : ''}>
   ${heading && html`<h2 class="c-section-title" id="${id}">${heading}</h2>`}
-  <ul class="c-items__grid">${items.map((item) => html`<li class="c-items__cell" data-id="${item.id}">${itemTile(item, view)}</li>`)}</ul>
+  <ul class="c-items__grid" data-slots>${items.map((item) => html`<li class="c-items__cell" data-id="${item.id}">${itemTile(item, view)}</li>`)}${slot()}</ul>
 </section>`;
 }
+
+/** A faint placeholder the script copies into a short last row; inert without it. */
+const slot = () => html`<template data-slot-template><li class="c-slot" data-slot aria-hidden="true">${Icon({ name: 'pets' })}</li></template>`;
 
 /** One item as a tile: the private markup of ItemTiles, not a component of its own. */
 function itemTile(item, view = 'tiles') {

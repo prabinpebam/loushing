@@ -5,6 +5,8 @@
  */
 import { search, facetCounts, filtersToQuery, queryToFilters } from '../lib/search.mjs';
 import { comboAction, openIndex, moveIndex, typeahead } from '../lib/listbox.mjs';
+import { emptySlots } from '../lib/slots.mjs';
+import { initLighting } from './lighting.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -233,6 +235,35 @@ function initSelects() {
   }
 }
 
+/* Grid slots: faint placeholders complete a card grid's short last row, so it keeps its shape. */
+function fillSlots(grid) {
+  const template = $(':scope > template[data-slot-template]', grid);
+  if (!template) return;
+  const slots = $$(':scope > [data-slot]', grid);
+  const cards = [...grid.children].filter((el) => el.tagName === 'LI' && !el.hidden && !el.hasAttribute('data-slot'));
+  const columns = grid.hidden ? 0 : getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+  const want = emptySlots(cards.length, columns);
+  while (slots.length > want) slots.pop().remove();
+  while (slots.length < want) slots.push(template.content.firstElementChild.cloneNode(true));
+  grid.append(...slots);
+}
+
+function initSlots() {
+  const grids = $$('[data-slots]');
+  if (!grids.length) return;
+  for (const grid of grids) fillSlots(grid);
+  if (!('ResizeObserver' in window)) return;
+  const seen = new WeakMap();
+  const observer = new ResizeObserver((entries) => {
+    for (const { target, contentRect } of entries) {
+      if (seen.get(target) === contentRect.width) continue;
+      seen.set(target, contentRect.width);
+      fillSlots(target);
+    }
+  });
+  for (const grid of grids) observer.observe(grid);
+}
+
 /* Catalog: search and facets filter and rank the cells in place; the URL keeps the state. */
 async function initCatalog() {
   const facets = $('[data-facets]');
@@ -290,6 +321,7 @@ async function initCatalog() {
     hiddenNote.textContent = hiddenByAgent ? `${hiddenByAgent === 1 ? '1 more item matches' : `${hiddenByAgent} more items match`} but isn’t set up for the agents you picked.` : '';
     if (empty) empty.hidden = n > 0;
     grid.hidden = n === 0;
+    fillSlots(grid);
 
     const qs = filtersToQuery(q, filters);
     const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
@@ -362,7 +394,9 @@ async function initChopper() {
 
 initTabs();
 initCopy();
+initSlots();
 initTheme();
+initLighting();
 initChopperToggle();
 initGetIt();
 initSelects();

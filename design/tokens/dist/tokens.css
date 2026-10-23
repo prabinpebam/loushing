@@ -14,6 +14,7 @@
   --p-night-600: #313a43;
   --p-night-700: #242a30;
   --p-night-800: #1b1f23;
+  --p-night-850: #181c1f;
   --p-night-900: #14181b;
   --p-coral-100: #fde4d8;
   --p-coral-300: #f6ab88;
@@ -73,6 +74,7 @@
   --radius-pill: 999px;
   --border-hairline: 1px;
   --border-focus: 3px;
+  --size-lighting-panel: 23rem;
   --size-control: 2.75rem;
   --size-icon: 1.25rem;
   --size-measure: 42rem;
@@ -87,6 +89,7 @@
   --ease-bounce: cubic-bezier(0.34, 1.4, 0.64, 1);
   --scale-press: 0.98;
   --opacity-disabled: 0.5;
+  --layer-lighting: 99;
   --layer-cameo: 0;
   --layer-raised: 1;
   --layer-sticky: 100;
@@ -96,6 +99,7 @@
   --breakpoint-md: 56rem;
   --breakpoint-lg: 72rem;
   --breakpoint-xl: 90rem;
+  --lighting-dark-tint: 0.12;
   --shadow-raised: 0px 1px 2px 0px var(--color-shadow-near), 0px 8px 24px -8px var(--color-shadow-far);
   --c-button-height: var(--size-control);
   --c-button-padding-inline: var(--space-4);
@@ -118,11 +122,13 @@
   --c-ear-color: var(--color-decor);
   --c-ear-under: var(--color-bg);
   --c-ear-tint: var(--color-tint-coral);
+  --color-lighting-ink: light-dark(var(--p-ink-900), #000000);
   --color-text: light-dark(var(--p-ink-900), var(--p-mist-100));
   --color-text-muted: light-dark(var(--p-ink-600), var(--p-night-300));
   --color-bg: light-dark(var(--p-mist-50), var(--p-night-900));
   --color-bg-raised: light-dark(var(--p-mist-0), var(--p-night-800));
   --color-bg-sunken: light-dark(var(--p-mist-100), var(--p-night-700));
+  --color-bg-slot: light-dark(var(--p-mist-100), var(--p-night-850));
   --color-bg-hover: light-dark(var(--p-mist-200), var(--p-night-600));
   --color-rule: light-dark(var(--p-mist-300), var(--p-night-600));
   --color-outline: light-dark(var(--p-ink-600), var(--p-night-500));

@@ -46,7 +46,7 @@ const copy = (from, to) => {
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 10);
 
 // Styles: tokens first, then the tiers in order, as one file.
-const STYLE_FILES = ['base', 'fundamentals', 'compounds', 'layouts', 'chopper'];
+const STYLE_FILES = ['base', 'fundamentals', 'compounds', 'layouts', 'chopper', 'lighting'];
 const cssParts = [join(root, 'design', 'tokens', 'dist', 'tokens.css'), ...STYLE_FILES.map((n) => join(src, 'styles', `${n}.css`))];
 const css = cssParts.map((f) => `/* ${f.slice(root.length + 1).replace(/\\/g, '/')} */\n${readFileSync(f, 'utf8')}`).join('\n');
 write('assets/site.css', css);
@@ -54,7 +54,7 @@ write('assets/site.css', css);
 // Fonts, client modules and the shared pure libraries the client imports.
 for (const f of readdirSync(join(src, 'vendor', 'fonts'))) copy(join(src, 'vendor', 'fonts', f), `assets/fonts/${f}`);
 let jsHash = '';
-for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib', ['search.mjs', 'picker.mjs', 'listbox.mjs']]]) {
+for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib', ['search.mjs', 'picker.mjs', 'listbox.mjs', 'slots.mjs', 'lighting.mjs']]]) {
   for (const f of files) {
     const text = readFileSync(join(src, dir, f), 'utf8');
     jsHash += hash(text);

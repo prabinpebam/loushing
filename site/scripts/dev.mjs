@@ -3,6 +3,7 @@
 // error in the browser, so the preview never goes down.
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
+import { pipeline } from 'node:stream';
 import { watch, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -97,7 +98,8 @@ createServer((req, res) => {
     return;
   }
   res.writeHead(status, { 'content-type': type });
-  createReadStream(file).pipe(res);
+  // pipeline closes the file when the browser aborts a request, so no handle keeps dist locked.
+  pipeline(createReadStream(file), res, () => {});
 }).listen(port, host, () => {
   console.log(`[dev] Loushing preview at http://${host}:${port}/`);
   build();

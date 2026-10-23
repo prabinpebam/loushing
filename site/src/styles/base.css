@@ -36,6 +36,8 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: var(--space-24);
+  /* With its own background, html keeps body's on body, where blended layers can see it. */
+  background: var(--color-bg);
 }
 html[data-scheme='light'] { color-scheme: light; }
 html[data-scheme='dark'] { color-scheme: dark; }
@@ -51,6 +53,7 @@ body {
   font-size: var(--text-md);
   line-height: var(--leading-body);
   font-feature-settings: 'cv11', 'ss01';
+  isolation: isolate;
 }
 
 h1, h2, h3, h4, p, ul, ol, dl, dd, figure, pre, fieldset { margin: 0; }

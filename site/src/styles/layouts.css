@@ -43,13 +43,13 @@
 .l-header__nav li { flex: none; display: flex; align-items: center; min-height: var(--size-control); }
 .l-header__nav .f-link:not([aria-current]) { color: var(--color-text); text-decoration-color: transparent; }
 .l-header__search { display: none; }
-.l-header__inner > .f-iconbutton { margin-left: auto; }
+.l-header__appearance { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-left: auto; }
 
 @media (min-width: 56rem) {
   .l-header__nav { order: 0; flex-basis: auto; }
   .l-header__search { display: block; flex: 1; max-width: calc(var(--size-tile-min) * 1.5); margin-left: auto; }
   .l-header__search .f-search__submit { display: none; }
-  .l-header__search + .f-iconbutton { margin-left: 0; }
+  .l-header__search + .l-header__appearance { margin-left: 0; }
 }
 
 /* Main */
