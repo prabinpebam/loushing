@@ -166,7 +166,7 @@ main:focus { outline: none; }
 /* The dog-ear: the one accent for a card that matters most in its view. Its top-right
    corner folds down in coral, like a page corner turned to mark the place. The surface
    it sits on must be the page (c.ear.under). */
-.u-ear { position: relative; }
+.u-ear { position: relative; --light-cut-size: var(--c-ear-size); }
 .u-ear::after {
   content: '';
   position: absolute;

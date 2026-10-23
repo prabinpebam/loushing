@@ -12,17 +12,17 @@
  */
 export const LIGHT_CONTROLS = [
   { key: 'azimuth', label: 'Light direction', min: 0, max: 359, step: 1, unit: '°', value: 315 },
-  { key: 'altitude', label: 'Light elevation', min: 0, max: 85, step: 1, unit: '°', value: 6 },
-  { key: 'sourceSize', label: 'Light source size', min: 0, max: 120, step: 1, unit: '°', value: 14 },
-  { key: 'globalIllumination', label: 'Global illumination', min: 0, max: 100, step: 1, unit: '%', value: 25 },
-  { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 45 },
-  { key: 'shadowIntensity', label: 'Shadow intensity', min: 0, max: 100, step: 1, unit: '%', value: 55 },
-  { key: 'speed', label: 'Motion speed', min: 1, max: 10, step: 1, unit: '×', value: 2 },
+  { key: 'altitude', label: 'Light elevation', min: 0, max: 85, step: 1, unit: '°', value: 0 },
+  { key: 'sourceSize', label: 'Light source size', min: 0, max: 120, step: 1, unit: '°', value: 9 },
+  { key: 'globalIllumination', label: 'Global illumination', min: 0, max: 100, step: 1, unit: '%', value: 30 },
+  { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 30 },
+  { key: 'shadowIntensity', label: 'Shadow intensity', min: 0, max: 100, step: 1, unit: '%', value: 33 },
+  { key: 'speed', label: 'Motion speed', min: 1, max: 10, step: 1, unit: '×', value: 5 },
 ];
 
 export const LIGHT_DEFAULTS = Object.freeze({
   ...Object.fromEntries(LIGHT_CONTROLS.map(({ key, value }) => [key, value])),
-  enabled: false, offFrame: true, animated: false,
+  enabled: false, offFrame: true, animated: true,
   highlightTint: '#ffdfb3', shadowTint: '#294573',
 });
 
@@ -38,23 +38,49 @@ export const LIGHT_LEVELS = Object.freeze([0, 2, 6, 12, 24]);
 export const SKY_BINS = 32;
 /** Darkness, as a share of the source, a skipped far-away caster may leave out (under 1/255). */
 export const CULL_SHARE = 0.002;
+/** A small seeded generator, so the off-frame objects are the same on every page. */
+function seeded(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /**
- * Off-frame casters: tall posts just beyond the edge of the view that faces the light,
- * fixed to the view. `offset` spreads them across it, `gap` sets how far beyond the
- * edge each stands, and drift moves each sideways on its own slow cycle.
+ * Off-frame casters: tall square posts beyond the edge of the view that faces the
+ * light, fixed to the view. Each is its own object with its own `size`, `speed` (a
+ * factor on the shared pace), `direction` across the light (1 or -1) and path: it
+ * moves from `gap[0]` to `gap[1]` beyond the edge, so it slants toward or away from
+ * the view. Each enters from beyond one side, sweeps its shadow across the view and
+ * leaves past the other side. Their timing overlaps so that one is always crossing:
+ * an object counts as crossing while its centre line is within `show` of the view's
+ * half-width across the light, and each starts crossing at `stagger` (a share) of the
+ * previous one's crossing, before it ends. The `count` objects then repeat.
+ * `pace` is the travel in px per second at speed 1. `spread` caps the source's
+ * half-width used to clear the view, since penumbra beyond it is too faint to see.
  */
-export const OFF_FRAME = Object.freeze({
-  height: 1e4,
-  drift: 80,
-  cycle: 360,
-  spread: 1.2,
-  posts: Object.freeze([
-    Object.freeze({ offset: -0.9, size: 40, gap: 60, period: 1, phase: 0 }),
-    Object.freeze({ offset: -0.4, size: 140, gap: 240, period: 1.37, phase: 1.9 }),
-    Object.freeze({ offset: 0.1, size: 28, gap: 40, period: 0.83, phase: 4.1 }),
-    Object.freeze({ offset: 0.55, size: 90, gap: 160, period: 1.19, phase: 2.7 }),
-    Object.freeze({ offset: 1, size: 56, gap: 100, period: 0.91, phase: 5.3 }),
-  ]),
+export const OFF_FRAME = (() => {
+  const limits = { count: 32, size: [56, 168], gap: [40, 420], speed: [0.6, 1.5], stagger: [0.3, 0.75] };
+  const random = seeded(0x10a5);
+  const between = ([lo, hi]) => lo + (hi - lo) * random();
+  const objects = Array.from({ length: limits.count }, () => Object.freeze({
+    size: Math.round(between(limits.size)),
+    speed: Number(between(limits.speed).toFixed(3)),
+    direction: random() < 0.5 ? -1 : 1,
+    gap: Object.freeze([Math.round(between(limits.gap)), Math.round(between(limits.gap))]),
+    stagger: Number(between(limits.stagger).toFixed(3)),
+  }));
+  return Object.freeze({ height: 1e4, pace: 8, spread: 60, show: 0.5, ...limits, objects: Object.freeze(objects) });
+})();
+/** Corners a block's straight cut can remove, as the signs of that corner's x and y. */
+export const CUT_CORNERS = Object.freeze({
+  'top-left': Object.freeze([-1, -1]),
+  'top-right': Object.freeze([1, -1]),
+  'bottom-right': Object.freeze([1, 1]),
+  'bottom-left': Object.freeze([-1, 1]),
 });
 
 const RADIANS = Math.PI / 180;
@@ -157,27 +183,60 @@ export function casterReach(z, { threshold }) {
 const shape = (box) => {
   const bx = box.width / 2;
   const by = box.height / 2;
-  return { cx: box.x + bx, cy: box.y + by, bx, by, r: Math.min(Math.max(box.radius || 0, 0), bx, by) };
+  const size = Math.min(Math.max(box.cut?.size || 0, 0), 2 * bx, 2 * by);
+  const [sx, sy] = size ? CUT_CORNERS[box.cut.corner ?? 'top-right'] ?? [] : [];
+  if (size && sx === undefined) throw new RangeError(`Unknown cut corner: ${box.cut.corner}.`);
+  return { cx: box.x + bx, cy: box.y + by, bx, by, r: Math.min(Math.max(box.radius || 0, 0), bx, by), cut: size ? { size, sx, sy } : null };
 };
 
-/** Signed distance from a point to a rounded rectangle { x, y, width, height, radius }. */
+const roundedDistance = (qx, qy, bx, by, r) => {
+  const dx = Math.abs(qx) - bx + r;
+  const dy = Math.abs(qy) - by + r;
+  return Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) + Math.min(Math.max(dx, dy), 0) - r;
+};
+
+/**
+ * Signed distance to the cut's line, positive on the removed side. The cut joins the
+ * points `size` from its corner along both edges, so it is a half-plane whose normal
+ * points into that corner: (sx (x - Kx) + sy (y - Ky) + size) / sqrt 2, K the corner.
+ */
+const cutDistance = (qx, qy, bx, by, { size, sx, sy }) => (sx * (qx - sx * bx) + sy * (qy - sy * by) + size) / Math.SQRT2;
+
+/**
+ * Signed distance from a point to a rounded rectangle { x, y, width, height, radius },
+ * optionally with one corner cut straight across by `cut: { size, corner }`. With a
+ * cut it is the larger of the two distances: exact on the boundary and inside, a lower
+ * bound outside, which is what the receiver and reach tests need.
+ */
 export function boxDistance(px, py, box) {
-  const { cx, cy, bx, by, r } = shape(box);
-  const qx = Math.abs(px - cx) - bx + r;
-  const qy = Math.abs(py - cy) - by + r;
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+  const { cx, cy, bx, by, r, cut } = shape(box);
+  const d = roundedDistance(px - cx, py - cy, bx, by, r);
+  return cut ? Math.max(d, cutDistance(px - cx, py - cy, bx, by, cut)) : d;
 }
 
 /**
  * Distance along the ray from (px, py) in unit direction (ux, uy) to where it enters a
  * rounded rectangle, or Infinity if it misses. A slab test finds the bounding-box
  * entry; if that lands in a corner square, the ray enters through the corner circle
- * or not at all, which is exact for the convex shape.
+ * or not at all, which is exact for the convex shape. A cut corner leaves a convex
+ * shape too: the ray enters where it enters the rectangle, if that point is on the
+ * kept side of the cut, and otherwise where it crosses the cut, if that is inside.
  */
 export function rayEntry(px, py, ux, uy, box) {
-  const { cx, cy, bx, by, r } = shape(box);
+  const { cx, cy, bx, by, r, cut } = shape(box);
   const qx = px - cx;
   const qy = py - cy;
+  const enter = roundedEntry(qx, qy, ux, uy, bx, by, r);
+  if (!cut || enter === Infinity) return enter;
+  const eps = 1e-6 * (1 + bx + by);
+  if (cutDistance(qx + ux * enter, qy + uy * enter, bx, by, cut) <= eps) return enter;
+  const rate = (cut.sx * ux + cut.sy * uy) / Math.SQRT2;
+  if (rate >= 0) return Infinity;
+  const t = -cutDistance(qx, qy, bx, by, cut) / rate;
+  return t >= 0 && roundedDistance(qx + ux * t, qy + uy * t, bx, by, r) <= eps ? t : Infinity;
+}
+
+function roundedEntry(qx, qy, ux, uy, bx, by, r) {
   const sx = ux >= 0 ? Math.max(ux, 1e-9) : ux;
   const sy = uy >= 0 ? Math.max(uy, 1e-9) : uy;
   const ax = (-bx - qx) / sx;
@@ -256,26 +315,57 @@ export function shadowAt([px, py], boxes, value, { offset = 0.5, count = SKY_BIN
 }
 
 /**
- * Off-frame casters for a view `width` x `height`, as blocks in view coordinates: tall
- * posts beyond the view's edge facing the light (always outside the view), drifting
- * sideways by up to OFF_FRAME.drift on cycles of OFF_FRAME.cycle / speed seconds.
+ * Off-frame casters for a view `width` x `height`, as blocks in view coordinates: the
+ * OFF_FRAME objects in flight after the shared conveyor has moved `travel` px (each
+ * object moves `speed` times that). Objects always stand outside the view, between it
+ * and the light. Each enters and leaves where its shadow, widened by the source's
+ * spread over the view's depth, clears the view. At travel 0 the first object is
+ * centred, and at every travel at least one object is crossing the view's middle.
  */
-export function offFrameCasters({ width, height, azimuth, time = 0, speed = LIGHT_DEFAULTS.speed }) {
-  if (![width, height, azimuth, time, speed].every(Number.isFinite) || width <= 0 || height <= 0 || speed <= 0) {
-    throw new RangeError('Require a positive view size and speed, and finite azimuth and time.');
+export function offFrameCasters({ width, height, azimuth, altitude = LIGHT_DEFAULTS.altitude, sourceSize = LIGHT_DEFAULTS.sourceSize, travel = 0 }) {
+  if (![width, height, azimuth, altitude, sourceSize, travel].every(Number.isFinite) || width <= 0 || height <= 0) {
+    throw new RangeError('Require a positive view size, and finite azimuth, light and travel.');
   }
   const angle = azimuth * RADIANS;
   const lx = Math.sin(angle);
   const ly = -Math.cos(angle);
+  const square = Math.abs(lx) + Math.abs(ly);
   const reach = Math.abs(lx) * width / 2 + Math.abs(ly) * height / 2;
   const across = Math.abs(ly) * width / 2 + Math.abs(lx) * height / 2;
-  return OFF_FRAME.posts.map(({ offset, size, gap, period, phase }) => {
-    const along = reach + (Math.abs(lx) + Math.abs(ly)) * size / 2 + gap;
-    const side = offset * OFF_FRAME.spread * across + OFF_FRAME.drift * Math.sin(2 * Math.PI * time * speed / (OFF_FRAME.cycle * period) + phase);
-    const cx = width / 2 + lx * along - ly * side;
-    const cy = height / 2 + ly * along + lx * side;
-    return { x: cx - size / 2, y: cy - size / 2, width: size, height: size, radius: 0, z: OFF_FRAME.height };
+  const widen = Math.tan(Math.min(sourceBins({ altitude, sourceSize }, 1).span, OFF_FRAME.spread * RADIANS));
+  const show = OFF_FRAME.show * across;
+  // Each object's half-range from clear to clear, and when (in shared travel) it
+  // enters and leaves. Each starts crossing part-way through the previous crossing.
+  let start = 0;
+  const plan = OFF_FRAME.objects.map((object, k) => {
+    const half = square * object.size / 2;
+    const range = across + half + (2 * reach + Math.max(...object.gap) + square * object.size) * widen;
+    const crossing = 2 * show / object.speed;
+    if (k === 0) start = -crossing / 2;
+    const entry = start - (range - show) / object.speed;
+    const step = { object, half, range, entry, exit: entry + 2 * range / object.speed };
+    start += object.stagger * crossing;
+    return step;
   });
+  const first = -show / plan[0].object.speed;
+  const cycle = start - first;
+  const now = first + (((travel - first) % cycle) + cycle) % cycle;
+  const longest = Math.max(...plan.map(({ entry, exit }) => exit - entry));
+  const boxes = [];
+  for (let k = -Math.ceil(longest / cycle); k <= 1; k++) {
+    plan.forEach(({ object, half, range, entry, exit }, index) => {
+      if (now < entry + k * cycle || now >= exit + k * cycle) return;
+      const moved = (now - entry - k * cycle) * object.speed;
+      const side = object.direction * (moved - range);
+      const gap = object.gap[0] + (object.gap[1] - object.gap[0]) * moved / (2 * range);
+      const out = reach + half + gap;
+      const cx = width / 2 + lx * out - ly * side;
+      const cy = height / 2 + ly * out + lx * side;
+      const { size } = object;
+      boxes.push({ x: cx - size / 2, y: cy - size / 2, width: size, height: size, radius: 0, z: OFF_FRAME.height, object: index });
+    });
+  }
+  return boxes;
 }
 
 const number = (n) => String(Math.abs(n) < 0.0005 ? 0 : Number(n.toFixed(3)));

@@ -1,9 +1,9 @@
 # Lighting system
 
 > **Prototype, 23 October 2026.** A portable, opt-in lighting layer tested on
-> Loushing. It changes neither theme selection nor glow. Every cast shadow is drawn
-> in one shared layer that works out, for each pixel, how much of an area light
-> the raised surfaces hide together. So shadow length, blur, fade and overlaps
+> Loushing. It changes neither theme selection nor glow. Every cast shadow comes
+> from one shared calculation that works out, for each pixel, how much of an area
+> light the raised surfaces hide together. So shadow length, blur, fade and overlaps
 > follow one physical model: a distant light of a given angular size, surfaces
 > that are blocks standing on the page, and sky hidden by nearby blocks. The
 > approximations are listed below.
@@ -13,7 +13,7 @@
 <div class="slate-card-grid" data-cols="3">
   <article class="slate-card"><h3 class="slate-card__title">One light</h3><p class="slate-card__body">Choose direction, elevation, source size, global illumination, warm highlight and cool shadow tints, and their intensities.</p></article>
   <article class="slate-card"><h3 class="slate-card__title">Elevated surfaces</h3><p class="slate-card__body">Higher surfaces cast longer, softer, fading shadows. Their edges face the same light.</p></article>
-  <article class="slate-card"><h3 class="slate-card__title">A living room</h3><p class="slate-card__body">Optional shadows from unseen objects drift slowly, with separate motion and speed controls.</p></article>
+  <article class="slate-card"><h3 class="slate-card__title">A living room</h3><p class="slate-card__body">Optional shadows from unseen objects drift across the whole view, each at its own speed and in its own direction, with separate motion and speed controls.</p></article>
 </div>
 
 The owner supplied a UI style-guide image with NW-to-SE light, broad soft shadows,
@@ -125,6 +125,26 @@ shade it. So a high card's shadow falls across lower cards and onto the page, an
 nested surface stands on its parent. Each pixel samples its wedges at a slightly
 different angle, which turns the steps between wedges into fine grain.
 
+### A cut corner changes the block
+
+A card with a folded corner (Loushing's dog-ear) is a block with that corner cut
+off, and the cut runs down the whole extrusion. So the shadow starts at the cut, not
+at the corner the card would have had. With a cut of size `c` at a corner `K` whose
+outward signs are `(sx, sy)`, a point `p` is inside the block when it is inside the
+rounded box and
+
+```text
+h(p) = (sx (px − Kx) + sy (py − Ky) + c) / √2  ≤  0
+```
+
+Rays enter a cut block through the rounded box or through the cut line, whichever
+keeps them inside both. From the north-west, a top-right cut runs along the light,
+so the shadow's upper edge continues the cut. The folded flap lies on the card's
+face and casts nothing of its own. A host marks the cut with `--light-cut-size` (a
+registered length, so `2rem` works) and `--light-cut-corner` (`top-left`,
+`top-right`, the default, `bottom-right` or `bottom-left`). A surface clipped by a
+scrolling box loses its cut, since the cut corner may be out of view.
+
 ### Umbra and penumbra: how a long shadow fades
 
 Near a block, it hides the whole source: the umbra, at full darkness. Further away
@@ -133,18 +153,20 @@ until the light is fully visible. So **the light's size sets the fade**. A point
 light casts a crisp prism of length `L`. A larger source ends the umbra sooner and
 fades out further away.
 
-A long block's shadow along the light, at the defaults (altitude `6°`, `θ = 14°`):
+A long block's shadow along the light, at the defaults (altitude `0°`, `θ = 9°`). On
+the horizon a point light's `L` is infinite, so the source's size alone ends the
+shadow:
 
 | Surface | Height | Point-light length `L` | Full shadow ends (95 %) | Half dark | Fades out (5 %) |
 | --- | --- | --- | --- | --- | --- |
-| Control | 2 px | 19 px | 10 px | 14 px | 40 px |
-| Card | 6 px | 57 px | 28 px | 41 px | 120 px |
-| Highlighted card | 12 px | 114 px | 56 px | 82 px | 240 px |
-| Panel | 24 px | 228 px | 112 px | 165 px | 479 px |
+| Control | 2 px | never ends | 27 px | 42 px | 139 px |
+| Card | 6 px | never ends | 82 px | 125 px | 416 px |
+| Highlighted card | 12 px | never ends | 164 px | 251 px | 833 px |
+| Panel | 24 px | never ends | 328 px | 502 px | 1,666 px |
 
 Every distance scales with height, so higher surfaces cast the same shape, larger (a
-test). At this low altitude, the source's lower part is below the horizon. Its
-visible part sits higher than its centre, so the shadow is half dark short of `L`.
+test). At this altitude, the source's lower half is below the horizon. Only its
+upper half lights the ground, so the shadow fades out at a finite distance.
 
 The light changes the same 12 px block's shadow:
 
@@ -154,10 +176,12 @@ The light changes the same 12 px block's shadow:
 | 20° | 10° | 27 px | 33 px | 42 px |
 | 20° | 30° | 19 px | 28 px | 66 px |
 | 6° | 0° (point) | 114 px | 114 px | 114 px |
-| 6° | 14° (default) | 56 px | 82 px | 240 px |
+| 6° | 9° | 69 px | 97 px | 221 px |
 | 6° | 40° | 27 px | 42 px | 138 px |
 | 0° | 0° (point) | never | never | never |
-| 0° | 14° | 105 px | 161 px | 537 px |
+| 0° | 4° | 370 px | 565 px | 1,875 px |
+| 0° | 9° (default) | 164 px | 251 px | 833 px |
+| 0° | 20° | 73 px | 112 px | 374 px |
 
 A very large source near the horizon reaches high into the sky. Most of its light
 then arrives steeply, so the whole shadow gets shorter as well as softer.
@@ -188,19 +212,29 @@ intensity and `g` the global illumination from 0 to 1. So:
 - with `g = 1` a shadow fades as the sky opens up, long before its penumbra ends;
 - lit pixels have `blocked = 0`, so global illumination never darkens them.
 
-| Shadow intensity 55 %, 12 px block, defaults | At 1 px | 20 px | 60 px | 120 px |
-| --- | --- | --- | --- | --- |
-| Global illumination 0 % | 0.55 | 0.55 | 0.48 | 0.13 |
-| 25 % (default) | 0.54 | 0.43 | 0.36 | 0.10 |
-| 60 % | 0.52 | 0.27 | 0.20 | 0.05 |
-| 100 % | 0.50 | 0.08 | 0.01 | 0.00 |
+| Shadow intensity 33 %, 12 px block, defaults | At 1 px | 20 px | 60 px | 120 px | 240 px |
+| --- | --- | --- | --- | --- | --- |
+| Global illumination 0 % | 0.33 | 0.33 | 0.33 | 0.33 | 0.18 |
+| 30 % (default) | 0.32 | 0.25 | 0.23 | 0.23 | 0.12 |
+| 60 % | 0.31 | 0.16 | 0.14 | 0.13 | 0.07 |
+| 100 % | 0.30 | 0.05 | 0.01 | 0.00 | 0.00 |
 
 ### Shadows from beyond the frame and lit edges
 
-**Off-frame shadows** come from tall posts placed just outside the edge of the view
-that faces the light. When animated, they drift slowly along that edge. They go
-through the same calculation as the surfaces, so they never darken other shadows
-either.
+**Off-frame shadows** come from tall objects beyond the edge of the view that faces
+the light, fixed to the view. Each is a separate object, not part of a group:
+32 objects, drawn once from a fixed seed, each with its own width (56–168 px),
+speed (0.6–1.5 times the base, so 24–60 px a second at the default 5×), direction
+(either way across the light) and path, which slants toward or away from the view
+as its gap from the edge changes (40–420 px). Each enters from beyond one side,
+sweeps its shadow across the whole view and leaves past the other side. It starts
+and ends its pass where its shadow, widened by the source's spread over the depth of
+the view, clears the view, so no shadow appears or vanishes in view. Their starts
+are staggered so that each object begins its middle stretch before the previous
+one ends it. A shadow is therefore always in view, and usually two to seven objects
+are on their way, overlapping and passing each other. The objects go through the
+same calculation as the surfaces, so where their shadows cross they don't darken
+each other.
 
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
@@ -237,24 +271,42 @@ shared WebGL2 shadow layer over marked surfaces  +  rim CSS on those surfaces
 
 - `site/src/lib/lighting.mjs`: no DOM, framework or Loushing imports. Exports
   settings and limits, validation, upgrades of older saved settings, projection,
-  source wedges, ray entry into rounded boxes, sky occlusion, the reference shadow
-  at a point (`shadowAt`, which the shader mirrors), off-frame posts, rim properties
-  and the motion policy.
+  source wedges, ray entry into rounded boxes with an optional cut corner, sky
+  occlusion, the reference shadow at a point (`shadowAt`, which the shader mirrors),
+  the independent off-frame objects, rim properties and the motion policy.
 - `site/src/client/light-renderer.js`: the portable layer; its only import is the
   engine. `createLightRenderer({ selector, heights, ink })` measures every visible
   element matching the selector (default `[data-elevation]`). Its height is
-  `heights[level]` added to those of lit ancestors, and its corner radius comes from
-  CSS. The layer is drawn in page coordinates over the view plus a quarter of its
-  height above and below. It redraws only when the scene may have changed (scroll,
-  resize, layout, pointer, focus, transitions, theme), for 600 ms after each change,
-  or every 33 ms while off-frame shadows drift. At most 128 casters are drawn,
-  nearest to the view's centre first, and blocks too far away to shade the view are
-  skipped. The canvas uses at most one device pixel per CSS pixel. Without WebGL2,
-  edges still follow the light and the panel says cast shadows are unavailable.
+  `heights[level]` added to those of lit ancestors, its corner radius comes from
+  CSS, and it's clipped to the scrolling boxes around it. The layer redraws only
+  when the scene may have changed (scroll, resize, layout, pointer, focus,
+  transitions, theme), for 600 ms after each change, or every 33 ms while off-frame
+  shadows move. At most 128 casters are drawn, and blocks too far away to shade the
+  view are skipped. The canvases use at most one device pixel per CSS pixel. Without
+  WebGL2, edges still follow the light and the panel says cast shadows are
+  unavailable.
+- **Shadows move with their surfaces.** The browser moves sticky surfaces and
+  scrolled boxes on its compositor, ahead of page scripts, so a shadow drawn on the
+  page lags them during a fast scroll and at the scroll limit. So surfaces are
+  grouped by the frames they move in: the page, the view (fixed surfaces and the
+  off-frame objects), and each sticky surface or scrolling box, up to 8 groups. Each
+  group has its own canvas inside nested frames, and each frame follows its sticky
+  offset or scroll position through a scroll-driven animation, on the compositor
+  too. A sticky offset is `clamp(s − start, 0, room)` at scroll `s`, measured once
+  per layout with the surface briefly laid out where it would sit unstuck. One
+  WebGL2 context draws every group.
+- **Groups multiply to the exact union.** Group `k` draws the increment
+  `(1 − α≤k) / (1 − α<k)`, where `α≤k` is the shadow of the groups up to `k` and
+  `α<k` of those before it, all computed together on the same skyline. The canvases
+  multiply over the page, so their product is the shadow of all the surfaces at
+  once, and overlaps across groups never darken either. The page group comes first,
+  so it doesn't redraw while the off-frame objects move.
 - `site/src/styles/lighting.css`: no Loushing component selectors. Public contract:
-  root `data-lighting="on"`, surface `data-elevation="0"…"4"` and the
-  `[data-light-layer]` it styles: absolute, clipped, no input, at `--layer-lighting`,
-  multiplied over the page. A lit surface's own `box-shadow` is replaced by its rims.
+  root `data-lighting="on"`, surface `data-elevation="0"…"4"`, the optional cut
+  (`--light-cut-size`, `--light-cut-corner`) and the `[data-light-layer]` it styles:
+  an absolute, clipped container with no stacking context, whose frames sit at
+  `--layer-lighting` and multiply over the page. A lit surface's own `box-shadow`
+  is replaced by its rims.
 - `site/src/client/lighting.js`: the Loushing DOM and storage adapter. It creates the
   layer the first time lighting is on. Settings are saved under schema 3. Older saved
   settings keep everything except values whose meaning changed: schema 1 resets the
@@ -287,19 +339,29 @@ group, and adapt the controls and storage. This is a reusable source boundary,
 
 ### Known approximations and deferred work
 
-- Casters are rounded rectangles from each element's box and corner radius, extruded
-  straight up. Masks, text glyphs and other shapes aren't modelled.
-- The layer sits at `--layer-lighting`. It shades page content, including text, but
+- Casters are rounded rectangles from each element's box and corner radius, with an
+  optional straight cut at one corner, extruded straight up. Masks, text glyphs and
+  other shapes aren't modelled.
+- The frames sit at `--layer-lighting`. They shade page content, including text, but
   not the sticky header, menus or the Lighting panel above it.
 - Shadows darken the text they fall on. That is physically right but lowers
   contrast, more so in dark mode. The more-contrast preference removes the layer.
-- Surfaces inside scroll containers are measured where they sit, so one scrolled
-  out of view inside its container still casts.
+- Only top-sticky surfaces are followed; bottom, left and right sticky, and
+  right-to-left horizontal scrolling, aren't modelled yet. A sticky surface's room
+  to travel is taken from its parent's content box, which is right for Loushing's
+  header and Get it panel but not for every containing block.
+- Without scroll-driven animations (`ScrollTimeline`), sticky and scrolled surfaces
+  fall back to the page group and can lag them again during fast scrolls.
+- Where groups that move against each other overlap, such as the off-frame shadows
+  over a sticky panel's shadow, the overlap can be slightly off for a frame or so
+  while scrolling, until the groups redraw.
 - Sky occlusion takes the single block that hides the most, not the union of
   several, and uses each block's angular width. It is exact for a long wall and
   approximate near corners.
-- Off-frame posts are far away, so global illumination fades their shadows almost
-  evenly, by `1 − g`. Their pattern is art-directed, not a scene.
+- Off-frame objects are far away, so global illumination fades their shadows almost
+  evenly, by `1 − g`. Their pattern is art-directed, not a scene. Changing the source
+  size or the window size rescales their schedule, so objects can jump while a
+  slider moves.
 - Shadow length comes from surface height and altitude. With levels of 2–24 px,
   long shadows need a low light; taller levels are a design lever, not changed here.
 - 32 wedges with per-pixel jitter leave faint grain in wide penumbras.
@@ -311,63 +373,83 @@ group, and adapt the controls and storage. This is a reusable source boundary,
 
 ## Working decisions
 
-The owner was unavailable for the defaults question. These are reversible working
-defaults, **not owner-approved product decisions**.
+The owner was unavailable for the first defaults question. On 23 October 2026 the
+owner set the default light and motion from the Lighting panel (LO3, LO6). The other
+rows are reversible working defaults, **not owner-approved product decisions**.
 
 | ID | Decision | Working default | Approval |
 | --- | --- | --- | --- |
 | LO1 | Initial appearance | Lighting off; independent of system/light/dark | Awaiting review |
 | LO2 | Controls | Visible Long shadows switch beside theme; compact Lighting disclosure | Awaiting review |
-| LO3 | Motion | Off-frame shadows available; animation off; reduced motion always wins | Awaiting review |
-| LO4 | Renderer | One dependency-free WebGL2 layer that works out area-light visibility per pixel; edges stay CSS | Awaiting visual review |
+| LO3 | Motion | Off-frame shadows on and animated, at 5×; separate objects with their own speeds and directions, at least one shadow always in view; reduced motion always wins | Owner set, 23 Oct 2026 |
+| LO4 | Renderer | Dependency-free WebGL2 shadows that work out area-light visibility per pixel, one canvas per scroll frame; edges stay CSS | Awaiting visual review |
 | LO5 | Extraction | Portable source boundary now; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
-| LO6 | Default light | From the north-west (315°), altitude 6°, source 14°, global illumination 25 %, shadow intensity 55 % | Awaiting visual review |
+| LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
 
-**Try it:** at the site preview, turn on **Long shadows** and open **Lighting**. Set
-the source size to 0° to see crisp prisms attached to each card, then raise it
-toward 120° to watch the umbra shorten and the shadow fade from its tip. Lower the
-light elevation to 0° with a 0° source for shadows that never end. Where two cards'
-shadows cross, the overlap keeps the same darkness. Move **Global
-illumination** from 0 % (shadows fade only by their penumbra) to 100 % (shadows
-lighten away from the cards but stay dark at their feet). Rotate the source, change
-theme, then enable **Animate shadows**. Turn the main switch off to compare with the
-existing design.
+**Try it:** at the site preview, turn on **Long shadows**. Watch the off-frame
+shadows for a minute: several drift across at different speeds, some each way, and
+there's always at least one in view. Open an item page
+and scroll fast, and to the very end: the Get it panel's shadow stays attached, and
+its upper edge starts at the folded corner. Open **Lighting**. Set the source size
+to 0° for shadows that never end, then raise it toward 120° to watch the umbra
+shorten and the shadow fade from its tip. Raise the elevation to see the shadows
+shorten. Where two cards' shadows cross, the overlap keeps the same darkness. Move
+**Global illumination** from 0 % (shadows fade only by their penumbra) to 100 %
+(shadows lighten away from the cards but stay dark at their feet). Rotate the
+source and change theme. Turn the main switch off to compare with the existing
+design.
 
 ## Prototype evidence
 
 Checked locally on 23 October 2026:
 
-- **62 site tests pass.** The 23 lighting tests cover:
+- **64 site tests pass.** The 25 lighting tests cover:
   - the projection, including altitude 0°;
   - the source's share of light against its exact projected solid angle;
-  - ray entry into rounded boxes;
+  - ray entry into rounded boxes, and into cut corners against an independent
+    point-in-shape march at all four corners;
   - the attached point-light prism, and the umbra and fade against source size;
   - shapes that scale with height, and stacked surfaces;
   - overlaps that never darken;
   - agreement with a brute-force ray trace (within 0.03 over four lights);
   - sky occlusion against quadrature, and global illumination that keeps contact
     dark and lit ground clean;
-  - off-frame posts, rims, motion, the panel, the schema 3 upgrades and
-    independence from Loushing.
+  - the off-frame objects: separate, with sizes, speeds, directions and paths that
+    vary within their ranges, each moving at its own speed every step, always
+    outside the view and toward the light, entering and leaving clear of the view,
+    several in flight together, and at least one shadow in view at every sampled
+    moment (eight light directions at 1280 × 860; phone and wide views, low and
+    raised light, point and area sources);
+  - the owner's defaults, rims, motion, the panel, the schema 3 upgrades, the
+    layer's CSS contract and independence from Loushing.
 
   The other tests cover component tiers, generated tokens, contrast pairs,
   publication checks and built-page links.
 - **59 pages build**, style lint reports tokens only, token checks pass and the
   Slate runtime host check passes.
-- **The shader matches the reference.** Screenshots of the catalog with the layer
-  shown and hidden were turned back into shadow darkness. Over 265 points they
-  differ from `shadowAt`, computed on boxes measured from the page, by 0.004 on
-  average and 0.023 at most (at penumbra edges).
-- **Performance:** with animated off-frame shadows on a 1270 × 1290 canvas (RTX 4090,
-  one device pixel per CSS pixel), the median frame was 4.2 ms, the display's
-  refresh, and the longest 12.4 ms. Static pages redraw only after changes.
-- **Light and dark** were checked on the catalog and an item page, including the
-  dark-mode blend fix, the coloured stack card and text in shadow, with no page
+- **The cut corner is in the pixels.** Beside the Get it panel, points between where
+  an uncut corner's shadow would begin and the cut line are lit (255 of 255), and
+  points past the cut line are shadowed.
+- **Shadows stay attached when scrolling.** On a 12,000 px item page, the Get it
+  panel's frame stayed at the same offset from the panel (a spread of 0 px) at 37
+  scroll positions, including the scroll limit where the panel stops sticking.
+  Screenshots taken mid-way through fast wheel scrolls, and at the limit, show the
+  shadow joined to the panel.
+- **The off-frame objects run independently.** Sampled every second for 60 s at the
+  defaults (1280 × 860), the view always held off-frame shadow (at least 8,600 of
+  about 30,000 sampled points shaded), and a line across the light crossed one to
+  four separate shadow bands that grew, merged and parted as objects passed.
+- **Performance:** with the off-frame shadows moving (RTX 4090, 240 Hz, one device pixel
+  per CSS pixel), frames held at 4.2 ms with no long tasks. Wheel scrolling the
+  item page gave 4.3 ms at the 95th percentile and 16.6 ms at worst. Idle pages
+  don't rebuild; a resize rebuilds once.
+- **Light and dark** were checked on the catalog and an item page with no page
   errors.
-- Earlier browser checks, before the shared layer, passed for all settings, reload
-  and cross-page persistence, keyboard sliders and Escape, motion speed, reduced
-  motion, more contrast, forced colours, invalid saved settings, denied storage and a
-  320 × 740 screen.
+- Earlier checks, made before the scroll frames, weren't repeated: the
+  single-layer shader matched `shadowAt` over 265 screenshot points (0.004 on
+  average, 0.023 at most), and settings, reload and cross-page persistence, keyboard
+  sliders and Escape, motion speed, reduced motion, more contrast, forced colours,
+  invalid saved settings, denied storage and a 320 × 740 screen all passed.
 
 This is prototype evidence, not a cross-browser or production-performance
 certification. The limitations above remain open for the next stage.
