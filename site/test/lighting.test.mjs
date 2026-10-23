@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, OFF_FRAME, SKY_BINS,
-  boxDistance, casterReach, lightingMotion, lightingProperties, offFrameCasters, projectShadow,
-  rayEntry, shadowAt, skyOcclusion, sourceBins, upgradeLighting, validateLighting,
+  LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, OFF_FRAME, SKY_BINS, ARC_STEPS,
+  bounceAt, bounceReach, boxDistance, casterReach, lightingMotion, lightingProperties, linearColour, litWalls, offFrameCasters, projectShadow,
+  rayEntry, shadowAt, skyOcclusion, sourceBins, upgradeLighting, validateLighting, wallFaces, wallFormFactor,
 } from '../src/lib/lighting.mjs';
 import { LightingPanel } from '../src/components/compounds/lighting.mjs';
 import { Button, Tile } from '../src/components/fundamentals.mjs';
@@ -102,11 +102,11 @@ test('impossible light geometry is explicitly rejected', () => {
 
 test('settings validate types, ranges, booleans, colours and unknown fields', () => {
   const { enabled, highlightTint, shadowTint, ...panel } = LIGHT_DEFAULTS;
-  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, highlightIntensity: 30, shadowIntensity: 33, speed: 5, offFrame: true, animated: true }, 'the owner’s chosen defaults');
+  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, bounce: 100, highlightIntensity: 30, shadowIntensity: 33, speed: 5, offFrame: true, animated: true }, 'the owner’s chosen defaults');
   assert.deepEqual([enabled, highlightTint, shadowTint], [false, '#ffdfb3', '#294573']);
   assert.deepEqual(validateLighting({}), LIGHT_DEFAULTS);
   assert.equal(validateLighting({ altitude: 0 }).altitude, 0, 'the light may sit on the horizon');
-  for (const bad of [null, [], 1, { enabled: 'true' }, { speed: 0 }, { altitude: -1 }, { altitude: 86 }, { azimuth: 360 }, { sourceSize: NaN }, { sourceSize: 121 }, { globalIllumination: 101 }, { highlightTint: 'red' }, { shadowTint: '#fff' }, { shadowTint: ['#112233'] }, { extra: 1 }]) {
+  for (const bad of [null, [], 1, { enabled: 'true' }, { speed: 0 }, { altitude: -1 }, { altitude: 86 }, { azimuth: 360 }, { sourceSize: NaN }, { sourceSize: 121 }, { globalIllumination: 101 }, { bounce: -1 }, { bounce: 201 }, { highlightTint: 'red' }, { shadowTint: '#fff' }, { shadowTint: ['#112233'] }, { extra: 1 }]) {
     assert.throws(() => validateLighting(bad));
   }
   assert.deepEqual(validateLighting(JSON.parse(JSON.stringify(LIGHT_DEFAULTS))), LIGHT_DEFAULTS);
@@ -406,6 +406,77 @@ test('a cut corner is part of the shape: rays enter through the cut, and the sha
   near(boxDistance(100, 0, cut), 10 * Math.SQRT2);
 });
 
+/** Reference form factor: integrate cos_r cos_w / (pi r^2) over the wall strip. */
+function formFactor([px, py], a, b, lo, hi, n = 300) {
+  const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+  const length = Math.hypot(dx, dy);
+  const [nx, ny] = [dy / length, -dx / length];
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const t = (i + 0.5) / n;
+      const h = lo + (j + 0.5) * (hi - lo) / n;
+      const [wx, wy] = [a[0] + dx * t - px, a[1] + dy * t - py];
+      const r2 = wx * wx + wy * wy + h * h;
+      sum += (h / Math.sqrt(r2)) * (Math.max(0, -(wx * nx + wy * ny)) / Math.sqrt(r2)) / (Math.PI * r2) * (length / n) * ((hi - lo) / n);
+    }
+  }
+  return sum;
+}
+
+test('bounce reaches the ground by the exact form factor: the inverse-square law over the wall', () => {
+  for (const [p, a, b, lo, hi] of [[[10, -20], [0, 0], [40, 0], 0, 12], [[-15, -8], [0, 0], [30, 0], 0, 6], [[5, -3], [0, 0], [100, 0], 2, 24], [[30, 40], [60, 0], [0, 60], 0, 12]]) {
+    const exact = wallFormFactor(p, a, b, lo, hi);
+    assert.ok(Math.abs(exact - formFactor(p, a, b, lo, hi)) < 2e-4 * Math.max(1, exact * 100), `${exact} vs ${formFactor(p, a, b, lo, hi)}`);
+  }
+  for (const d of [1, 10, 50, 400]) near(wallFormFactor([0, -d], [-1e7, 0], [1e7, 0], 0, 12), (1 - d / Math.hypot(d, 12)) / 2, 1e-6);
+  assert.equal(wallFormFactor([10, 5], [0, 0], [40, 0], 0, 12), 0, 'nothing behind a wall');
+  assert.ok(wallFormFactor([20, -2], [0, 0], [40, 0], 0, 12) > wallFormFactor([20, -8], [0, 0], [40, 0], 0, 12), 'it falls with distance');
+  for (const [height, strength] of [[12, 1], [24, 0.3], [2, 0.05]]) {
+    const reach = bounceReach(height, strength);
+    assert.ok(strength * wallFormFactor([0, -reach], [-1e7, 0], [1e7, 0], 0, height) <= 1 / 512 * 1.001, 'beyond its reach the bounce is under half a level');
+  }
+  assert.equal(bounceReach(12, 0), 0);
+  near(linearColour([1, 0, 0.5])[2], 0.21404114, 1e-6);
+});
+
+test('only walls facing the light bounce, in proportion to the light that reaches them', () => {
+  const card = { x: 0, y: 0, width: 100, height: 60, radius: 0, z: 12 };
+  assert.equal(wallFaces({ ...card, cut: { size: 20, corner: 'top-right' } }).length, 5, 'a cut corner adds its diagonal wall');
+  const rounded = wallFaces({ ...card, radius: 16 });
+  assert.equal(rounded.length, 4 * (ARC_STEPS + 1), 'rounded corners become facets');
+  for (const [a] of rounded) near(boxDistance(a[0], a[1], { ...card, radius: 16 }), 0, 1e-9);
+  assert.equal(wallFaces({ ...card, radius: 16, cut: { size: 20, corner: 'top-right' } }).length, 3 * (ARC_STEPS + 1) + 2);
+  const nw = light({ azimuth: 315, altitude: 0, sourceSize: 9 });
+  const [strips] = litWalls([card], nw);
+  const faces = new Map();
+  for (const { a, b, light: lit } of strips) faces.set(`${Math.sign(b[0] - a[0])},${Math.sign(b[1] - a[1])}`, lit);
+  assert.deepEqual([...faces.keys()].sort(), ['0,-1', '1,0'], 'the north and west walls face a north-west light');
+  for (const lit of faces.values()) near(lit, Math.SQRT1_2, 1e-6);
+  near(litWalls([card], { ...nw, altitude: 60 })[0][0].light, Math.SQRT1_2 / 2, 1e-6);
+  const tall = { x: -60, y: -60, width: 40, height: 400, radius: 0, z: 200 };
+  assert.ok(litWalls([card, tall], nw)[0].filter(({ a }) => a[0] === 0 && a[1] > 0).every(({ light: lit }) => lit === 0), 'a wall in shadow gets no light');
+  const post = { x: -3000, y: -3000, width: 2900, height: 6000, radius: 0, z: 4000, post: true };
+  const [shaded, posted] = litWalls([card, post], nw);
+  assert.ok(shaded.every(({ light: lit }) => lit < 0.05) && posted.length === 0, 'off-frame objects shade walls and bounce nothing');
+  assert.equal(litWalls([{ ...card, base: 12 }], nw)[0].length, 0, 'a block flush with its base has no walls');
+  assert.equal(litWalls([card], nw, { only: () => false })[0].length, 0);
+});
+
+test('a wall bounces its own colour, scaled by its light, and nothing behind it', () => {
+  const nw = light({ azimuth: 315, altitude: 0, sourceSize: 9 });
+  const red = { x: 0, y: 0, width: 100, height: 60, radius: 0, z: 12, albedo: [1, 0, 0] };
+  const walls = litWalls([red], nw);
+  const north = bounceAt([50, -1], [red], walls, nw);
+  assert.ok(north[0] > 0.3 && north[1] === 0 && north[2] === 0, `red light only: ${north}`);
+  assert.deepEqual(bounceAt([50, 61], [red], walls, nw), [0, 0, 0], 'the shadow side bounces nothing');
+  assert.ok(bounceAt([50, -10], [red], walls, nw)[0] < north[0] / 2, 'it fades away from the wall');
+  near(bounceAt([50, -1], [red], walls, { ...nw, bounce: 200 })[0], 2 * north[0], 1e-12);
+  assert.deepEqual(bounceAt([50, -1], [red], walls, { ...nw, bounce: 0 }), [0, 0, 0]);
+  const dark = walls.map((list) => list.map((strip) => ({ ...strip, light: 0 })));
+  assert.deepEqual(bounceAt([50, -1], [red], dark, nw), [0, 0, 0], 'a shaded wall bounces nothing');
+});
+
 test('rims light the edge facing the light and shade the opposite edge', () => {
   const north = lightingProperties({ ...LIGHT_DEFAULTS, azimuth: 0 });
   assert.equal(north['--data-light-rim'], 'inset 0px 1px 0 var(--light-highlight), inset 0px -1px 0 var(--light-edge-shadow)');
@@ -448,14 +519,21 @@ test('only elevated surfaces opt in, and the lighting system stays independent o
   const layer = css.match(/\[data-light-layer\] \{([^}]*)\}/)[1];
   for (const rule of [/pointer-events: none/, /overflow: clip/]) assert.match(layer, rule);
   for (const rule of [/z-index/, /mix-blend-mode/, /contain/, /opacity/, /transform/]) assert.doesNotMatch(layer, rule, 'the container makes no stacking context, so frames blend with the page');
-  const frame = css.match(/\[data-light-layer\] > \[data-light-frame\] \{([^}]*)\}/)[1];
-  for (const rule of [/mix-blend-mode: multiply/, /z-index: var\(--layer-lighting\)/]) assert.match(frame, rule);
-  assert.match(css, /\[data-light-layer\] > \[data-light-frame='fixed'\] \{ position: fixed; \}/);
+  const group = css.match(/\[data-light-layer\] > \[data-light-shadows\] \{([^}]*)\}/)[1];
+  for (const rule of [/mix-blend-mode: multiply/, /z-index: var\(--layer-lighting\)/]) assert.match(group, rule);
+  assert.match(css, /\[data-light-shadows\] > \[data-light-frame\] \{ mix-blend-mode: darken; \}/, 'frames that scroll apart combine on the compositor as the union of their shadows');
+  assert.match(css, /\[data-light-shadows\] > \[data-light-frame='fixed'\] \{ position: fixed; \}/);
+  const glow = css.match(/\[data-light-layer\] > \[data-light-glow\] \{([^}]*)\}/)[1];
+  for (const rule of [/mix-blend-mode: color-dodge/, /z-index: var\(--layer-lighting\)/]) assert.match(glow, rule, 'bounced light brightens the page');
+  assert.match(css, /\[data-light-layer\] > \[data-light-glow='fixed'\] \{ position: fixed; \}/);
   assert.match(css, /@property --light-cut-size \{\s*syntax: '<length>';\s*inherits: false;/);
   assert.match(css, /@media \(prefers-contrast: more\), \(forced-colors: active\), print \{\s*\[data-light-layer\] \{ display: none !important; \}/);
   const renderer = readFileSync(new URL('../src/client/light-renderer.js', import.meta.url), 'utf8');
   assert.deepEqual([...renderer.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]), ['../lib/lighting.mjs']);
   assert.doesNotMatch(renderer, /loushing|\.f-|\.c-|\.l-/i);
+  assert.match(renderer, /drawBuffers\(\[gl\.COLOR_ATTACHMENT0, gl\.COLOR_ATTACHMENT1\]\)/, 'shadow and bounce come from one pass');
+  assert.ok(renderer.includes('shadows.append(shadow.outer)') && renderer.includes('wrapper.append(glow.outer)') && renderer.indexOf('wrapper.append(shadows)') > 0, 'every glow frame follows the shadow group');
+  assert.match(renderer, /box\.layer === layer \|\| !box\.post/, 'each frame shades with its own casters and others only as ground');
   const lib = readFileSync(new URL('../src/lib/lighting.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');
   const generated = readFileSync(new URL('../../design/tokens/dist/tokens.css', import.meta.url), 'utf8');

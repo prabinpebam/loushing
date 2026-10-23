@@ -1,4 +1,4 @@
-import { CUT_CORNERS, OFF_FRAME, SKY_BINS, casterReach, offFrameCasters, sourceBins } from '../lib/lighting.mjs';
+import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, linearColour, litWalls, offFrameCasters, sourceBins } from '../lib/lighting.mjs';
 
 /**
  * Portable shared shadow layer. One WebGL2 program draws every cast shadow from one
@@ -9,11 +9,13 @@ import { CUT_CORNERS, OFF_FRAME, SKY_BINS, casterReach, offFrameCasters, sourceB
  * Surfaces move in different scroll frames: with the page, with a sticky bar or a
  * scrolling box, or fixed to the view. Each frame gets its own canvas, which the
  * browser moves with the surfaces it holds through scroll-driven animations, so a
- * shadow never lags its caster. Frames are ordered, and canvas k draws only what its
- * own casters add to the frames before it: per channel (1 - a_k m) / (1 - a_(k-1) m),
- * with a the shadow of frames up to k and m one minus the ink. Multiplied together
- * the canvases equal one union shadow. Each redraws only when the scene changes
- * within its frame, or while off-frame casters move.
+ * shadow never lags its caster. Canvas k holds only the light its own casters leave,
+ * per channel 1 - a_k m, with a_k their shadow and m one minus the ink. The canvases
+ * are darkened together and the result multiplied over the page: for one light the
+ * darkest frame is the union of the shadows, and because the browser combines them
+ * on every frame, a frame scrolling on the compositor never meets a stale neighbour.
+ * Each redraws only when the scene changes within its frame, or while off-frame
+ * casters move.
  */
 const MAX_CASTERS = 128;
 const MAX_LAYERS = 8;
@@ -21,7 +23,7 @@ const SETTLE_MS = 600;
 const MOTION_MS = 33;
 const MARGIN = 0.25;
 const SNAP = 64;
-const ROWS = 3;
+const ROWS = 4;
 const timelines = typeof ScrollTimeline === 'function' && typeof Element.prototype.animate === 'function';
 
 const VERTEX = `#version 300 es
@@ -35,8 +37,10 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 uniform sampler2D uBoxes;
+uniform sampler2D uWalls;
 uniform int uCount;
-uniform int uGroup;
+uniform bool uGlow;
+uniform vec3 uGround;
 uniform vec4 uBins[${SKY_BINS}];
 uniform int uBinCount;
 uniform bool uPoint;
@@ -52,7 +56,8 @@ uniform vec3 uInk;
 uniform vec2 uOrigin;
 uniform float uScale;
 uniform float uRows;
-out vec4 outColor;
+layout(location = 0) out vec4 outShade;
+layout(location = 1) out vec4 outGlow;
 const float PI = 3.14159265;
 const float HALF_ROOT2 = 0.70710678;
 const float EPS = 1e-3;
@@ -101,11 +106,11 @@ float entry(vec2 q, vec2 u, vec2 b, float r, vec4 c) {
   return s >= 0.0 && roundedDistance(q + u * s, b, r) <= EPS ? s : -1.0;
 }
 
-// The shadow at p from the frames below this one (x, z) and up to it (y, w): the share
-// of the source hidden, and the sky hidden for global illumination. touched is false
-// when no caster of this frame reaches p, so it adds nothing there.
-vec4 shade(vec2 p, float jitter, out bool touched) {
-  float floorZ = 0.0;
+// The shadow at p from this frame's own casters: the share of the source hidden (x)
+// and the sky hidden for global illumination (y). Every frame's surfaces still set
+// the height p stands at.
+vec2 shade(vec2 p, float jitter, out float floorZ) {
+  floorZ = 0.0;
   for (int i = 0; i < uCount; i++) {
     vec4 a = texelFetch(uBoxes, ivec2(i, 0), 0);
     vec4 b = texelFetch(uBoxes, ivec2(i, 1), 0);
@@ -114,43 +119,30 @@ vec4 shade(vec2 p, float jitter, out bool touched) {
   }
   vec2 light = vec2(sin(uAzimuth), -cos(uAzimuth));
   vec2 dirs[${SKY_BINS}];
-  float below[${SKY_BINS}];
-  float upto[${SKY_BINS}];
+  float hit[${SKY_BINS}];
   for (int k = 0; k < uBinCount; k++) {
     float phi = uAzimuth + uBins[k].x + jitter;
     dirs[k] = vec2(sin(phi), -cos(phi));
-    below[k] = 0.0;
-    upto[k] = 0.0;
+    hit[k] = 0.0;
   }
-  float occBelow = 0.0;
-  float occUpto = 0.0;
-  touched = false;
+  float occ = 0.0;
   for (int i = 0; i < uCount; i++) {
     vec4 b = texelFetch(uBoxes, ivec2(i, 1), 0);
-    int group = int(b.w + 0.5);
     float dz = b.y - floorZ;
-    if (group > uGroup || dz <= 0.0) continue;
+    if (b.w < 0.5 || dz <= 0.0) continue;
     vec4 a = texelFetch(uBoxes, ivec2(i, 0), 0);
     vec4 c = texelFetch(uBoxes, ivec2(i, 2), 0);
     vec2 q = p - a.xy;
     float dist = max(shapeDistance(q, a.zw, b.x, c), 0.0);
     float dz2 = dz * dz;
     if (dz2 / (dz2 + dist * dist) <= uThreshold) continue;
-    bool lower = group < uGroup;
-    touched = touched || !lower;
     float away = length(q);
     bool around = away <= b.z;
     float cone = around ? 0.5 * PI : asin(b.z / away);
-    float occ = (2.0 * cone / PI) * (1.0 - dist / sqrt(dist * dist + dz2));
-    occUpto = max(occUpto, occ);
-    if (lower) occBelow = max(occBelow, occ);
+    occ = max(occ, (2.0 * cone / PI) * (1.0 - dist / sqrt(dist * dist + dz2)));
     if (uPoint) {
       float t = entry(q, light, a.zw, b.x, c);
-      if (t >= 0.0) {
-        float v = dz2 / (dz2 + t * t);
-        upto[0] = max(upto[0], v);
-        if (lower) below[0] = max(below[0], v);
-      }
+      if (t >= 0.0) hit[0] = max(hit[0], dz2 / (dz2 + t * t));
       continue;
     }
     int k0 = 0;
@@ -171,54 +163,85 @@ vec4 shade(vec2 p, float jitter, out bool touched) {
     for (int k = k0; k <= k1; k++) {
       int j = k < 0 ? k + uBinCount : (k >= uBinCount ? k - uBinCount : k);
       float t = entry(q, dirs[j], a.zw, b.x, c);
-      if (t >= 0.0) {
-        float v = dz2 / (dz2 + t * t);
-        upto[j] = max(upto[j], v);
-        if (lower) below[j] = max(below[j], v);
-      }
+      if (t >= 0.0) hit[j] = max(hit[j], dz2 / (dz2 + t * t));
     }
   }
-  if (!touched) return vec4(0.0);
-  if (uPoint) return vec4(below[0] > uBins[0].y ? 1.0 : 0.0, upto[0] > uBins[0].y ? 1.0 : 0.0, occBelow, occUpto);
-  float hiddenBelow = 0.0;
-  float hiddenUpto = 0.0;
-  for (int k = 0; k < uBinCount; k++) {
-    float width = uBins[k].z - uBins[k].y;
-    hiddenBelow += clamp(below[k] - uBins[k].y, 0.0, width);
-    hiddenUpto += clamp(upto[k] - uBins[k].y, 0.0, width);
-  }
-  return vec4(hiddenBelow * uInvTotal, hiddenUpto * uInvTotal, occBelow, occUpto);
+  if (uPoint) return vec2(hit[0] > uBins[0].y ? 1.0 : 0.0, occ);
+  float hidden = 0.0;
+  for (int k = 0; k < uBinCount; k++) hidden += clamp(hit[k] - uBins[k].y, 0.0, uBins[k].z - uBins[k].y);
+  return vec2(hidden * uInvTotal, occ);
 }
 
-vec3 increment(vec4 s, bool touched) {
-  if (!touched) return vec3(1.0);
-  float below = uIntensity * s.x * (1.0 - uGlobal * (1.0 - min(s.z, 1.0)));
-  float upto = uIntensity * s.y * (1.0 - uGlobal * (1.0 - min(s.w, 1.0)));
-  vec3 m = 1.0 - uInk;
-  return clamp((1.0 - upto * m) / max(1.0 - below * m, vec3(1e-4)), 0.0, 1.0);
+// Lambert's polygon formula for a wall strip over the ground segment A..B (offsets
+// from p), from lo to hi above p's floor: only its two level edges count.
+float edgeTerm(vec2 A, vec2 B, float cz, float l2, float h) {
+  float h2 = h * h;
+  float c = (dot(A, B) + h2) * inversesqrt((dot(A, A) + h2) * (dot(B, B) + h2));
+  return acos(clamp(c, -1.0, 1.0)) * -cz * inversesqrt(h2 * l2 + cz * cz);
+}
+
+// Light bounced onto p by this frame's lit walls, in shares of full light (linear).
+vec3 bounce(vec2 p, float floorZ) {
+  vec3 sum = vec3(0.0);
+  for (int i = 0; i < uCount; i++) {
+    vec4 w = texelFetch(uBoxes, ivec2(i, 3), 0);
+    if (w.y < 0.5) continue;
+    vec4 b = texelFetch(uBoxes, ivec2(i, 1), 0);
+    if (b.w < 0.5 || b.y <= floorZ) continue;
+    vec4 a = texelFetch(uBoxes, ivec2(i, 0), 0);
+    vec4 c = texelFetch(uBoxes, ivec2(i, 2), 0);
+    if (shapeDistance(p - a.xy, a.zw, b.x, c) > w.z) continue;
+    float lo = max(w.w, floorZ) - floorZ;
+    float hi = b.y - floorZ;
+    int start = int(w.x + 0.5);
+    int end = start + int(w.y + 0.5);
+    for (int j = start; j < end; j++) {
+      vec4 s = texelFetch(uWalls, ivec2(j, 0), 0);
+      vec2 A = s.xy - p;
+      vec2 B = s.zw - p;
+      float cz = A.x * B.y - A.y * B.x;
+      if (cz >= -1e-6) continue;
+      vec2 d = B - A;
+      float l2 = dot(d, d);
+      float f = max(edgeTerm(A, B, cz, l2, lo) - edgeTerm(A, B, cz, l2, hi), 0.0) / (2.0 * PI);
+      sum += texelFetch(uWalls, ivec2(j, 1), 0).rgb * f;
+    }
+  }
+  return sum;
+}
+
+// The light at p from this frame alone, shadow plus bounce, limited so the page colour
+// times the light stays displayable with its hue kept. The browser takes the darkest
+// frame per channel, which is the union of their shadows.
+vec3 frameLight(vec2 s, vec3 glow) {
+  float shadow = uIntensity * s.x * (1.0 - uGlobal * (1.0 - min(s.y, 1.0)));
+  vec3 lit = 1.0 - shadow * (1.0 - uInk) + glow;
+  vec3 seen = uGround * lit;
+  return lit / max(1.0, max(seen.r, max(seen.g, seen.b)));
 }
 
 void main() {
   vec2 p = uOrigin + vec2(gl_FragCoord.x, uRows - gl_FragCoord.y) / uScale;
-  bool touched;
-  vec3 colour;
+  float floorZ;
+  vec3 ratio;
   if (uPoint) {
     float d = 0.25 / uScale;
-    colour = vec3(0.0);
+    ratio = vec3(0.0);
     for (int s = 0; s < 4; s++) {
       vec2 shift = vec2((s & 1) == 0 ? -d : d, (s & 2) == 0 ? -d : d);
-      vec4 shaded = shade(p + shift, 0.0, touched);
-      colour += 0.25 * increment(shaded, touched);
+      vec2 shaded = shade(p + shift, 0.0, floorZ);
+      ratio += 0.25 * frameLight(shaded, uGlow ? bounce(p + shift, floorZ) : vec3(0.0));
     }
   } else {
     float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-    vec4 shaded = shade(p, (noise - 0.5) * uStep, touched);
-    colour = increment(shaded, touched);
+    vec2 shaded = shade(p, (noise - 0.5) * uStep, floorZ);
+    ratio = frameLight(shaded, uGlow ? bounce(p, floorZ) : vec3(0.0));
   }
-  outColor = vec4(colour, 1.0);
+  outShade = vec4(clamp(ratio, 0.0, 1.0), 1.0);
+  outGlow = vec4(1.0 - 1.0 / max(ratio, vec3(1.0)), 1.0);
 }`;
 
-const NAMES = ['uBoxes', 'uCount', 'uGroup', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uInk', 'uOrigin', 'uScale', 'uRows'];
+const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uInk', 'uOrigin', 'uScale', 'uRows'];
 
 function compile(gl) {
   const program = gl.createProgram();
@@ -232,24 +255,33 @@ function compile(gl) {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || 'Shader did not link.');
   const uniforms = Object.fromEntries(NAMES.map((name) => [name, gl.getUniformLocation(program, name)]));
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  for (const [key, value] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) {
-    gl.texParameteri(gl.TEXTURE_2D, key, value);
-  }
-  return { program, uniforms, texture, vao: gl.createVertexArray() };
+  const texture = (filter = gl.NEAREST) => {
+    const made = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, made);
+    for (const [key, value] of [[gl.TEXTURE_MIN_FILTER, filter], [gl.TEXTURE_MAG_FILTER, filter], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) {
+      gl.texParameteri(gl.TEXTURE_2D, key, value);
+    }
+    return made;
+  };
+  // Two targets drawn in one pass: the shadow factor (multiplied) and the bounce (dodged).
+  const targets = [texture(), texture()];
+  const buffer = gl.createFramebuffer();
+  return { program, uniforms, boxes: texture(), walls: texture(), targets, buffer, size: [0, 0], vao: gl.createVertexArray() };
 }
 
-/** Resolve any CSS colour to sRGB channels in 0..1 through a 2D canvas. */
-function rgb(colour) {
+/** Resolve any CSS colour to sRGB channels and alpha in 0..1 through a 2D canvas. */
+function rgba(colour) {
   const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-  if (!context) return [0, 0, 0];
+  if (!context) return [0, 0, 0, 1];
+  context.clearRect(0, 0, 1, 1);
   context.fillStyle = '#000';
   context.fillStyle = colour;
   context.fillRect(0, 0, 1, 1);
-  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-  return [r / 255, g / 255, b / 255];
+  const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+  return [r / 255, g / 255, b / 255, a / 255];
 }
+
+const rgb = (colour) => rgba(colour).slice(0, 3);
 
 const scrolling = (style) => /auto|scroll|hidden/.test(style.overflow);
 const clipping = (style) => /auto|scroll|hidden|clip/.test(style.overflow);
@@ -278,6 +310,12 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   probe.hidden = true;
   probe.style.color = ink;
   wrapper.append(probe);
+  // Every frame's shadow canvas sits in one group, darkened together and multiplied
+  // over the page; glow frames follow the group, so every bounce brightens the page
+  // after all shadows have darkened it.
+  const shadows = document.createElement('div');
+  shadows.setAttribute('data-light-shadows', '');
+  wrapper.append(shadows);
   document.body.append(wrapper);
   const surface = document.createElement('canvas');
 
@@ -286,6 +324,9 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   let visible = false;
   let motion = false;
   let colour = [0, 0, 0];
+  let ground = [1, 1, 1];
+  const albedos = new Map();
+  let wallCache = { key: '', strips: [] };
   let version = 0;
   let pageRegion = null;
   let frame = 0;
@@ -327,7 +368,19 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   };
   const readInk = () => {
     colour = rgb(getComputedStyle(probe).color);
+    const page = [document.body, document.documentElement].map((node) => rgba(getComputedStyle(node).backgroundColor)).find((channels) => channels[3] > 0.5);
+    ground = page ? page.slice(0, 3) : [1, 1, 1];
+    albedos.clear();
     version++;
+  };
+  /** A surface's walls share its background colour, as linear reflectance; see-through ones take the page's. */
+  const albedoOf = (style) => {
+    const key = style.backgroundColor;
+    if (!albedos.has(key)) {
+      const [r, g, b, a] = rgba(key);
+      albedos.set(key, a > 0.5 ? linearColour([r, g, b]) : null);
+    }
+    return albedos.get(key) ?? linearColour(ground);
   };
   const schedule = () => {
     if (!frame && visible && !lost) frame = requestAnimationFrame(tick);
@@ -411,9 +464,10 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     return { key: frames.reduce((key, { id: name }) => `${key}/${name}`, root), root, fixed, frames, clips };
   }
 
-  function makeLayer({ key, fixed, frames }) {
+  /** Nested divs, one per frame, that the browser moves; the canvas sits innermost. */
+  function nestFor(frames, fixed, glow) {
     const outer = document.createElement('div');
-    outer.setAttribute('data-light-frame', fixed ? 'fixed' : 'page');
+    outer.setAttribute(glow ? 'data-light-glow' : 'data-light-frame', fixed ? 'fixed' : 'page');
     outer.hidden = true;
     let inner = outer;
     const nest = frames.map(() => {
@@ -422,22 +476,30 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       inner = div;
       return div;
     });
-    const marker = document.createElement('span');
     const canvas = document.createElement('canvas');
-    inner.append(marker, canvas);
-    wrapper.append(outer);
+    return { outer, nest, inner, canvas, context: canvas.getContext('2d', { alpha: false }) };
+  }
+
+  function makeLayer({ key, fixed, frames }) {
+    const shadow = nestFor(frames, fixed, false);
+    const glow = nestFor(frames, fixed, true);
+    const marker = document.createElement('span');
+    shadow.inner.append(marker, shadow.canvas);
+    glow.inner.append(glow.canvas);
+    shadows.append(shadow.outer);
+    wrapper.append(glow.outer);
     const rank = fixed ? (frames.length ? 2 : 3) : (frames.length ? 1 : 0);
-    return { key, fixed, rank, outer, nest, marker, canvas, context: canvas.getContext('2d', { alpha: false }), animations: [], group: 0, drawn: null };
+    return { key, fixed, rank, outer: shadow.outer, nest: shadow.nest, marker, canvas: shadow.canvas, context: shadow.context, glow, animations: [], group: 0, drawn: null };
   }
 
   /** Outer frames wrap inner ones; each follows its scroll container on the compositor. */
   function animate(layer, frames) {
     for (const animation of layer.animations) animation.cancel();
     const outward = [...frames].reverse();
-    layer.animations = outward.map(({ source, axis, stops }, k) => layer.nest[k].animate(
+    layer.animations = [layer.nest, layer.glow.nest].flatMap((nest) => outward.map(({ source, axis, stops }, k) => nest[k].animate(
       stops.map(([offset, value]) => ({ offset, transform: axis === 'x' ? `translate3d(${value}px, 0, 0)` : `translate3d(0, ${value}px, 0)` })),
       { timeline: new ScrollTimeline({ source, axis }), fill: 'both', easing: 'linear' },
-    ));
+    )));
     layer.drawn = null;
   }
 
@@ -458,6 +520,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       if (wanted.has(key)) continue;
       for (const animation of layer.animations) animation.cancel();
       layer.outer.remove();
+      layer.glow.outer.remove();
       layers.delete(key);
     }
     for (const [key, chain] of wanted) {
@@ -530,11 +593,15 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       const whole = left === rect.left && upper === rect.top && right === rect.right && lower === rect.bottom;
       const style = getComputedStyle(el);
       const size = whole ? parseFloat(style.getPropertyValue('--light-cut-size')) || 0 : 0;
-      const corner = CUT_CORNERS[style.getPropertyValue('--light-cut-corner').trim() || 'top-right'];
+      const name = style.getPropertyValue('--light-cut-corner').trim() || 'top-right';
+      const corner = CUT_CORNERS[name];
+      const z = heightOf(el);
       const box = {
         x: left - origin.left, y: upper - origin.top, width: right - left, height: lower - upper,
-        radius: parseFloat(style.borderTopLeftRadius) || 0, z: heightOf(el),
+        radius: parseFloat(style.borderTopLeftRadius) || 0, z, base: z - (heights[level(el)] || 0),
         cut: size > 0 && corner ? [size, ...corner] : [0, 0, 0],
+        notch: size > 0 && corner ? { size, corner: name } : null,
+        albedo: albedoOf(style),
         layer: (chain && layers.get(chain.key)) || layers.get(chain?.fixed ? 'fixed' : 'page'),
       };
       if (reachable(box)) boxes.push(box);
@@ -546,7 +613,39 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       ? offFrameCasters({ width, height: view.height, azimuth: settings.azimuth, altitude: settings.altitude, sourceSize: settings.sourceSize, travel })
         .map((box) => ({ ...box, x: box.x + view.x, y: box.y + view.y, cut: [0, 0, 0], layer: fixed, post: true }))
       : [];
-    return { casters: [...posts, ...boxes].slice(0, MAX_CASTERS), origin, view, pad, width };
+    const casters = [...posts, ...boxes].slice(0, MAX_CASTERS);
+    lightWalls(casters, { view, pad, top, bottom });
+    return { casters, origin, view, pad, width };
+  }
+
+  /**
+   * The light each wall bounces, for walls whose bounce can reach the view: strips
+   * { a, b, rgb } with rgb the reflected light (albedo x irradiance x bounce share).
+   * Every caster, off-frame posts included, can shade a wall. Kept while nothing moves.
+   */
+  function lightWalls(casters, { view, top, bottom }) {
+    const gain = (settings.bounce ?? 0) / 100;
+    for (const box of casters) {
+      box.walls = [];
+      box.reach = box.post || gain <= 0 ? 0 : bounceReach(box.z - box.base, gain * Math.max(...box.albedo));
+    }
+    if (gain <= 0) return;
+    const near = (box) => {
+      const dx = Math.max(view.x - (box.x + box.width), box.x - (view.x + view.width), 0);
+      const dy = Math.max(top - (box.y + box.height), box.y - bottom, 0);
+      return box.reach > 0 && Math.hypot(dx, dy) <= box.reach;
+    };
+    const key = [version, ...casters.flatMap((box) => [box.x, box.y, box.width, box.height, box.z, box.base ?? 0, box.notch?.size ?? 0, box.notch?.corner ?? '', near(box) ? 1 : 0])].join(',');
+    if (wallCache.key !== key) {
+      const solids = casters.map((box) => ({ x: box.x, y: box.y, width: box.width, height: box.height, radius: box.radius, z: box.z, base: box.base, post: box.post, cut: box.notch ?? undefined }));
+      wallCache = { key, strips: litWalls(solids, settings, { count: WALL_BINS, only: (_, i) => near(casters[i]) }) };
+    }
+    casters.forEach((box, i) => {
+      for (const { a, b, light } of wallCache.strips[i]) {
+        const rgb = box.albedo.map((c) => Math.round(c * light * gain * 1024) / 1024);
+        if (Math.max(...rgb) > 0) box.walls.push({ a, b, rgb });
+      }
+    });
   }
 
   /** Where this frame's casters can shade, within the view and its margin, in page px. */
@@ -556,10 +655,11 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
     for (const box of own) {
       const reach = Math.min(casterReach(box.z, sky), cap);
-      x0 = Math.min(x0, box.x - reach * arc.left);
-      y0 = Math.min(y0, box.y - reach * arc.up);
-      x1 = Math.max(x1, box.x + box.width + reach * arc.right);
-      y1 = Math.max(y1, box.y + box.height + reach * arc.down);
+      const glow = box.walls?.length ? Math.min(box.reach, cap) : 0;
+      x0 = Math.min(x0, box.x - Math.max(reach * arc.left, glow));
+      y0 = Math.min(y0, box.y - Math.max(reach * arc.up, glow));
+      x1 = Math.max(x1, box.x + box.width + Math.max(reach * arc.right, glow));
+      y1 = Math.max(y1, box.y + box.height + Math.max(reach * arc.down, glow));
     }
     x0 = Math.max(x0, view.x);
     x1 = Math.min(x1, view.x + view.width);
@@ -587,38 +687,84 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       width: Math.max(1, exact ? Math.round(area.width) : Math.ceil((area.x - shift[0] + area.width) / SNAP) * SNAP - x),
       height: Math.max(1, exact ? Math.round(area.height) : Math.ceil((area.y - shift[1] + area.height) / SNAP) * SNAP - y),
     };
-    const list = casters.filter((box) => box.layer.group <= layer.group || !box.post);
+    const list = casters.filter((box) => box.layer === layer || !box.post);
     const count = list.length;
     const data = new Float32Array(count * 4 * ROWS);
+    const strips = [];
     list.forEach((box, i) => {
       const bx = box.width / 2;
       const by = box.height / 2;
+      const own = box.layer === layer;
       data.set([box.x + bx - shift[0], box.y + by - shift[1], bx, by], i * 4);
-      data.set([Math.min(Math.max(box.radius, 0), bx, by), box.z, Math.hypot(bx, by), Math.min(box.layer.group, layer.group + 1)], (count + i) * 4);
+      data.set([Math.min(Math.max(box.radius, 0), bx, by), box.z, Math.hypot(bx, by), own ? 1 : 0], (count + i) * 4);
       data.set([Math.min(box.cut[0], 2 * bx, 2 * by), box.cut[1], box.cut[2], 0], (2 * count + i) * 4);
+      const lit = own ? box.walls ?? [] : [];
+      data.set([strips.length, lit.length, box.reach ?? 0, box.base ?? 0], (3 * count + i) * 4);
+      strips.push(...lit);
     });
+    const n = Math.max(1, strips.length);
+    const walls = new Float32Array(n * 4 * 2);
+    strips.forEach(({ a, b, rgb }, j) => {
+      walls.set([a[0] - shift[0], a[1] - shift[1], b[0] - shift[0], b[1] - shift[1]], j * 4);
+      walls.set([...rgb, 0], (n + j) * 4);
+    });
+    const glow = strips.length > 0;
     const scale = Math.min(window.devicePixelRatio || 1, maxScale);
-    const key = [version, layer.group, scale, region.x, region.y, region.width, region.height, count, ...data].join(',');
-    return { key, data, count, region, scale };
+    const key = [version, layer.group, scale, region.x, region.y, region.width, region.height, count, ...data, ...(glow ? walls : [])].join(',');
+    return { key, data, count, walls, width: n, glow, region, scale };
   }
 
-  function draw(layer, { data, count, region, scale }) {
+  /** Size the two render targets to at least w x h. */
+  function targets(w, h) {
+    const { targets: made, buffer, size } = glState;
+    if (size[0] >= w && size[1] >= h) return;
+    const next = [Math.max(size[0], w), Math.max(size[1], h)];
+    for (const target of made) {
+      gl.bindTexture(gl.TEXTURE_2D, target);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, next[0], next[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
+    made.forEach((target, k) => gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + k, gl.TEXTURE_2D, target, 0));
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    glState.size = next;
+  }
+
+  /** Copy a w x h image from the surface's bottom-left, offset by sx, into a canvas. */
+  function copy(canvas, context, sx, w, h, region) {
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    context.drawImage(surface, sx, surface.height - h, w, h, 0, 0, w, h);
+    canvas.style.width = `${region.width}px`;
+    canvas.style.height = `${region.height}px`;
+    canvas.style.transform = `translate3d(${region.x}px, ${region.y}px, 0)`;
+  }
+
+  function draw(layer, { data, count, walls, width, glow, region, scale }) {
     const w = Math.max(1, Math.round(region.width * scale));
     const h = Math.max(1, Math.round(region.height * scale));
-    if (surface.width < w) surface.width = w;
+    if (surface.width < 2 * w) surface.width = 2 * w;
     if (surface.height < h) surface.height = h;
-    const { program, uniforms: u, texture, vao } = glState;
+    targets(w, h);
+    const { program, uniforms: u, boxes, walls: wallTexture, buffer, vao } = glState;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.viewport(0, 0, w, h);
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, boxes);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, count, ROWS, 0, gl.RGBA, gl.FLOAT, data);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, 2, 0, gl.RGBA, gl.FLOAT, walls);
     const bins = new Float32Array(SKY_BINS * 4);
     sky.bins.forEach(({ angle, lo, hi }, k) => bins.set([angle, lo, hi, 0], k * 4));
     gl.uniform1i(u.uBoxes, 0);
+    gl.uniform1i(u.uWalls, 1);
     gl.uniform1i(u.uCount, count);
-    gl.uniform1i(u.uGroup, layer.group);
+    gl.uniform1i(u.uGlow, glow ? 1 : 0);
+    gl.uniform3fv(u.uGround, ground);
     gl.uniform4fv(u.uBins, bins);
     gl.uniform1i(u.uBinCount, sky.bins.length);
     gl.uniform1i(u.uPoint, sky.point ? 1 : 0);
@@ -635,15 +781,17 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     gl.uniform1f(u.uScale, scale);
     gl.uniform1f(u.uRows, h);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    const { canvas, context } = layer;
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, buffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    if (glow) {
+      gl.readBuffer(gl.COLOR_ATTACHMENT1);
+      gl.blitFramebuffer(0, 0, w, h, w, 0, 2 * w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     }
-    context.drawImage(surface, 0, surface.height - h, w, h, 0, 0, w, h);
-    canvas.style.width = `${region.width}px`;
-    canvas.style.height = `${region.height}px`;
-    canvas.style.transform = `translate3d(${region.x}px, ${region.y}px, 0)`;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    copy(layer.canvas, layer.context, 0, w, h, region);
+    if (glow) copy(layer.glow.canvas, layer.glow.context, w, w, h, region);
     stats.draws++;
   }
 
@@ -660,6 +808,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       for (const layer of [...layers.values()].sort((a, b) => a.group - b.group)) {
         const next = plan(layer, scene);
         layer.outer.hidden = !next;
+        layer.glow.outer.hidden = !next?.glow;
         if (!next) {
           layer.drawn = null;
           continue;

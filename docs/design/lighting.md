@@ -5,14 +5,14 @@
 > from one shared calculation that works out, for each pixel, how much of an area
 > light the raised surfaces hide together. So shadow length, blur, fade and overlaps
 > follow one physical model: a distant light of a given angular size, surfaces
-> that are blocks standing on the page, and sky hidden by nearby blocks. The
-> approximations are listed below.
+> that are blocks standing on the page, sky hidden by nearby blocks, and light
+> bounced by lit walls. The approximations are listed below.
 
 ## What the owner asked for
 
 <div class="slate-card-grid" data-cols="3">
   <article class="slate-card"><h3 class="slate-card__title">One light</h3><p class="slate-card__body">Choose direction, elevation, source size, global illumination, warm highlight and cool shadow tints, and their intensities.</p></article>
-  <article class="slate-card"><h3 class="slate-card__title">Elevated surfaces</h3><p class="slate-card__body">Higher surfaces cast longer, softer, fading shadows. Their edges face the same light.</p></article>
+  <article class="slate-card"><h3 class="slate-card__title">Elevated surfaces</h3><p class="slate-card__body">Higher surfaces cast longer, softer, fading shadows. Their edges face the same light, and their lit walls bounce their own colour onto the ground beside them.</p></article>
   <article class="slate-card"><h3 class="slate-card__title">A living room</h3><p class="slate-card__body">Optional shadows from unseen objects drift across the whole view, each at its own speed and in its own direction, with separate motion and speed controls.</p></article>
 </div>
 
@@ -219,6 +219,73 @@ intensity and `g` the global illumination from 0 to 1. So:
 | 60 % | 0.31 | 0.16 | 0.14 | 0.13 | 0.07 |
 | 100 % | 0.30 | 0.05 | 0.01 | 0.00 | 0.00 |
 
+### Bounced light: walls light the ground beside them
+
+A raised block's walls are lit too. A wall facing the light reflects it diffusely,
+in the colour of its surface, onto the ground beside it, as a path tracer's first
+bounce would. A white card throws a soft white glow; a peach card throws a peach
+one. Bounce never casts a shadow.
+
+**How much light a wall gets.** For a wall with outward normal `n` and a light
+from azimuth `l` at altitude `a`:
+
+```text
+wall light   E = cos(a) × max(0, n · l) × V
+```
+
+`V` is the share of the source the wall still sees past other blocks, off-frame
+objects included. It is weighted for an upright receiver (each elevation `e`
+counts `cos² e`) and averaged at a quarter and three quarters of the way up the
+wall. Each wall is split into strips about 24 px long (up to 6), each with its own
+`E`, so a wall half in another block's shadow bounces only from its lit half. A wall
+facing away from the light, or fully in shadow, gets `E = 0` and bounces nothing.
+Rounded corners become three facets each, and a cut corner adds its diagonal wall.
+
+**How much reaches the ground.** A diffuse wall strip with albedo `ρ` (its
+background colour in linear RGB; a see-through surface takes the page's) adds, at a
+point on the ground:
+
+```text
+bounce       B = b × ρ × E × F
+form factor  F = (G(lo) − G(hi)) / 2π
+             G(h) = γ(h) × |c| / √(h² |b − a|² + c²)
+```
+
+`F` is the share of the wall's light that reaches the point: the inverse-square
+law, with both cosines, integrated exactly over the strip by Lambert's polygon
+formula. The strip stands on the ground segment from `a` to `b`, from `lo` to `hi`
+above the point. `c` is the cross product of the offsets to `a` and `b`, and `γ(h)`
+is the angle the strip's level edge at height `h` subtends. Only those two edges
+count, because the vertical edges lie in planes through the point's normal. `F` is
+0 behind the wall. For a long wall of height `h` at distance `d` it becomes
+`½ (1 − d / √(d² + h²))`, which falls as `h² / 4d²` far away: the inverse-square
+law. The tests check `F` against a brute-force integral of `cos θr cos θw / πr²`.
+`b` is the **Bounced light** control, 0–200 %, default 100 %.
+
+| White 12 px wall facing a light from 315°, altitude 0° | At 1 px | 6 px | 12 px | 24 px | 48 px |
+| --- | --- | --- | --- | --- | --- |
+| Bounce `B`, share of full light | 0.32 | 0.20 | 0.10 | 0.04 | 0.01 |
+
+Bounce is dropped where it falls under half of one 8-bit level. A wall `h` tall
+reaches `h √(b ρ / (4 / 512))`: about 11 times its height for white at 100 %.
+
+**On screen.** Each frame's shadow canvas holds the light `U` that its own surfaces
+leave on the ground. The bounce adds to it, so the page should be multiplied by
+`U + B`, which can exceed 1. Each frame draws one factor, `r = U + B`. The shadow
+canvas takes `min(r, 1)`; the frames' shadow canvases are darkened together and
+multiplied over the page. A second canvas per frame takes `1 − 1 / max(r, 1)` and is
+colour-dodged over the page after every shadow. Colour dodge divides the page by
+`1 − s`, so it brightens the page by `max(r, 1)`, and black leaves it unchanged.
+Where the page colour times `U + B` would exceed white, the factor is scaled down
+evenly across its channels, so the hue is kept. So:
+
+- on lit, near-white ground, white bounce is already at white and doesn't show; a
+  coloured wall still tints it;
+- bounce shows most in shadow, where `U` is low: a lit wall brightens the shadow at
+  its foot;
+- dark surfaces reflect little: in dark mode, dark cards bounce almost nothing,
+  while light or coloured surfaces still do.
+
 ### Shadows from beyond the frame and lit edges
 
 **Off-frame shadows** come from tall objects beyond the edge of the view that faces
@@ -253,7 +320,7 @@ without changing my theme or my work.
 | User can / acceptance row | Flow and branches | Evidence required |
 | --- | --- | --- |
 | LU1: choose lighting independently of theme (LJ1, LJ2) | Turn on Long shadows → change theme → lighting remains on → turn off restores original styling | Browser checks in light and dark, on/off, reload and another page |
-| LU2: direct and shape the light (LJ1) | Open Lighting → adjust direction, elevation, source size, global illumination, tint and intensity → surfaces update | Projection, source-share, brute-force ray-trace, overlap and sky-occlusion quadrature unit tests; shader pixels compared with the reference; visible light/dark review |
+| LU2: direct and shape the light (LJ1) | Open Lighting → adjust direction, elevation, source size, global illumination, bounced light, tint and intensity → surfaces update | Projection, source-share, brute-force ray-trace, overlap, sky-occlusion quadrature and form-factor integration unit tests; shader pixels compared with the reference; visible light/dark review |
 | LU3: choose off-frame shadows and motion independently (LJ1, LJ2) | Enable off-frame → optionally animate → adjust speed; disable off-frame stops motion | Browser animation state and speed checks |
 | LU4: retain control under accessibility preferences (LJ2) | Reduced motion freezes drift; more-contrast/forced colours suppress lighting; keyboard reaches and closes controls | Media emulation, small screen and keyboard checks |
 | LU5: retain settings or get an honest failure (LJ1, LJ2) | Reload/visit another page retains settings; invalid saved data uses defaults and a visible warning; failed save says it is page-only | Persistence, corrupt-settings and denied-storage browser checks |
@@ -273,7 +340,9 @@ shared WebGL2 shadow layer over marked surfaces  +  rim CSS on those surfaces
   settings and limits, validation, upgrades of older saved settings, projection,
   source wedges, ray entry into rounded boxes with an optional cut corner, sky
   occlusion, the reference shadow at a point (`shadowAt`, which the shader mirrors),
-  the independent off-frame objects, rim properties and the motion policy.
+  bounced light (`wallFaces`, `litWalls`, `wallFormFactor`, `bounceAt`,
+  `bounceReach`, `linearColour`), the independent off-frame objects, rim properties
+  and the motion policy.
 - `site/src/client/light-renderer.js`: the portable layer; its only import is the
   engine. `createLightRenderer({ selector, heights, ink })` measures every visible
   element matching the selector (default `[data-elevation]`). Its height is
@@ -295,17 +364,31 @@ shared WebGL2 shadow layer over marked surfaces  +  rim CSS on those surfaces
   too. A sticky offset is `clamp(s − start, 0, room)` at scroll `s`, measured once
   per layout with the surface briefly laid out where it would sit unstuck. One
   WebGL2 context draws every group.
-- **Groups multiply to the exact union.** Group `k` draws the increment
-  `(1 − α≤k) / (1 − α<k)`, where `α≤k` is the shadow of the groups up to `k` and
-  `α<k` of those before it, all computed together on the same skyline. The canvases
-  multiply over the page, so their product is the shadow of all the surfaces at
-  once, and overlaps across groups never darken either. The page group comes first,
-  so it doesn't redraw while the off-frame objects move.
+- **Groups combine on the compositor.** Group `k` draws only the light its own
+  surfaces leave, `1 − α_k m` per channel, with every group's surfaces still setting
+  the height each pixel stands at. Inside one blend group the canvases are combined
+  with `darken`, the lowest light per channel, and the group multiplies over the
+  page. For one light that is the union of the shadows, so overlaps across groups
+  never darken. Because the browser combines them on every frame, a group that
+  scrolls on the compositor never meets a neighbour drawn for the old scroll
+  position. An earlier design divided each group by the groups before it, which
+  tied the view-fixed off-frame shadows to the page's: every scroll step showed one
+  frame of shadows from the old position, flickering most where shadows and bounce
+  meet. The page group doesn't redraw while the off-frame objects move.
+- **Bounce comes from the same pass.** Each surface's walls are lit on the CPU
+  (`litWalls`), only for walls whose bounce can reach the view, and kept until
+  something moves. The shader adds their bounce to the frame's factor and writes
+  the shadow and glow canvases together, to two render targets. Glow frames sit
+  after the shadow group in the layer, so bounce brightens what all the shadows
+  have darkened.
 - `site/src/styles/lighting.css`: no Loushing component selectors. Public contract:
   root `data-lighting="on"`, surface `data-elevation="0"…"4"`, the optional cut
   (`--light-cut-size`, `--light-cut-corner`) and the `[data-light-layer]` it styles:
-  an absolute, clipped container with no stacking context, whose frames sit at
-  `--layer-lighting` and multiply over the page. A lit surface's own `box-shadow`
+  an absolute, clipped container with no stacking context. Its shadow group
+  (`[data-light-shadows]`) sits at `--layer-lighting` and multiplies over the page,
+  with its shadow frames (`[data-light-frame]`) darkened together inside it; its
+  glow frames (`[data-light-glow]`) colour-dodge over the page. The host's surface
+  background colours are the walls' albedo. A lit surface's own `box-shadow`
   is replaced by its rims.
 - `site/src/client/lighting.js`: the Loushing DOM and storage adapter. It creates the
   layer the first time lighting is on. Settings are saved under schema 3. Older saved
@@ -352,9 +435,12 @@ group, and adapt the controls and storage. This is a reusable source boundary,
   header and Get it panel but not for every containing block.
 - Without scroll-driven animations (`ScrollTimeline`), sticky and scrolled surfaces
   fall back to the page group and can lag them again during fast scrolls.
-- Where groups that move against each other overlap, such as the off-frame shadows
-  over a sticky panel's shadow, the overlap can be slightly off for a frame or so
-  while scrolling, until the groups redraw.
+- Where shadows from different groups overlap, the darker group's light is taken.
+  That is exact where one shadow covers what the other hides of the source, and a
+  little light where two penumbras hide different parts of it; within a group the
+  union is exact. A group's bounce is also capped by another group's shadow over it.
+  Bounce on the page reflects walls shaded by the view-fixed off-frame objects, so
+  it catches up one redraw after a scroll.
 - Sky occlusion takes the single block that hides the most, not the union of
   several, and uses each block's angular width. It is exact for a long wall and
   approximate near corners.
@@ -365,6 +451,12 @@ group, and adapt the controls and storage. This is a reusable source boundary,
 - Shadow length comes from surface height and altitude. With levels of 2–24 px,
   long shadows need a low light; taller levels are a design lever, not changed here.
 - 32 wedges with per-pixel jitter leave faint grain in wide penumbras.
+- Bounced light is one bounce, from walls onto the ground: it isn't blocked by other
+  blocks on its way, isn't bounced again, and doesn't light other walls or surface
+  tops. A wall's light uses the source's centre direction for `n · l`. Bounce
+  reaches only the ground of the scroll frame its wall moves in, and only from the
+  frames up to that one. The factor, computed in linear light, is applied to the
+  sRGB page colour, as the shadows are.
 - Saved lighting applies when the enhancement module loads, not before first paint.
 - No mobile GPU, Safari/Firefox matrix, field telemetry or performance baseline has
   been certified.
@@ -385,6 +477,7 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 | LO4 | Renderer | Dependency-free WebGL2 shadows that work out area-light visibility per pixel, one canvas per scroll frame; edges stay CSS | Awaiting visual review |
 | LO5 | Extraction | Portable source boundary now; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
 | LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
+| LO7 | Bounced light | On at 100 %, physically scaled; adjustable 0–200 % | Awaiting visual review |
 
 **Try it:** at the site preview, turn on **Long shadows**. Watch the off-frame
 shadows for a minute: several drift across at different speeds, some each way, and
@@ -395,15 +488,18 @@ to 0° for shadows that never end, then raise it toward 120° to watch the umbra
 shorten and the shadow fade from its tip. Raise the elevation to see the shadows
 shorten. Where two cards' shadows cross, the overlap keeps the same darkness. Move
 **Global illumination** from 0 % (shadows fade only by their penumbra) to 100 %
-(shadows lighten away from the cards but stay dark at their feet). Rotate the
-source and change theme. Turn the main switch off to compare with the existing
-design.
+(shadows lighten away from the cards but stay dark at their feet). On the home
+page, scroll to the peach card under **How I combine them** and move **Bounced
+light** from 0 % to 200 %: a warm glow rises off its lit north and west walls into
+the shaded band above it, and the white kit cards brighten the shadow above them.
+Rotate the source and change theme. Turn the main switch off to compare with the
+existing design.
 
 ## Prototype evidence
 
 Checked locally on 23 October 2026:
 
-- **64 site tests pass.** The 25 lighting tests cover:
+- **67 site tests pass.** The 28 lighting tests cover:
   - the projection, including altitude 0°;
   - the source's share of light against its exact projected solid angle;
   - ray entry into rounded boxes, and into cut corners against an independent
@@ -420,6 +516,12 @@ Checked locally on 23 October 2026:
     several in flight together, and at least one shadow in view at every sampled
     moment (eight light directions at 1280 × 860; phone and wide views, low and
     raised light, point and area sources);
+  - bounced light: the form factor against a brute-force integral and the long-wall
+    closed form, nothing behind a wall, and falling with distance; the reach
+    against the cut-off; walls facing the light lit by `cos(a) n · l`, and walls
+    facing away, or shaded by a taller block or an off-frame object, bouncing
+    nothing; rounded and cut corners as facets; a red wall bouncing only red,
+    scaled by the control;
   - the owner's defaults, rims, motion, the panel, the schema 3 upgrades, the
     layer's CSS contract and independence from Loushing.
 
@@ -445,6 +547,24 @@ Checked locally on 23 October 2026:
   don't rebuild; a resize rebuilds once.
 - **Light and dark** were checked on the catalog and an item page with no page
   errors.
+- **Bounce is in the pixels.** On the home page in light mode, at the defaults with
+  motion paused, bounced light at 100 % changed up to 47 of 255 levels, all in the
+  shaded band north of the peach card and the white kit cards: warm above the peach
+  card, white above the kit cards, fading with distance. Lit ground beside the
+  peach card took a slight peach tint. In dark mode at 100 %, nothing changed by
+  more than 1 level, because the dark cards reflect little. The rounded corners
+  are lit smoothly, with no square notch. With the off-frame objects moving, the
+  layer's work took 1.1–2.1 ms per update (3.1 ms at worst), and frames held at
+  4.2 ms with no long tasks.
+- **No flicker while scrolling.** Composited frames were recorded during wheel
+  scrolling with the pointer off the cards. Before the change, the first frame
+  after nearly every scroll step on the home page differed from the settled frame
+  in 60,000–75,000 pixels, by up to about 50 levels, in card outlines inside the
+  off-frame shadows. With the off-frame shadows turned off there was no flash; with
+  bounce at 0 or motion paused there still was. After it, every step on the home
+  page and an item page matched its settled frame, except for 1 px sub-pixel shifts
+  of whole content, text included. Holding still with the off-frame objects moving,
+  no lighting pixel flickered back and forth.
 - Earlier checks, made before the scroll frames, weren't repeated: the
   single-layer shader matched `shadowAt` over 265 screenshot points (0.004 on
   average, 0.023 at most), and settings, reload and cross-page persistence, keyboard

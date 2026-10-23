@@ -15,6 +15,7 @@ export const LIGHT_CONTROLS = [
   { key: 'altitude', label: 'Light elevation', min: 0, max: 85, step: 1, unit: '°', value: 0 },
   { key: 'sourceSize', label: 'Light source size', min: 0, max: 120, step: 1, unit: '°', value: 9 },
   { key: 'globalIllumination', label: 'Global illumination', min: 0, max: 100, step: 1, unit: '%', value: 30 },
+  { key: 'bounce', label: 'Bounced light', min: 0, max: 200, step: 1, unit: '%', value: 100 },
   { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 30 },
   { key: 'shadowIntensity', label: 'Shadow intensity', min: 0, max: 100, step: 1, unit: '%', value: 33 },
   { key: 'speed', label: 'Motion speed', min: 1, max: 10, step: 1, unit: '×', value: 5 },
@@ -38,6 +39,18 @@ export const LIGHT_LEVELS = Object.freeze([0, 2, 6, 12, 24]);
 export const SKY_BINS = 32;
 /** Darkness, as a share of the source, a skipped far-away caster may leave out (under 1/255). */
 export const CULL_SHARE = 0.002;
+/** Each lit wall is cut into up to this many strips along its length, each with its own light. */
+export const WALL_SEGMENTS = 6;
+/** Facets per rounded corner of a block's walls. */
+export const ARC_STEPS = 3;
+/** A wall gets a strip for about every this many px of its length, at least one. */
+const STRIP_LENGTH = 24;
+/** Azimuth bins used to find how much of the source reaches a wall. */
+export const WALL_BINS = 8;
+/** Heights, as shares of the wall, where a strip's light is sampled and averaged. */
+const WALL_HEIGHTS = Object.freeze([0.25, 0.75]);
+/** Bounced light under this share of full light is left out (under half of 1/255). */
+export const BOUNCE_CULL = 1 / 512;
 /** A small seeded generator, so the off-frame objects are the same on every page. */
 function seeded(seed) {
   let state = seed >>> 0;
@@ -288,12 +301,30 @@ export function skyOcclusion(distance, z, angle = Math.PI) {
 export function shadowAt([px, py], boxes, value, { offset = 0.5, count = SKY_BINS } = {}) {
   const settings = validateLighting(value);
   const sky = sourceBins(settings, count);
+  const floor = floorAt(px, py, boxes);
+  const { blocked, occlusion } = hiddenShare(px, py, floor, boxes, sky, settings.azimuth * RADIANS, offset);
+  const fade = 1 - settings.globalIllumination / 100 * (1 - Math.min(1, occlusion));
+  return { floor, blocked, occlusion, alpha: settings.shadowIntensity / 100 * blocked * fade };
+}
+
+/** The top of the tallest block containing the point, or 0 on the ground. */
+function floorAt(px, py, boxes) {
   let floor = 0;
   for (const box of boxes) if (boxDistance(px, py, box) <= 0) floor = Math.max(floor, box.z);
-  const azimuth = settings.azimuth * RADIANS;
+  return floor;
+}
+
+/**
+ * The share of the source hidden from a point at height `floor`, and the sky hidden by
+ * the nearest taller block. `skip` leaves one block out (a wall's own block).
+ * `vertical` weights the source for a vertical receiver facing the light, cos^2(e)
+ * per elevation e, instead of sin(e) cos(e) for a level one.
+ */
+function hiddenShare(px, py, floor, boxes, sky, azimuth, offset, { skip = null, vertical = false } = {}) {
   const skyline = sky.bins.map(() => 0);
   let occlusion = 0;
   for (const box of boxes) {
+    if (box === skip) continue;
     const dz = box.z - floor;
     if (dz <= 0) continue;
     const distance = Math.max(0, boxDistance(px, py, box));
@@ -307,11 +338,167 @@ export function shadowAt([px, py], boxes, value, { offset = 0.5, count = SKY_BIN
       if (t !== Infinity) skyline[k] = Math.max(skyline[k], dz * dz / (dz * dz + t * t));
     });
   }
-  const blocked = sky.point
-    ? Number(skyline[0] > sky.bins[0].lo)
-    : sky.bins.reduce((sum, { lo, hi }, k) => sum + Math.min(Math.max(skyline[k] - lo, 0), hi - lo), 0) / sky.total;
-  const fade = 1 - settings.globalIllumination / 100 * (1 - Math.min(1, occlusion));
-  return { floor, blocked, occlusion, alpha: settings.shadowIntensity / 100 * blocked * fade };
+  if (sky.point) return { blocked: Number(skyline[0] > sky.bins[0].lo), occlusion };
+  if (!vertical) {
+    return { blocked: sky.bins.reduce((sum, { lo, hi }, k) => sum + Math.min(Math.max(skyline[k] - lo, 0), hi - lo), 0) / sky.total, occlusion };
+  }
+  // Squared sines back to elevations; a vertical receiver gains e/2 + sin(2e)/4.
+  const gain = (s2) => {
+    const e = Math.asin(Math.sqrt(Math.min(Math.max(s2, 0), 1)));
+    return e / 2 + Math.sin(2 * e) / 4;
+  };
+  let hidden = 0;
+  let total = 0;
+  sky.bins.forEach(({ lo, hi }, k) => {
+    if (hi <= lo) return;
+    total += gain(hi) - gain(lo);
+    hidden += gain(Math.min(Math.max(skyline[k], lo), hi)) - gain(lo);
+  });
+  return { blocked: total > 0 ? hidden / total : 0, occlusion };
+}
+
+/**
+ * The walls of a block as ground segments [a, b], clockwise on screen (y down), so
+ * each faces outward along (dy, -dx). Rounded corners become ARC_STEPS facets each; a
+ * cut corner is cut straight across instead, adding its diagonal wall.
+ */
+export function wallFaces(box) {
+  const { x, y, width, height } = box;
+  const r = Math.min(Math.max(box.radius || 0, 0), width / 2, height / 2);
+  const corners = [[x, y], [x + width, y], [x + width, y + height], [x, y + height]];
+  const names = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
+  const size = Math.min(Math.max(box.cut?.size || 0, 0), width, height);
+  const cut = size ? names.indexOf(box.cut.corner ?? 'top-right') : -1;
+  if (size && cut < 0) throw new RangeError(`Unknown cut corner: ${box.cut.corner}.`);
+  const points = [];
+  corners.forEach((corner, k) => {
+    if (k === cut) {
+      for (const other of [corners[(k + 3) % 4], corners[(k + 1) % 4]]) {
+        const length = Math.hypot(other[0] - corner[0], other[1] - corner[1]);
+        points.push([corner[0] + (other[0] - corner[0]) * size / length, corner[1] + (other[1] - corner[1]) * size / length]);
+      }
+      return;
+    }
+    if (r <= 0) {
+      points.push(corner);
+      return;
+    }
+    // Arc centre inside the corner; the arc turns a quarter clockwise from angle k pi/2 + pi.
+    const cx = corner[0] + (k === 0 || k === 3 ? r : -r);
+    const cy = corner[1] + (k < 2 ? r : -r);
+    for (let s = 0; s <= ARC_STEPS; s++) {
+      const angle = Math.PI + (k + s / ARC_STEPS) * Math.PI / 2;
+      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+    }
+  });
+  return points
+    .map((point, k) => [point, points[(k + 1) % points.length]])
+    .filter(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]) > 1e-9);
+}
+
+/**
+ * Light falling on each block's walls, as strips { a, b, light } along every wall that
+ * faces the light; `light` is the irradiance as a share of full light square-on:
+ * cos(altitude) (n . l) times the share of the source no other block hides, averaged
+ * over two heights up the wall. A wall in another block's shadow gets none, and so
+ * bounces none. Blocks may set `base`, the height their walls stand on (default 0).
+ * Off-frame posts (`post`) only cast shadows. `only(box, i)` may limit which blocks'
+ * walls are lit; every block still shades the rest. Returns one list per block.
+ */
+export function litWalls(boxes, value, { segments = WALL_SEGMENTS, count = WALL_BINS, only = null } = {}) {
+  const settings = validateLighting(value);
+  const sky = sourceBins(settings, count);
+  const azimuth = settings.azimuth * RADIANS;
+  const lx = Math.sin(azimuth);
+  const ly = -Math.cos(azimuth);
+  const square = Math.cos(settings.altitude * RADIANS);
+  return boxes.map((box, i) => {
+    const base = box.base ?? 0;
+    if (box.post || box.z <= base || (only && !only(box, i))) return [];
+    const strips = [];
+    for (const [a, b] of wallFaces(box)) {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const length = Math.hypot(dx, dy);
+      if (length < 1e-9) continue;
+      const nx = dy / length;
+      const ny = -dx / length;
+      const facing = square * (nx * lx + ny * ly);
+      if (facing <= 1e-9) continue;
+      const parts = Math.max(1, Math.min(segments, Math.round(length / STRIP_LENGTH)));
+      for (let s = 0; s < parts; s++) {
+        const mid = (s + 0.5) / parts;
+        const px = a[0] + dx * mid + nx * 1e-3;
+        const py = a[1] + dy * mid + ny * 1e-3;
+        const seen = WALL_HEIGHTS.reduce((sum, share) => sum + 1 - hiddenShare(px, py, base + (box.z - base) * share, boxes, sky, azimuth, 0.5, { skip: box, vertical: true }).blocked, 0);
+        strips.push({
+          a: [a[0] + dx * s / parts, a[1] + dy * s / parts],
+          b: [a[0] + dx * (s + 1) / parts, a[1] + dy * (s + 1) / parts],
+          light: facing * seen / WALL_HEIGHTS.length,
+        });
+      }
+    }
+    return strips;
+  });
+}
+
+/**
+ * The form factor from a point on a level receiver to a vertical wall strip standing
+ * on the ground segment [a, b], from `lo` to `hi` above the receiver: the share of a
+ * diffuse wall's light that reaches the point, the inverse-square law integrated over
+ * the strip. By Lambert's polygon formula only the strip's two level edges count:
+ * F = (G(lo) - G(hi)) / 2 pi, G(h) = gamma(h) |c| / sqrt(h^2 |b - a|^2 + c^2), with
+ * gamma(h) the angle the edge at height h subtends and c the cross product of the
+ * ground offsets to a and b. 0 behind the wall. For a long wall at distance d with
+ * lo = 0 it is (1 - d / sqrt(d^2 + hi^2)) / 2.
+ */
+export function wallFormFactor([px, py], a, b, lo, hi) {
+  const ax = a[0] - px;
+  const ay = a[1] - py;
+  const bx = b[0] - px;
+  const by = b[1] - py;
+  const cross = ax * by - ay * bx;
+  if (cross >= -1e-9 || hi <= lo) return 0;
+  const length2 = (bx - ax) ** 2 + (by - ay) ** 2;
+  const edge = (h) => {
+    const h2 = h * h;
+    const cos = (ax * bx + ay * by + h2) / Math.sqrt((ax * ax + ay * ay + h2) * (bx * bx + by * by + h2));
+    return Math.acos(Math.min(1, Math.max(-1, cos))) * -cross / Math.sqrt(h2 * length2 + cross * cross);
+  };
+  return Math.max(0, edge(Math.max(lo, 0)) - edge(hi)) / (2 * Math.PI);
+}
+
+/** How far from a wall `height` tall its bounce stays above BOUNCE_CULL, at `strength`. */
+export function bounceReach(height, strength) {
+  return strength > 0 && height > 0 ? height * Math.sqrt(strength / (4 * BOUNCE_CULL)) : 0;
+}
+
+/** sRGB channels in 0..1 to linear reflectance. */
+export function linearColour(channels) {
+  return channels.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+}
+
+/**
+ * Light bounced onto a level point by lit walls, as linear RGB in shares of full
+ * light. Each wall reflects diffusely in its block's `albedo` (linear RGB, default
+ * white): bounce x albedo x light x form factor, summed over the walls of every block
+ * taller than the point's floor. `walls` is litWalls' result for the same blocks.
+ * Bounce isn't blocked by other blocks on its way, nor bounced again.
+ */
+export function bounceAt([px, py], boxes, walls, value) {
+  const settings = validateLighting(value);
+  const floor = floorAt(px, py, boxes);
+  const sum = [0, 0, 0];
+  boxes.forEach((box, i) => {
+    if (box.z <= floor) return;
+    const lo = Math.max(box.base ?? 0, floor) - floor;
+    const albedo = box.albedo ?? [1, 1, 1];
+    for (const { a, b, light } of walls[i] ?? []) {
+      const share = light * wallFormFactor([px, py], a, b, lo, box.z - floor);
+      for (let c = 0; c < 3; c++) sum[c] += albedo[c] * share;
+    }
+  });
+  return sum.map((v) => v * settings.bounce / 100);
 }
 
 /**
