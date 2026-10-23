@@ -21,6 +21,9 @@ import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, 
  * ever depends on where another frame's surfaces were when it was drawn.
  * Each redraws only when the scene changes within its frame, or while off-frame
  * casters move.
+ * In light mode (the theme's --light-edge-lift) a raised surface's edge keeps its
+ * light under any shadow, fading inward over a few px, so it reads as an edge
+ * highlight. This is for looks, not physics; in dark mode a shadow dims the edge.
  */
 const MAX_CASTERS = 128;
 const MAX_LAYERS = 8;
@@ -29,6 +32,9 @@ const MOTION_MS = 33;
 const MARGIN = 0.25;
 const SNAP = 64;
 const ROWS = 4;
+// A raised surface's lifted edge in light mode: whole for its outer px, gone by 3 px in.
+const RIM_SOLID = 1;
+const RIM_FADE = 3;
 const timelines = typeof ScrollTimeline === 'function' && typeof Element.prototype.animate === 'function';
 
 const VERTEX = `#version 300 es
@@ -57,6 +63,7 @@ uniform float uThreshold;
 uniform float uAzimuth;
 uniform float uIntensity;
 uniform float uGlobal;
+uniform float uRim;
 uniform vec3 uInk;
 uniform vec2 uOrigin;
 uniform float uScale;
@@ -78,6 +85,8 @@ layout(location = 2) out vec4 outGobo;
 const float PI = 3.14159265;
 const float HALF_ROOT2 = 0.70710678;
 const float EPS = 1e-3;
+const float RIM_SOLID = ${RIM_SOLID.toFixed(1)};
+const float RIM_FADE = ${RIM_FADE.toFixed(1)};
 
 float roundedDistance(vec2 q, vec2 b, float r) {
   vec2 d = abs(q) - b + r;
@@ -127,13 +136,18 @@ float entry(vec2 q, vec2 u, vec2 b, float r, vec4 c) {
 // and the sky hidden for global illumination (y). Every frame's surfaces still set
 // the height p stands at. Off-frame casters are drawn in their own pass, with no
 // surfaces, so they always fall on the page; the copies on raised floors slide them.
-vec2 shade(vec2 p, float jitter, out float floorZ) {
+vec2 shade(vec2 p, float jitter, out float floorZ, out float edge) {
   floorZ = 0.0;
+  edge = 1e6;
   for (int i = 0; i < uCount; i++) {
     vec4 a = texelFetch(uBoxes, ivec2(i, 0), 0);
     vec4 b = texelFetch(uBoxes, ivec2(i, 1), 0);
     vec4 c = texelFetch(uBoxes, ivec2(i, 2), 0);
-    if (shapeDistance(p - a.xy, a.zw, b.x, c) <= 0.0) floorZ = max(floorZ, b.y);
+    float d = shapeDistance(p - a.xy, a.zw, b.x, c);
+    if (d <= 0.0 && b.y >= floorZ) {
+      floorZ = b.y;
+      edge = -d;
+    }
   }
   vec2 light = vec2(sin(uAzimuth), -cos(uAzimuth));
   vec2 dirs[${SKY_BINS}];
@@ -273,11 +287,19 @@ float goboShadow(vec2 p, float spin) {
 // The light at p from this frame alone, shadow plus bounce, limited so the page colour
 // times the light stays displayable with its hue kept. The browser takes the darkest
 // frame per channel, which is the union of their shadows.
-vec3 frameLight(vec2 s, vec3 glow) {
+vec3 frameLight(vec2 s, vec3 glow, float rim) {
   float shadow = uIntensity * s.x * (1.0 - uGlobal * (1.0 - min(s.y, 1.0)));
   vec3 lit = 1.0 - shadow * (1.0 - uInk) + glow;
+  lit = mix(lit, max(lit, vec3(1.0)), rim);
   vec3 seen = uGround * lit;
   return lit / max(1.0, max(seen.r, max(seen.g, seen.b)));
+}
+
+// How much a raised surface's edge keeps its light under a shadow, at depth d inside
+// it: all of it on its outer pixel, fading out inward. Not physical: a lifted edge
+// reads as a highlight. uRim is its strength (light mode only, from the theme).
+float rimLift(float floorZ, float d) {
+  return floorZ > 0.0 ? uRim * (1.0 - smoothstep(RIM_SOLID, RIM_FADE, d)) : 0.0;
 }
 
 // The light where the gobo blocks all of the source: as deep as a surface's shadow
@@ -289,6 +311,7 @@ vec3 goboFull() {
 void main() {
   vec2 p = uOrigin + vec2(gl_FragCoord.x, uRows - gl_FragCoord.y) / uScale;
   float floorZ;
+  float edge;
   vec3 ratio;
   float gobo = 0.0;
   if (uPoint) {
@@ -296,15 +319,15 @@ void main() {
     ratio = vec3(0.0);
     for (int s = 0; s < 4; s++) {
       vec2 shift = vec2((s & 1) == 0 ? -d : d, (s & 2) == 0 ? -d : d);
-      vec2 shaded = shade(p + shift, 0.0, floorZ);
+      vec2 shaded = shade(p + shift, 0.0, floorZ, edge);
       if (uGobo) gobo += 0.25 * goboShadow(p + shift, 0.0);
-      ratio += 0.25 * frameLight(shaded, uGlow ? bounce(p + shift, floorZ) : vec3(0.0));
+      ratio += 0.25 * frameLight(shaded, uGlow ? bounce(p + shift, floorZ) : vec3(0.0), rimLift(floorZ, edge));
     }
   } else {
     float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-    vec2 shaded = shade(p, (noise - 0.5) * uStep, floorZ);
+    vec2 shaded = shade(p, (noise - 0.5) * uStep, floorZ, edge);
     if (uGobo) gobo = goboShadow(p, noise * 2.0 * PI);
-    ratio = frameLight(shaded, uGlow ? bounce(p, floorZ) : vec3(0.0));
+    ratio = frameLight(shaded, uGlow ? bounce(p, floorZ) : vec3(0.0), rimLift(floorZ, edge));
   }
   outShade = vec4(clamp(ratio, 0.0, 1.0), 1.0);
   // The gobo pass has no bounce, so its glow target takes the gobo's second half. The
@@ -318,7 +341,7 @@ void main() {
   outGobo = vec4(uSplit ? vec3(1.0 - gobo) : 1.0 - gobo * (1.0 - goboFull()), 1.0);
 }`;
 
-const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uInk', 'uOrigin', 'uScale', 'uRows',
+const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uRim', 'uInk', 'uOrigin', 'uScale', 'uRows',
   'uGobo', 'uSplit', 'uGoboMask', 'uGoboBase', 'uGoboAcross', 'uGoboSize', 'uGoboUnit', 'uGoboStretch', 'uGoboBlur', 'uGoboDistance', 'uGoboTime'];
 
 function compile(gl) {
@@ -425,10 +448,11 @@ function scrollerOf(node) {
  * may cut one corner straight across with the registered length --light-cut-size and
  * --light-cut-corner (top-left, top-right, bottom-right or bottom-left; default
  * top-right). `gobos` maps a gobo's name (see GOBOS) to its mask's URL; a mask loads
- * when its gobo is first chosen. Returns { supported, update(settings, { visible,
- * motion }), destroy(), stats }.
+ * when its gobo is first chosen. `lift` is a CSS colour whose alpha is how much a
+ * raised surface's edge keeps its light under a shadow (0, physical, by default).
+ * Returns { supported, update(settings, { visible, motion }), destroy(), stats }.
  */
-export function createLightRenderer({ selector = '[data-elevation]', heights, ink = 'var(--light-shadow-ink)', maxScale = 1, gobos = {} } = {}) {
+export function createLightRenderer({ selector = '[data-elevation]', heights, ink = 'var(--light-shadow-ink)', lift = 'var(--light-edge-lift, transparent)', maxScale = 1, gobos = {} } = {}) {
   if (!Array.isArray(heights)) throw new TypeError('heights must list the height of each elevation level.');
   const wrapper = document.createElement('div');
   wrapper.setAttribute('data-light-layer', '');
@@ -437,7 +461,10 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   const probe = document.createElement('span');
   probe.hidden = true;
   probe.style.color = ink;
-  wrapper.append(probe);
+  const liftProbe = document.createElement('span');
+  liftProbe.hidden = true;
+  liftProbe.style.color = lift;
+  wrapper.append(probe, liftProbe);
   // Every frame's shadow canvas sits in one group, darkened together and multiplied
   // over the page; the off-frame sets come last in the group, darkened (posts) or
   // multiplied (a gobo) over the frames, then added (a gobo's shared light). Glow
@@ -471,6 +498,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   let visible = false;
   let motion = false;
   let colour = [0, 0, 0];
+  let rim = 0;
   let ground = [1, 1, 1];
   const albedos = new Map();
   let wallCache = { key: '', strips: [] };
@@ -517,6 +545,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   };
   const readInk = () => {
     colour = rgb(getComputedStyle(probe).color);
+    rim = rgba(getComputedStyle(liftProbe).color)[3];
     const page = [document.body, document.documentElement].map((node) => rgba(getComputedStyle(node).backgroundColor)).find((channels) => channels[3] > 0.5);
     ground = page ? page.slice(0, 3) : [1, 1, 1];
     albedos.clear();
@@ -664,9 +693,11 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     // The frame's raised floors for each off-frame set: divs that move like the
     // frame's, holding one clipped copy per floor height.
     const floors = sets.map(({ host }) => {
-      const set = { outer: document.createElement('div'), marker: document.createElement('span'), levels: new Map() };
+      const set = { outer: document.createElement('div'), marker: document.createElement('span'), edges: document.createElement('div'), edgeKey: '', levels: new Map() };
       set.outer.setAttribute('data-light-clip', fixed ? 'fixed' : 'page');
       set.outer.hidden = true;
+      set.edges.setAttribute('data-light-edge', '');
+      set.edges.hidden = true;
       set.inner = set.outer;
       set.nest = frames.map(() => {
         const div = document.createElement('div');
@@ -674,7 +705,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
         set.inner = div;
         return div;
       });
-      set.inner.append(set.marker);
+      set.inner.append(set.marker, set.edges);
       host.append(set.outer);
       return set;
     });
@@ -967,7 +998,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     const copies = [sets[k].view];
     for (const layer of layers.values()) {
       const floors = wanted.get(layer);
-      const { outer, inner, marker, levels } = layer.floors[k];
+      const { outer, inner, marker, edges, levels } = layer.floors[k];
       outer.hidden = !floors;
       for (const [z, level] of levels) {
         if (floors?.has(z)) continue;
@@ -994,9 +1025,37 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
         }
         copies.push(level);
       }
-      if (added) [...levels.values()].sort((a, b) => a.z - b.z).forEach((level) => inner.append(level.clip));
+      if (added) {
+        [...levels.values()].sort((a, b) => a.z - b.z).forEach((level) => inner.append(level.clip));
+        inner.append(edges);
+      }
+      liftEdges(layer.floors[k], rim > 0 ? [...floors.values()].flat() : [], shift);
     }
     return copies;
+  }
+
+  /**
+   * In light mode, each raised surface's edge in an off-frame set: a band that covers
+   * the copies beneath it with no shadow (see lighting.css), whole at the outer px and
+   * fading inward like the frames' (rimLift), so moving shadows leave it lit too.
+   */
+  function liftEdges(set, boxes, shift) {
+    const key = boxes.length ? `${rim}|${boxes.map((box) => [box.x - shift[0], box.y - shift[1], box.width, box.height, box.radius, box.notch?.size ?? 0, box.notch?.corner ?? ''].join(',')).join(';')}` : '';
+    if (set.edgeKey === key) return;
+    set.edgeKey = key;
+    set.edges.hidden = !key;
+    set.edges.style.opacity = String(rim);
+    set.edges.replaceChildren(...boxes.map((box) => {
+      const band = document.createElement('div');
+      const { style } = band;
+      style.left = `${box.x - shift[0]}px`;
+      style.top = `${box.y - shift[1]}px`;
+      style.width = `${box.width}px`;
+      style.height = `${box.height}px`;
+      style.borderRadius = `${Math.max(0, box.radius)}px`;
+      if (box.notch) style.clipPath = `path('${outline(box, [box.x, box.y])}')`;
+      return band;
+    }));
   }
 
   /**
@@ -1129,6 +1188,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     gl.uniform1f(u.uAzimuth, settings.azimuth * Math.PI / 180);
     gl.uniform1f(u.uIntensity, settings.shadowIntensity / 100);
     gl.uniform1f(u.uGlobal, settings.globalIllumination / 100);
+    gl.uniform1f(u.uRim, rim);
     gl.uniform3fv(u.uInk, colour);
     gl.uniform2f(u.uOrigin, region.x, region.y);
     gl.uniform1f(u.uScale, scale);

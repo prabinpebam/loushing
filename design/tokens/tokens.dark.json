@@ -46,6 +46,11 @@
       "$value": "{p.night.600}",
       "$description": "Dividers (decorative, no contrast minimum)"
     },
+    "rule-subtle": {
+      "$type": "color",
+      "$value": "{p.night.600}",
+      "$description": "Borders on chips whose text already identifies them (decorative, no contrast minimum)"
+    },
     "outline": {
       "$type": "color",
       "$value": "{p.night.500}",

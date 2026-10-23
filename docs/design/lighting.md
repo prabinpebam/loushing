@@ -344,6 +344,9 @@ physical.
 
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
+In light mode, for looks, a raised surface's edge also stays lit where a shadow
+falls on it, fading inward over 3 px and along the edge with the shadow; in dark mode
+the shadow dims it (LO8).
 
 ## Promise, flows and observable success
 
@@ -532,6 +535,7 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 | LO5 | Extraction | Portable source boundary, packaged as the ui-lighting skill kit in Loushing; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
 | LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
 | LO7 | Bounced light | On at 100 %, physically scaled; adjustable 0–200 % | Awaiting visual review |
+| LO8 | Edges under shadow | Light mode: a raised surface's edge stays lit where any shadow falls on it, solid for 1 px and fading by 3 px in, fading along the edge with the shadow (for looks, not physics). Dark mode: the shadow dims the edge. Set by the theme's `--light-edge-lift` | Owner set, 23 Oct 2026; fade width awaiting visual review |
 
 **Try it:** open the site in a private window: **Long shadows** is already on. Watch the off-frame
 shadows for a minute: several drift across at different speeds, some each way, and

@@ -28,6 +28,8 @@
  * glow frames blend with the page itself; a fixed frame escapes its clip.
  * A surface with one corner cut straight across sets --light-cut-size (and
  * --light-cut-corner, default top-right) so its shadow follows the cut.
+ * --light-edge-lift's alpha is how much a raised surface's edge stays lit under a
+ * shadow; the off-frame sets carry the same lift as bands ([data-light-edge]).
  */
 @property --light-cut-size {
   syntax: '<length>';
@@ -39,6 +41,9 @@
   --light-highlight: color-mix(in srgb, var(--data-light-highlight-tint) var(--data-light-highlight), transparent);
   --light-shadow-ink: light-dark(var(--data-light-shadow-tint), color-mix(in srgb, var(--data-light-shadow-tint) calc(var(--lighting-dark-tint) * 100%), var(--color-lighting-ink)));
   --light-edge-shadow: color-mix(in srgb, var(--light-shadow-ink) var(--data-light-intensity), transparent);
+  /* How much a raised edge keeps its light under a cast shadow: all of it in light
+     mode, for looks; none in dark mode, where a shadow dims the edge as it should. */
+  --light-edge-lift: light-dark(#000, transparent);
 }
 
 @media (forced-colors: none) and (prefers-contrast: no-preference) {
@@ -72,6 +77,11 @@
 [data-light-shadows] > [data-light-offframe='add'] { mix-blend-mode: plus-lighter; }
 [data-light-offframe] > [data-light-clip='fixed'] { position: fixed; }
 [data-light-offframe] canvas { position: fixed; left: 0; }
+/* A lifted edge in an off-frame set: no shadow where it multiplies or darkens, nothing
+   where it adds; solid on the outer px, fading out by 3 px in. */
+[data-light-edge] { --light-edge-fill: #fff; }
+[data-light-offframe='add'] [data-light-edge] { --light-edge-fill: #000; }
+[data-light-edge] > div { box-shadow: inset 0 0 0 1px var(--light-edge-fill), inset 0 0 2px 1.5px var(--light-edge-fill); }
 [data-light-layer] > [data-light-glow] {
   z-index: var(--layer-lighting);
   mix-blend-mode: color-dodge;

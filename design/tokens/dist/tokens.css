@@ -6,6 +6,7 @@
   --p-mist-100: #eef3f7;
   --p-mist-200: #e1e9ef;
   --p-mist-300: #c9d5de;
+  --p-ink-400: #7d8995;
   --p-ink-600: #4f5b66;
   --p-ink-700: #343c44;
   --p-ink-900: #1b1f23;
@@ -133,7 +134,8 @@
   --color-bg-slot: light-dark(var(--p-mist-100), var(--p-night-850));
   --color-bg-hover: light-dark(var(--p-mist-200), var(--p-night-600));
   --color-rule: light-dark(var(--p-mist-300), var(--p-night-600));
-  --color-outline: light-dark(var(--p-ink-600), var(--p-night-500));
+  --color-rule-subtle: light-dark(var(--p-mist-200), var(--p-night-600));
+  --color-outline: light-dark(var(--p-ink-400), var(--p-night-500));
   --color-action: light-dark(var(--p-harbour-600), var(--p-harbour-300));
   --color-action-hover: light-dark(var(--p-harbour-700), var(--p-harbour-200));
   --color-on-action: light-dark(var(--p-mist-0), var(--p-night-900));
@@ -166,6 +168,7 @@
     --color-text-muted: var(--color-text);
     --color-outline: var(--color-text);
     --color-rule: var(--color-text-muted);
+    --color-rule-subtle: var(--color-text-muted);
   }
 }
 
@@ -173,4 +176,5 @@
   --color-text-muted: var(--color-text);
   --color-outline: var(--color-text);
   --color-rule: var(--color-text-muted);
+  --color-rule-subtle: var(--color-text-muted);
 }

@@ -23,6 +23,7 @@ const renderer = createLightRenderer({
   selector: '[data-elevation]',      // which elements cast
   heights: [0, 2, 6, 12, 24],        // px for data-elevation 0–4 (LIGHT_LEVELS)
   ink: 'var(--light-shadow-ink)',    // any CSS colour; resolved through a probe element
+  lift: 'var(--light-edge-lift, transparent)', // alpha: how much raised edges stay lit under shadow
   maxScale: 1,                       // device pixels per CSS pixel, at most
 });
 renderer.supported;                  // false without WebGL2 or if the shader fails
@@ -50,6 +51,7 @@ It appends one container to `<body>`:
       [data-light-clip="page|fixed"]   one per frame, nested like the frame's divs
         div › … › span                 marker: where the frame's floors sit
         div (clip-path) › div … › canvas   one per floor height, fixed to the view
+        div[data-light-edge] › div …   light mode: one band per raised surface, after the floors
     [data-light-offframe="add"]        isolate; plus-lighter; same copies, gobo only
   [data-light-glow="page"]             z-index: --layer-lighting; colour-dodge over the page
   [data-light-glow="fixed"]
@@ -120,6 +122,19 @@ multiplying the gobo's own light darkens the pattern inside shadows. Where the
 browser lacks `plus-lighter`, the add set stays hidden and the gobo set multiplies
 `1 − g (1 − G)`. In an umbra with sky hidden (`F < G`) the union is slightly lighter
 than the umbra, by at most `g × intensity × GI` at full occlusion.
+
+## Lifted edges (light mode)
+
+For looks, a raised surface's edge keeps its light under any shadow in light mode
+(see [model.md](model.md)). The renderer reads the strength from the alpha of `lift`
+through a second probe, again on every theme change. In each frame's pass, the
+shader finds the topmost surface at the pixel and its depth `d` inside it, and mixes
+the light toward unshadowed by `lift × (1 − smoothstep(1, 3, d))`. The off-frame
+copies can't know where a frame's surfaces are, so each frame's floors in an
+off-frame set end with one band per raised surface (`[data-light-edge]`): an inset
+`box-shadow`, solid for 1 px and fading by 3 px, white in the posts or gobo set
+(no shadow) and black in the add set (nothing added). They move with the frame like
+the floors' clips, and are hidden when the lift is 0, as in dark mode.
 
 ## Bounce from the same pass
 

@@ -85,7 +85,7 @@
   gap: var(--space-1);
   min-height: var(--space-8);
   padding: 0 var(--space-3);
-  border: var(--border-hairline) solid var(--color-rule);
+  border: var(--border-hairline) solid var(--color-rule-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-bg-raised);
   color: var(--color-text);

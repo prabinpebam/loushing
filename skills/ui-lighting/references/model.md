@@ -307,6 +307,15 @@ physical.
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
 
+**Lifted edges under a shadow** are deliberately not physical. In light mode, a raised
+surface's edge keeps its light wherever any shadow falls on it (another surface's,
+the moving objects' or a gobo's), so it reads as a light edge highlight against the
+shade. The lift is whole on the outer pixel and fades out by 3 px in, and since it
+only cancels the shadow, it fades along the edge exactly as the shadow does: there is
+no hard end. In dark mode a shadow dims the edge, as physics says. The theme decides:
+`--light-edge-lift` is `light-dark(#000, transparent)`, and its alpha is the lift's
+strength. A host that leaves it unset keeps physical edges in both modes.
+
 ## Rims: the exact CSS
 
 `lightingProperties(settings)` returns custom properties the host sets on `<html>`:

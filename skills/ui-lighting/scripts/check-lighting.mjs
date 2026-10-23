@@ -604,6 +604,12 @@ test('renderer contract: one pass, one import, frames shade only with their own 
   assert.match(renderer, /level\.clip\.style\.clipPath = path;/, 'each copy is clipped to its floor’s surfaces');
   assert.doesNotMatch(renderer, /uOffFrameStep/, 'off-frame shadows never depend on where another frame’s surfaces were');
   assert.match(renderer, /const own = casters\.filter\(\(box\) => !box\.post\);/, 'off-frame shadows do not shade walls, so the bounce never lags the scroll');
+  assert.match(renderer, /lit = mix\(lit, max\(lit, vec3\(1\.0\)\), rim\);/, 'a frame’s shadow leaves a raised edge lit, by the theme’s lift');
+  assert.match(renderer, /uRim \* \(1\.0 - smoothstep\(RIM_SOLID, RIM_FADE, d\)\)/, 'the lifted edge fades inward rather than ending abruptly');
+  assert.match(renderer, /liftEdges\(layer\.floors\[k\], rim > 0 \?/, 'off-frame shadows leave raised edges lit too, only when the theme lifts them');
+  const css = readFileSync(CSS, 'utf8');
+  assert.match(css, /--light-edge-lift: light-dark\(#000, transparent\);/, 'a raised edge stays lit under a shadow in light mode only; dark mode stays physical');
+  assert.match(css, /\[data-light-offframe='add'\] \[data-light-edge\] \{ --light-edge-fill: #000; \}/, 'a lifted edge adds nothing back in the add set');
   const lib = readFileSync(ENGINE, 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');
 });

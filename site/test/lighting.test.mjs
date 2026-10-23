@@ -626,6 +626,11 @@ test('only elevated surfaces opt in, and the lighting system stays independent o
   assert.doesNotMatch(renderer, /uGoboLift/);
   assert.match(renderer, /target\.isConnected && !wrapper\.contains\(target\)/, 'the layer’s own detached leftovers never trigger a rebuild');
   assert.ok(renderer.indexOf('observer?.takeRecords();') > renderer.indexOf('sets[k].host.append(floors.outer)'), 'a rebuild drops its own mutation records only after its last write, so an idle page never rebuilds every frame');
+  assert.match(css, /--light-edge-lift: light-dark\(#000, transparent\);/, 'a raised edge stays lit under a shadow in light mode only; dark mode stays physical');
+  assert.match(css, /\[data-light-offframe='add'\] \[data-light-edge\] \{ --light-edge-fill: #000; \}/, 'a lifted edge adds nothing back in the add set');
+  assert.match(renderer, /lit = mix\(lit, max\(lit, vec3\(1\.0\)\), rim\);/, 'a frame’s shadow leaves a raised edge lit, by the theme’s lift');
+  assert.match(renderer, /uRim \* \(1\.0 - smoothstep\(RIM_SOLID, RIM_FADE, d\)\)/, 'the lifted edge fades inward rather than ending abruptly');
+  assert.match(renderer, /liftEdges\(layer\.floors\[k\], rim > 0 \?/, 'off-frame shadows leave raised edges lit too, only when the theme lifts them');
   const lib = readFileSync(new URL('../src/lib/lighting.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');
   const generated = readFileSync(new URL('../../design/tokens/dist/tokens.css', import.meta.url), 'utf8');

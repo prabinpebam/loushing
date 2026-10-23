@@ -15,6 +15,11 @@
       "$type": "color",
       "$value": "{color.text-muted}",
       "$description": "Dividers become visible"
+    },
+    "rule-subtle": {
+      "$type": "color",
+      "$value": "{color.text-muted}",
+      "$description": "Chip borders become visible"
     }
   }
 }
