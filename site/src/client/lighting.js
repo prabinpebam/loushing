@@ -1,8 +1,10 @@
-import { LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, lightingProperties, lightingMotion, upgradeLighting, validateLighting } from '../lib/lighting.mjs';
+import { GOBOS, LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, lightingProperties, lightingMotion, upgradeLighting, validateLighting } from '../lib/lighting.mjs';
 import { createLightRenderer } from './light-renderer.js';
 
-// Loushing shows long shadows from the first visit; the portable engine stays opt-in.
-const SITE_DEFAULTS = Object.freeze({ ...LIGHT_DEFAULTS, enabled: true });
+// Loushing shows long shadows from the first visit, with moving objects casting the
+// off-frame shadows; the portable engine stays opt-in.
+const SITE_DEFAULTS = Object.freeze({ ...LIGHT_DEFAULTS, enabled: true, gobo: 'none' });
+const GOBO_URLS = Object.fromEntries(Object.entries(GOBOS).map(([name, { file }]) => [name, new URL(`../${file}`, import.meta.url).href]));
 
 /** DOM adapter for the portable engine and its shared shadow layer. */
 export function initLighting() {
@@ -14,6 +16,7 @@ export function initLighting() {
   const status = panel.querySelector('[data-lighting-status]');
   const motionNote = panel.querySelector('[data-lighting-motion]');
   const controls = [...panel.querySelectorAll('[data-light-setting]')];
+  const goboChoice = panel.querySelector('[data-light-choice="gobo"]');
   const reset = panel.querySelector('[data-lighting-reset]');
   const place = () => {
     if (panel.open) panel.style.setProperty('--data-light-panel-top', `${Math.ceil(panel.querySelector('.c-lighting__panel').getBoundingClientRect().top)}px`);
@@ -31,10 +34,14 @@ export function initLighting() {
   let renderer = null;
   try {
     const saved = localStorage.getItem(key);
-    if (saved !== null) settings = validateLighting(JSON.parse(saved));
-    else {
+    // Settings saved before a setting existed take the site's default for it, as does a
+    // gobo that is no longer offered.
+    if (saved !== null) {
+      const { gobo, ...rest } = JSON.parse(saved);
+      settings = validateLighting({ ...SITE_DEFAULTS, ...rest, ...(gobo === 'none' || Object.hasOwn(GOBOS, gobo) ? { gobo } : {}) });
+    } else {
       const legacy = legacyKeys.find((entry) => localStorage.getItem(entry.key) !== null);
-      if (legacy) { settings = upgradeLighting(JSON.parse(localStorage.getItem(legacy.key)), legacy.version); upgraded = true; }
+      if (legacy) { settings = { ...upgradeLighting(JSON.parse(localStorage.getItem(legacy.key)), legacy.version), gobo: SITE_DEFAULTS.gobo }; upgraded = true; }
     }
   } catch (error) {
     console.warn('Lighting settings could not be restored.', error);
@@ -55,7 +62,7 @@ export function initLighting() {
     for (const [name, value] of Object.entries(lightingProperties(settings))) root.style.setProperty(name, value);
     root.dataset.lighting = settings.enabled ? 'on' : 'off';
     const preferred = forced.matches || contrast.matches;
-    if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...LIGHT_LEVELS] });
+    if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...LIGHT_LEVELS], gobos: GOBO_URLS });
     renderer?.update(settings, {
       visible: settings.enabled && !preferred,
       motion: lightingMotion(settings, { reducedMotion: reduced.matches, hidden: document.hidden || preferred }),
@@ -71,8 +78,13 @@ export function initLighting() {
         if (output) output.textContent = `${settings[name]}${control.dataset.unit}`;
       }
       control.disabled = !settings.enabled
+        || (name === 'goboDistance' && (!settings.offFrame || settings.gobo === 'none'))
         || (name === 'animated' && (!settings.offFrame || reduced.matches))
         || (name === 'speed' && (!settings.offFrame || !settings.animated || reduced.matches));
+    }
+    if (goboChoice) {
+      goboChoice.disabled = !settings.enabled || !settings.offFrame;
+      for (const radio of goboChoice.querySelectorAll('input[type="radio"]')) radio.checked = radio.value === settings.gobo;
     }
     status.textContent = warning || (preferred
       ? 'Lighting is hidden for your contrast preference.'
@@ -87,6 +99,13 @@ export function initLighting() {
   reset.disabled = false;
   toggle.addEventListener('click', () => { settings.enabled = !settings.enabled; save(); show(); });
   panel.addEventListener('input', (event) => {
+    const choice = event.target.closest('[data-light-choice] input[type="radio"]');
+    if (choice) {
+      settings = validateLighting({ ...settings, [choice.closest('[data-light-choice]').dataset.lightChoice]: choice.value });
+      save();
+      show();
+      return;
+    }
     const control = event.target.closest('input[data-light-setting]');
     if (!control) return;
     settings = validateLighting({ ...settings, [control.dataset.lightSetting]: control.type === 'color' ? control.value : control.valueAsNumber });

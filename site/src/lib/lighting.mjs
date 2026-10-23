@@ -18,12 +18,38 @@ export const LIGHT_CONTROLS = [
   { key: 'bounce', label: 'Bounced light', min: 0, max: 200, step: 1, unit: '%', value: 100 },
   { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 30 },
   { key: 'shadowIntensity', label: 'Shadow intensity', min: 0, max: 100, step: 1, unit: '%', value: 33 },
+  { key: 'goboDistance', label: 'Gobo distance', min: 0, max: 600, step: 10, unit: 'px', value: 50 },
   { key: 'speed', label: 'Motion speed', min: 1, max: 10, step: 1, unit: '×', value: 5 },
 ];
 
+/**
+ * Gobos: masks held in the light between it and the page, like a stage light's gobo
+ * or a tree between the sun and a wall. Dark, opaque pixels block the light; light or
+ * transparent pixels let it through. The image stands with its bottom edge beyond the
+ * view's light-facing edge and its top toward the shadow side. `root` is the share of
+ * the image kept beyond that edge, and `reach` how far into the view, as a share of
+ * the view's extent along the light, its top falls when the light is lowest. `file`
+ * is the host's path for the mask; the renderer takes its URL as an option.
+ */
+export const GOBOS = Object.freeze({
+  palm: Object.freeze({ label: 'Palm', file: 'gobos/palm.png', root: 0.15, reach: 0.8 }),
+});
+/** Off-frame shadows come from moving objects ('none') or one of the GOBOS. */
+export const GOBO_CHOICES = Object.freeze(['none', ...Object.keys(GOBOS)]);
+/**
+ * A gobo's image lands on the page stretched along the light by 1 / sin(altitude),
+ * capped here so a light at the horizon still frames it.
+ */
+export const GOBO_STRETCH = 3;
+/**
+ * The most an off-frame shadow's lift (see offFrameStep) can be, per px of height:
+ * cot(2.4°), for a point light at the horizon, whose shadows never end.
+ */
+export const OFF_FRAME_LIFT = 24;
+
 export const LIGHT_DEFAULTS = Object.freeze({
   ...Object.fromEntries(LIGHT_CONTROLS.map(({ key, value }) => [key, value])),
-  enabled: false, offFrame: true, animated: true,
+  enabled: false, offFrame: true, animated: true, gobo: 'none',
   highlightTint: '#ffdfb3', shadowTint: '#294573',
 });
 
@@ -116,6 +142,7 @@ export function validateLighting(value) {
   for (const key of ['highlightTint', 'shadowTint']) {
     if (typeof settings[key] !== 'string' || !/^#[\da-f]{6}$/i.test(settings[key])) throw new TypeError(`${key} must be a six-digit hex colour.`);
   }
+  if (!GOBO_CHOICES.includes(settings.gobo)) throw new TypeError(`gobo must be one of ${GOBO_CHOICES.join(', ')}.`);
   return settings;
 }
 
@@ -555,7 +582,85 @@ export function offFrameCasters({ width, height, azimuth, altitude = LIGHT_DEFAU
   return boxes;
 }
 
+/**
+ * Where a gobo's image falls on a view `width` x `height`, as the shader samples it.
+ * The mask is held across the light's rays `distance` px from the page, so its shadow
+ * is the image stretched along the light by 1 / sin(altitude) (up to GOBO_STRETCH).
+ * Returned, in view px: `base`, the middle of the image's bottom edge, beyond the
+ * light-facing edge; `across`, the unit vector along the image's rows (its columns run
+ * along the light, from the base toward the shadow side); `unit`, px per image pixel
+ * before the stretch; `stretch`; and `blur`, the penumbra radius in image pixels per
+ * px between the mask and the page, along the rays: tan(sourceSize / 2) / unit, 0 for
+ * a point light. The blur is the same on every surface, raised or not. On a raised
+ * surface the pattern moves sideways by offFrameStep.
+ * The size of the image on the page depends on the view, not on the light, so a
+ * higher light shortens the pattern as it shortens every shadow.
+ */
+export function goboProjection({ width, height, azimuth, altitude = LIGHT_DEFAULTS.altitude, sourceSize = LIGHT_DEFAULTS.sourceSize, image, gobo }) {
+  if (![width, height, azimuth, altitude, sourceSize].every(Number.isFinite) || width <= 0 || height <= 0) {
+    throw new RangeError('Require a positive view size, and finite azimuth and light.');
+  }
+  if (!image || !(image.width > 0) || !(image.height > 0)) throw new RangeError('Require the gobo image size.');
+  const frame = typeof gobo === 'string' ? GOBOS[gobo] : gobo;
+  if (!frame) throw new TypeError(`Unknown gobo: ${gobo}.`);
+  const angle = azimuth * RADIANS;
+  const along = [-Math.sin(angle), Math.cos(angle)];
+  const across = [Math.cos(angle), Math.sin(angle)];
+  const extent = Math.abs(width * along[0]) + Math.abs(height * along[1]);
+  const sine = Math.sin(Math.min(Math.max(altitude, 0), 90) * RADIANS);
+  const stretch = sine * GOBO_STRETCH > 1 ? 1 / sine : GOBO_STRETCH;
+  const unit = frame.reach * extent / ((1 - frame.root) * GOBO_STRETCH * image.height);
+  const back = extent / 2 + frame.root * unit * image.height * stretch;
+  const base = [width / 2 - along[0] * back, height / 2 - along[1] * back];
+  const blur = sourceSize > 0 ? Math.tan(sourceSize * RADIANS / 2) / unit : 0;
+  return { base, across, unit, stretch, blur };
+}
+
+/**
+ * How an off-frame shadow (moving objects or a gobo) moves on a surface raised above
+ * the page, per px of height: the whole shadow, unchanged in size and blur, slides
+ * sideways, to the left or right of the light, by lift x sin(2 azimuth) / 2. With the
+ * light along either axis of the view (0, 90, 180 or 270 degrees) it does not move.
+ * `lift` is how far beyond a raised surface its own shadow is half dark, per px of
+ * height (see halfShadow), so the step grows as every shadow lengthens. Returns
+ * { lift, step }, `step` the [x, y] offset in px per px of height.
+ */
+export function offFrameStep({ azimuth, altitude = LIGHT_DEFAULTS.altitude, sourceSize = LIGHT_DEFAULTS.sourceSize }) {
+  if (![azimuth, altitude, sourceSize].every(Number.isFinite)) throw new RangeError('Require a finite azimuth and light.');
+  const lift = halfShadow({ altitude: Math.min(Math.max(altitude, 0), 90), sourceSize: Math.min(Math.max(sourceSize, 0), 179) });
+  const angle = azimuth * RADIANS;
+  const lx = Math.sin(angle);
+  const ly = -Math.cos(angle);
+  const k = lift * lx * ly;
+  const step = [k * ly, -k * lx].map((v) => (Math.abs(v) < 1e-12 ? 0 : v));
+  return { lift, step };
+}
+
 const number = (n) => String(Math.abs(n) < 0.0005 ? 0 : Number(n.toFixed(3)));
+
+/**
+ * How far beyond a long wall facing the light, per px of its height, its shadow is half
+ * dark: the distance r at which half the source sits below the wall's top. A bin at
+ * angle a from the light meets the wall r / cos(a) away. Capped at OFF_FRAME_LIFT.
+ */
+function halfShadow(sky) {
+  const { point, bins, total } = sourceBins(sky);
+  if (point) return bins[0].lo > 0 ? Math.min(Math.sqrt(1 / bins[0].lo - 1), OFF_FRAME_LIFT) : OFF_FRAME_LIFT;
+  const hidden = (r) => bins.reduce((sum, { angle, lo, hi }) => {
+    const c = Math.cos(angle);
+    if (c <= 0) return sum;
+    return sum + Math.min(Math.max(1 / (1 + (r / c) ** 2) - lo, 0), hi - lo);
+  }, 0) / total;
+  if (hidden(OFF_FRAME_LIFT) >= 0.5) return OFF_FRAME_LIFT;
+  if (hidden(0) <= 0.5) return 0;
+  let [a, b] = [0, OFF_FRAME_LIFT];
+  for (let k = 0; k < 40; k++) {
+    const m = (a + b) / 2;
+    if (hidden(m) > 0.5) a = m;
+    else b = m;
+  }
+  return (a + b) / 2;
+}
 
 /**
  * Custom properties for the CSS side: tints, intensities and the directional rims

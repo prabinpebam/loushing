@@ -9,7 +9,7 @@ import { stem, tokenize, indexDoc, search, facetCounts, filtersToQuery, queryToF
 import { daypart, rng, fit, candidates, pickMoments, zoneSizes } from '../src/lib/picker.mjs';
 import { plan, SKILL_TARGETS, downloadUrl } from '../src/lib/install.mjs';
 import { emptySlots } from '../src/lib/slots.mjs';
-import { decodePng, encodePng, alphaBounds, trimToAlpha } from '../scripts/lib/png.mjs';
+import { decodePng, encodePng, alphaBounds, lightMask, trimToAlpha } from '../scripts/lib/png.mjs';
 
 test('yaml: maps, lists, nesting and front matter', () => {
   const data = parseYaml('id: slate\ntags:\n  - docs\n  - diagrams\nsource:\n  repo: https://github.com/a/b\n  commit: abc123\nbeta: true\ncount: 3\n');
@@ -159,6 +159,19 @@ test('png: decodes, trims to the drawing and round-trips losslessly', () => {
   assert.deepEqual(alphaBounds(img), { x: 2, y: 1, width: 3, height: 2 });
   const trimmed = trimToAlpha(img, 1);
   assert.deepEqual([trimmed.width, trimmed.height], [5, 4]);
+});
+
+test('png: a gobo becomes a greyscale mask of the light it lets through', () => {
+  const row = [[0, 0, 0, 255], [0, 0, 0, 0], [255, 255, 255, 255], [0, 0, 0, 128]];
+  const data = new Uint8Array([...row, ...row].flat());
+  const mask = lightMask({ width: 4, height: 2, data });
+  assert.deepEqual(Array.from(mask.data), [0, 255, 255, 127, 0, 255, 255, 127], 'black blocks, clear and white pass, alpha scales');
+  const half = lightMask({ width: 4, height: 2, data }, 2);
+  assert.deepEqual([half.width, half.height, ...half.data], [2, 1, 128, 191]);
+  const back = decodePng(encodePng(mask));
+  assert.deepEqual(Array.from(back.data.subarray(0, 16)), [0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127, 127, 127, 255]);
+  assert.throws(() => lightMask({ width: 4, height: 2, data }, 1.5));
+  assert.throws(() => encodePng({ width: 1, height: 1, data: new Uint8Array(2), channels: 2 }));
 });
 
 test('install: skill plans per agent and scope, with a pinned commit', () => {

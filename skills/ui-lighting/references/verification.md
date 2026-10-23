@@ -80,6 +80,9 @@ Go through every row, in light and dark mode, and at a desktop and a phone width
 | A coloured card | Its lit north and west walls throw a soft glow of its colour into the shade above and left of it, fading with distance |
 | Dark mode bounce | Dark cards bounce almost nothing; light or coloured ones still do |
 | Off-frame shadows | Within a minute, several wide soft bands drift across at different speeds, some each way; at least one is always in view |
+| Cast by: Palm | A soft palm-frond pattern falls from the light-facing edge, swaying slowly; it fades into cards' shadows with no seam, and Gobo distance softens it |
+| Palm over a card's shadow | Inside the shadow's dark core the pattern disappears: the same light can't be blocked twice. It shows only where the shadow fades |
+| Off-frame shadow on a raised card, light at 315° | The band or pattern on the card is the same size and blur as on the page, shifted sideways (about 10.5 px per px of height at the defaults). At 0°, 90°, 180° and 270° it crosses the card unbroken |
 | Fast scroll, then the very end of the page | Sticky surfaces and scroll boxes keep their shadows attached; nothing flickers |
 | Lighting panel | Opens and closes (Escape returns focus, outside click closes), casts its own shadow, every control works and updates the page at once |
 | Light source size 0° | Crisp shadows that never end |

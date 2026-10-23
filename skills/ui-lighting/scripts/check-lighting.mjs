@@ -25,6 +25,7 @@ const CSS = asset('LIGHTING_CSS', 'lighting.css');
 const PANEL = asset('LIGHTING_PANEL', 'lighting-panel.js');
 const {
   LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, OFF_FRAME, SKY_BINS, ARC_STEPS,
+  GOBOS, GOBO_CHOICES, GOBO_STRETCH, OFF_FRAME_LIFT, goboProjection, offFrameStep,
   bounceAt, bounceReach, boxDistance, casterReach, lightingMotion, lightingProperties, linearColour, litWalls, offFrameCasters, projectShadow,
   rayEntry, shadowAt, skyOcclusion, sourceBins, upgradeLighting, validateLighting, wallFaces, wallFormFactor,
 } = await import(ENGINE.href);
@@ -122,11 +123,11 @@ test('impossible light geometry is explicitly rejected', () => {
 
 test('settings validate types, ranges, booleans, colours and unknown fields', () => {
   const { enabled, highlightTint, shadowTint, ...panel } = LIGHT_DEFAULTS;
-  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, bounce: 100, highlightIntensity: 30, shadowIntensity: 33, speed: 5, offFrame: true, animated: true }, 'the owner’s chosen defaults');
+  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, bounce: 100, highlightIntensity: 30, shadowIntensity: 33, goboDistance: 50, speed: 5, offFrame: true, animated: true, gobo: 'none' }, 'the owner’s chosen defaults');
   assert.deepEqual([enabled, highlightTint, shadowTint], [false, '#ffdfb3', '#294573']);
   assert.deepEqual(validateLighting({}), LIGHT_DEFAULTS);
   assert.equal(validateLighting({ altitude: 0 }).altitude, 0, 'the light may sit on the horizon');
-  for (const bad of [null, [], 1, { enabled: 'true' }, { speed: 0 }, { altitude: -1 }, { altitude: 86 }, { azimuth: 360 }, { sourceSize: NaN }, { sourceSize: 121 }, { globalIllumination: 101 }, { bounce: -1 }, { bounce: 201 }, { highlightTint: 'red' }, { shadowTint: '#fff' }, { shadowTint: ['#112233'] }, { extra: 1 }]) {
+  for (const bad of [null, [], 1, { enabled: 'true' }, { speed: 0 }, { altitude: -1 }, { altitude: 86 }, { azimuth: 360 }, { sourceSize: NaN }, { sourceSize: 121 }, { globalIllumination: 101 }, { bounce: -1 }, { bounce: 201 }, { goboDistance: 601 }, { gobo: 'leaves' }, { highlightTint: 'red' }, { shadowTint: '#fff' }, { shadowTint: ['#112233'] }, { extra: 1 }]) {
     assert.throws(() => validateLighting(bad));
   }
   assert.deepEqual(validateLighting(JSON.parse(JSON.stringify(LIGHT_DEFAULTS))), LIGHT_DEFAULTS);
@@ -516,12 +517,45 @@ test('motion requires every opt-in and pauses when hidden or reduced motion is r
   assert.equal(lightingMotion(on, { hidden: true }), false);
 });
 
+test('a gobo is held across the light, and off-frame shadows slide sideways on raised surfaces', () => {
+  const view = { width: 1280, height: 900 };
+  const image = { width: 576, height: 384 };
+  assert.deepEqual(GOBO_CHOICES, ['none', ...Object.keys(GOBOS)]);
+  for (const azimuth of [0, 45, 250, 315]) {
+    const phi = azimuth * rad;
+    const low = goboProjection({ ...view, azimuth, altitude: 0, sourceSize: 0, image, gobo: 'palm' });
+    near(low.across[0] * -Math.sin(phi) + low.across[1] * Math.cos(phi), 0);
+    near(low.stretch, GOBO_STRETCH);
+    assert.equal(low.blur, 0, 'a point light projects a crisp image');
+    const high = goboProjection({ ...view, azimuth, altitude: 30, sourceSize: 9, image, gobo: 'palm' });
+    near(high.stretch, 2);
+    near(high.blur, Math.tan(4.5 * rad) / high.unit);
+  }
+  for (const azimuth of [0, 90, 180, 270]) assert.deepEqual(offFrameStep({ azimuth }).step, [0, 0], `${azimuth}°: no shift`);
+  const { lift } = offFrameStep({ azimuth: 315 });
+  assert.ok(lift > 20 && lift < 22, 'at the defaults a shadow shifts about 10.5 px per px of height at 315°');
+  for (const azimuth of [15, 135, 200, 315]) {
+    const phi = azimuth * rad;
+    const { step } = offFrameStep({ azimuth });
+    near(step[0] * Math.sin(phi) - step[1] * Math.cos(phi), 0, 1e-9);
+    near(Math.hypot(...step), lift * Math.abs(Math.sin(2 * phi)) / 2, 1e-9);
+  }
+  assert.equal(offFrameStep({ azimuth: 45, sourceSize: 0 }).lift, OFF_FRAME_LIFT);
+  for (const sky of [{ altitude: 0, sourceSize: 9 }, { altitude: 30, sourceSize: 9 }]) {
+    const { lift: reach } = offFrameStep({ azimuth: 0, ...sky });
+    const block = { x: -1e5, y: -100, width: 2e5, height: 100, radius: 0, z: 12 };
+    near(shadowAt([0, reach * 12], [block], light({ azimuth: 0, ...sky })).blocked, 0.5, 0.03);
+  }
+});
+
 test('control panel covers every setting, with labels and no duplicate IDs', { skip: !existsSync(PANEL) && 'no panel module' }, async () => {
   const { lightingPanelMarkup, lightingToggleMarkup } = await import(PANEL.href);
   const markup = lightingPanelMarkup();
-  for (const key of Object.keys(LIGHT_DEFAULTS).filter((key) => key !== 'enabled')) {
+  for (const key of Object.keys(LIGHT_DEFAULTS).filter((key) => key !== 'enabled' && key !== 'gobo')) {
     assert.match(markup, new RegExp(`data-light-setting="${key}"`));
   }
+  assert.match(markup, /data-light-choice="gobo"/, 'what casts the off-frame shadows');
+  for (const choice of GOBO_CHOICES) assert.match(markup, new RegExp(`type="radio"[^>]* value="${choice}"`));
   const ids = [...markup.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(ids.length, new Set(ids).size);
   for (const [, id] of markup.matchAll(/<input[^>]* id="([^"]+)"/g)) assert.ok(markup.includes(`for="${id}"`));
@@ -543,6 +577,11 @@ test('CSS contract: rims, a layer without a stacking context, a darken group and
   const glow = css.match(/\[data-light-layer\] > \[data-light-glow\] \{([^}]*)\}/)[1];
   for (const rule of [/mix-blend-mode: color-dodge/, /z-index: var\(--layer-lighting\)/]) assert.match(glow, rule, 'bounced light brightens the page');
   assert.match(css, /\[data-light-layer\] > \[data-light-glow='fixed'\] \{ position: fixed; \}/);
+  const offFrame = css.match(/\[data-light-shadows\] > \[data-light-offframe\] \{([^}]*)\}/)?.[1] ?? '';
+  for (const rule of [/isolation: isolate/, /mix-blend-mode: darken/]) assert.match(offFrame, rule, 'the off-frame copies stack in their own set, darkened over the frames');
+  assert.match(css, /\[data-light-shadows\] > \[data-light-offframe='gobo'\] \{ mix-blend-mode: multiply; \}/, 'the gobo multiplies the darkened frames');
+  assert.match(css, /\[data-light-shadows\] > \[data-light-offframe='add'\] \{ mix-blend-mode: plus-lighter; \}/, 'the add set gives back the light a surface’s shadow and the gobo both block');
+  assert.match(css, /\[data-light-offframe\] canvas \{ position: fixed; left: 0; \}/, 'every copy is fixed to the view, clipped by its floor');
   assert.match(css, /@property --light-cut-size \{\s*syntax: '<length>';\s*inherits: false;/);
   assert.match(css, /@media \(prefers-contrast: more\), \(forced-colors: active\), print \{\s*\[data-light-layer\] \{ display: none !important; \}/);
   for (const token of ['--layer-lighting', '--lighting-dark-tint', '--color-lighting-ink']) assert.ok(css.includes(`var(${token}`), `the CSS reads the host token ${token}`);
@@ -553,9 +592,18 @@ test('renderer contract: one pass, one import, frames shade only with their own 
   const imports = [...renderer.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]);
   assert.equal(imports.length, 1, 'the renderer imports only the engine');
   assert.match(imports[0], /lighting\.mjs$/);
-  assert.match(renderer, /drawBuffers\(\[gl\.COLOR_ATTACHMENT0, gl\.COLOR_ATTACHMENT1\]\)/, 'shadow and bounce come from one pass');
-  assert.ok(renderer.includes('shadows.append(shadow.outer)') && renderer.includes('wrapper.append(glow.outer)') && renderer.indexOf('wrapper.append(shadows)') > 0, 'every glow frame follows the shadow group');
-  assert.match(renderer, /box\.layer === layer \|\| !box\.post/, 'each frame shades with its own casters and others only as ground');
+  assert.match(renderer, /drawBuffers\(\[gl\.COLOR_ATTACHMENT0, gl\.COLOR_ATTACHMENT1, gl\.COLOR_ATTACHMENT2\]\)/, 'shadow, bounce and gobo come from one pass');
+  assert.ok(renderer.includes('shadows.insertBefore(shadow.outer, offFrame)') && renderer.includes('shadows.append(host)') && renderer.includes("['posts', 'add'].map(") && renderer.includes('wrapper.append(glow.outer)') && renderer.indexOf('wrapper.append(shadows)') > 0, 'every glow frame follows the shadow group, and the off-frame sets come last in it');
+  assert.match(renderer, /const own = box\.layer === layer;/, 'each frame shades with its own casters and others only as ground');
+  assert.match(renderer, /return 1\.0 - uIntensity \* \(1\.0 - uGlobal\) \* \(1\.0 - uInk\);/, 'the gobo’s full shadow is as deep as a surface’s under open sky');
+  assert.match(renderer, /outGlow = uGobo \? vec4\(gobo \* goboFull\(\), 1\.0\)/, 'the add set carries g times the gobo’s full shadow');
+  assert.match(renderer, /outGobo = vec4\(uSplit \? vec3\(1\.0 - gobo\)/, 'the gobo set multiplies 1 - g, so overlapping shadows of one source never darken each other');
+  assert.match(renderer, /vec2 q = p - uGoboBase;/, 'the gobo is drawn once, for the bare page');
+  assert.match(renderer, /float radius = uGoboDistance \* uGoboBlur;/, 'the gobo’s blur is the same on every surface');
+  assert.match(renderer, /Math\.round\(\(next\.margin\[0\] - z \* step\[0\]\) \* next\.scale\)/, 'each floor’s copy of the off-frame shadows slides sideways by its height');
+  assert.match(renderer, /level\.clip\.style\.clipPath = path;/, 'each copy is clipped to its floor’s surfaces');
+  assert.doesNotMatch(renderer, /uOffFrameStep/, 'off-frame shadows never depend on where another frame’s surfaces were');
+  assert.match(renderer, /const own = casters\.filter\(\(box\) => !box\.post\);/, 'off-frame shadows do not shade walls, so the bounce never lags the scroll');
   const lib = readFileSync(ENGINE, 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');
 });

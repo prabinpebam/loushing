@@ -1,4 +1,4 @@
-import { LIGHT_CONTROLS, LIGHT_DEFAULTS } from './lighting.mjs';
+import { GOBOS, GOBO_CHOICES, LIGHT_CONTROLS, LIGHT_DEFAULTS } from './lighting.mjs';
 
 /**
  * Markup for the main switch and the Lighting settings panel, built from the engine's
@@ -27,12 +27,26 @@ function inputMarkup({ id, label, type = 'range', value, min, max, step, unit = 
 }
 
 /**
- * The settings disclosure. A non-modal <details>; the panel surface is elevation 4 so
- * it casts its own long shadow. `idPrefix` keeps ids unique if the page has two.
+ * What casts the off-frame shadows: moving objects, or a gobo (an image held in the
+ * light). Radios in a fieldset; mountLighting reads [data-light-choice="gobo"].
  */
-export function lightingPanelMarkup({ idPrefix = 'lighting', summary = 'Lighting' } = {}) {
+function goboMarkup(idPrefix, value) {
+  const options = GOBO_CHOICES.map((choice) => `<label class="lp-choice__option"><input type="radio" name="${idPrefix}-gobo" value="${choice}"${choice === value ? ' checked' : ''}><span>${escape(choice === 'none' ? 'Moving objects' : GOBOS[choice].label)}</span></label>`);
+  return `<fieldset class="lp-choice" data-light-choice="gobo">
+        <legend>Cast by</legend>
+        <div class="lp-choice__options">${options.join('')}</div>
+      </fieldset>`;
+}
+
+/**
+ * The settings disclosure. A non-modal <details>; the panel surface is elevation 4 so
+ * it casts its own long shadow. `idPrefix` keeps ids unique if the page has two;
+ * `gobo` is the choice shown before scripts run (match the host's default).
+ */
+export function lightingPanelMarkup({ idPrefix = 'lighting', summary = 'Lighting', gobo = LIGHT_DEFAULTS.gobo } = {}) {
   const range = (c) => inputMarkup({ ...c, id: `${idPrefix}-${c.key}` });
-  const speed = LIGHT_CONTROLS.find((c) => c.key === 'speed');
+  const control = (key) => LIGHT_CONTROLS.find((c) => c.key === key);
+  const ownPlace = ['goboDistance', 'speed'];
   return `<details class="lp-panel" data-lighting-panel>
   <summary class="lp-panel__summary">${escape(summary)}</summary>
   <section class="lp-panel__sheet" aria-label="Lighting settings" data-lighting-sheet data-elevation="4">
@@ -40,14 +54,16 @@ export function lightingPanelMarkup({ idPrefix = 'lighting', summary = 'Lighting
     <p class="lp-panel__hint">Direction names the light source. Lower light lengthens shadows, a bigger source softens and fades them, and global illumination lightens them away from what casts them.</p>
     <fieldset class="lp-panel__fields" data-lighting-fields disabled>
       <legend class="lp-visually-hidden">Light and shadow</legend>
-      ${LIGHT_CONTROLS.filter((c) => c.key !== 'speed').map(range).join('\n      ')}
+      ${LIGHT_CONTROLS.filter((c) => !ownPlace.includes(c.key)).map(range).join('\n      ')}
       <div class="lp-panel__tints">
         ${inputMarkup({ id: `${idPrefix}-highlightTint`, label: 'Highlight tint', type: 'color', value: LIGHT_DEFAULTS.highlightTint, key: 'highlightTint' })}
         ${inputMarkup({ id: `${idPrefix}-shadowTint`, label: 'Shadow tint', type: 'color', value: LIGHT_DEFAULTS.shadowTint, key: 'shadowTint' })}
       </div>
       ${switchMarkup('offFrame', 'Off-frame shadows', LIGHT_DEFAULTS.offFrame)}
+      ${goboMarkup(idPrefix, gobo)}
+      ${range(control('goboDistance'))}
       ${switchMarkup('animated', 'Animate shadows', LIGHT_DEFAULTS.animated)}
-      ${range(speed)}
+      ${range(control('speed'))}
     </fieldset>
     <p class="lp-panel__hint" data-lighting-motion></p>
     <p class="lp-panel__status" role="status" data-lighting-status>Turn on long shadows to adjust the light.</p>

@@ -349,7 +349,10 @@ a.f-chip::after { content: ''; position: absolute; inset: calc(var(--space-2) * 
 .f-lightinput__label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); font-size: var(--text-sm); }
 .f-lightinput output { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 .f-lightinput input { width: 100%; min-width: 0; min-height: var(--size-control); margin: 0; accent-color: var(--color-action); cursor: pointer; }
-.f-lightinput input[type='color'] { padding: var(--space-1); border: var(--border-hairline) solid var(--color-outline); border-radius: var(--radius-sm); background: var(--color-bg-raised); }
+.f-lightinput input[type='color'] { appearance: none; padding: 0; overflow: hidden; border: var(--border-hairline) solid var(--color-outline); border-radius: var(--radius-sm); background: var(--color-bg-raised); }
+.f-lightinput input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+.f-lightinput input[type='color']::-webkit-color-swatch { border: 0; border-radius: 0; }
+.f-lightinput input[type='color']::-moz-color-swatch { border: 0; border-radius: 0; }
 .f-lightinput input:disabled { cursor: not-allowed; opacity: var(--opacity-disabled); }
 .f-toggle {
   display: inline-flex;

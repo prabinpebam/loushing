@@ -1,5 +1,8 @@
-import { LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, lightingMotion, lightingProperties, upgradeLighting, validateLighting } from './lighting.mjs';
+import { GOBOS, LIGHT_DEFAULTS, LIGHT_LEVELS, LIGHT_SCHEMA, lightingMotion, lightingProperties, upgradeLighting, validateLighting } from './lighting.mjs';
 import { createLightRenderer } from './light-renderer.js';
+
+// The kit's gobo masks sit beside this file in gobos/; pass `gobos` to serve them elsewhere.
+const KIT_GOBOS = Object.fromEntries(Object.entries(GOBOS).map(([name, { file }]) => [name, new URL(`./${file}`, import.meta.url).href]));
 
 /**
  * Framework-free host adapter: settings, persistence, the main switch, the settings
@@ -11,6 +14,7 @@ import { createLightRenderer } from './light-renderer.js';
  *   [data-lighting-panel]    a <details> holding the settings
  *     [data-lighting-sheet]  the panel surface (its top is measured to fit the view)
  *     [data-lighting-fields] a <fieldset> holding every [data-light-setting] control
+ *       and the [data-light-choice="gobo"] radio group (what casts off-frame shadows)
  *     [data-lighting-status] a polite status line
  *     [data-lighting-motion] a note about motion
  *     [data-lighting-reset]  the reset button
@@ -22,6 +26,7 @@ export function mountLighting({
   heights = LIGHT_LEVELS,
   selector = '[data-elevation]',
   defaults = {},
+  gobos = KIT_GOBOS,
   root = document.documentElement,
   toggle = document.querySelector('[data-lighting-toggle]'),
   panel = document.querySelector('[data-lighting-panel]'),
@@ -34,6 +39,7 @@ export function mountLighting({
   const sheet = panel.querySelector('[data-lighting-sheet]');
   const reset = panel.querySelector('[data-lighting-reset]');
   const controls = [...panel.querySelectorAll('[data-light-setting]')];
+  const goboChoice = panel.querySelector('[data-light-choice="gobo"]');
   const listening = new AbortController();
   const signal = listening.signal;
   const place = () => {
@@ -52,10 +58,11 @@ export function mountLighting({
   let renderer = null;
   try {
     const saved = localStorage.getItem(key);
-    if (saved !== null) settings = validateLighting(JSON.parse(saved));
+    // Settings saved before a setting existed take the host's default for it.
+    if (saved !== null) settings = validateLighting({ ...base, ...JSON.parse(saved) });
     else {
       const legacy = legacyKeys.find((entry) => localStorage.getItem(entry.key) !== null);
-      if (legacy) { settings = upgradeLighting(JSON.parse(localStorage.getItem(legacy.key)), legacy.version); upgraded = true; }
+      if (legacy) { settings = { ...upgradeLighting(JSON.parse(localStorage.getItem(legacy.key)), legacy.version), gobo: base.gobo }; upgraded = true; }
     }
   } catch (error) {
     console.warn('Lighting settings could not be restored.', error);
@@ -76,7 +83,7 @@ export function mountLighting({
     for (const [name, value] of Object.entries(lightingProperties(settings))) root.style.setProperty(name, value);
     root.dataset.lighting = settings.enabled ? 'on' : 'off';
     const preferred = forced.matches || contrast.matches;
-    if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...heights], selector });
+    if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...heights], selector, gobos });
     renderer?.update(settings, {
       visible: settings.enabled && !preferred,
       motion: lightingMotion(settings, { reducedMotion: reduced.matches, hidden: document.hidden || preferred }),
@@ -92,8 +99,13 @@ export function mountLighting({
         if (output) output.textContent = `${settings[name]}${control.dataset.unit ?? ''}`;
       }
       control.disabled = !settings.enabled
+        || (name === 'goboDistance' && (!settings.offFrame || settings.gobo === 'none'))
         || (name === 'animated' && (!settings.offFrame || reduced.matches))
         || (name === 'speed' && (!settings.offFrame || !settings.animated || reduced.matches));
+    }
+    if (goboChoice) {
+      goboChoice.disabled = !settings.enabled || !settings.offFrame;
+      for (const radio of goboChoice.querySelectorAll('input[type="radio"]')) radio.checked = radio.value === settings.gobo;
     }
     if (status) {
       status.textContent = warning || (preferred
@@ -117,6 +129,8 @@ export function mountLighting({
   if (reset) reset.disabled = false;
   toggle.addEventListener('click', () => set({ enabled: !settings.enabled }), { signal });
   panel.addEventListener('input', (event) => {
+    const choice = event.target.closest('[data-light-choice] input[type="radio"]');
+    if (choice) { set({ [choice.closest('[data-light-choice]').dataset.lightChoice]: choice.value }); return; }
     const control = event.target.closest('input[data-light-setting]');
     if (control) set({ [control.dataset.lightSetting]: control.type === 'color' ? control.value : control.valueAsNumber });
   }, { signal });

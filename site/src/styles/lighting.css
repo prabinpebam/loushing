@@ -9,8 +9,20 @@
  * per frame ([data-light-frame]). The frames are darkened together inside one group
  * ([data-light-shadows]) that is multiplied over the page: for one light the darkest
  * frame is the union of the shadows, so overlapping shadows never darken each other,
- * and the browser combines frames that scroll separately on every frame. Light that
- * lit walls bounce onto the ground goes into a second canvas per frame
+ * and the browser combines frames that scroll separately on every frame. Off-frame
+ * shadows ([data-light-offframe]) come last in the group: one view-fixed canvas for
+ * the page and, per frame ([data-light-clip]), one per raised floor, each clipped to
+ * that floor's surfaces and slid sideways by its height. The copies paint normally,
+ * each over the floor beneath; the set is darkened over the frames for posts. A gobo
+ * blocks the same source as the surfaces, so where a surface's shadow leaves light F
+ * and the gobo blocks a share g, the page gets F (1 - g) + g G, G being the gobo's
+ * full shadow: the set multiplies 1 - g over the frames and a second set
+ * ([data-light-offframe='add']) adds g G, so in a full shadow the gobo changes
+ * nothing and in a fading one they merge. Where plus-lighter is not supported the
+ * add set stays hidden and the gobo set multiplies the light it leaves on its own. A
+ * clip-path, unlike overflow, clips its fixed canvas, and it moves with its floor on
+ * the compositor.
+ * Light that lit walls bounce onto the ground goes into a second canvas per frame
  * ([data-light-glow]), colour-dodged over the page after the shadows, which brightens
  * it by the bounce. The container makes no stacking context, so the group and the
  * glow frames blend with the page itself; a fixed frame escapes its clip.
@@ -52,6 +64,14 @@
 }
 [data-light-shadows] > [data-light-frame] { mix-blend-mode: darken; }
 [data-light-shadows] > [data-light-frame='fixed'] { position: fixed; }
+[data-light-shadows] > [data-light-offframe] {
+  isolation: isolate;
+  mix-blend-mode: darken;
+}
+[data-light-shadows] > [data-light-offframe='gobo'] { mix-blend-mode: multiply; }
+[data-light-shadows] > [data-light-offframe='add'] { mix-blend-mode: plus-lighter; }
+[data-light-offframe] > [data-light-clip='fixed'] { position: fixed; }
+[data-light-offframe] canvas { position: fixed; left: 0; }
 [data-light-layer] > [data-light-glow] {
   z-index: var(--layer-lighting);
   mix-blend-mode: color-dodge;

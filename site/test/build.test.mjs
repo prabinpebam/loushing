@@ -33,6 +33,19 @@ test('the real catalog builds', () => {
   assert.ok(!readdirSync(tmp).some((n) => n.includes('.build-')), 'the staging folder is gone');
 });
 
+test('every gobo ships as a greyscale light mask beside the renderer', async () => {
+  const { GOBOS } = await import('../src/lib/lighting.mjs');
+  const { decodePng } = await import('../scripts/lib/png.mjs');
+  for (const [name, { file }] of Object.entries(GOBOS)) {
+    const bytes = readFileSync(join(out, 'assets', file));
+    assert.equal(bytes[25], 0, `${name}: colour type 0 (greyscale)`);
+    const mask = decodePng(bytes);
+    assert.ok(mask.width >= 256 && bytes.length < 400_000, `${name}: ${mask.width}px wide, ${bytes.length} bytes`);
+  }
+  const renderer = readFileSync(join(out, 'assets', 'client', 'light-renderer.js'), 'utf8');
+  assert.match(renderer, /goboShadow/);
+});
+
 test('every page has a language, a title, one main heading and one main region', () => {
   for (const f of pages) {
     const html = readFileSync(f, 'utf8');

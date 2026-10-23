@@ -1,4 +1,4 @@
-import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, linearColour, litWalls, offFrameCasters, sourceBins } from './lighting.mjs';
+import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, goboProjection, linearColour, litWalls, offFrameCasters, offFrameStep, sourceBins } from './lighting.mjs';
 
 /**
  * Portable shared shadow layer. One WebGL2 program draws every cast shadow from one
@@ -14,6 +14,11 @@ import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, 
  * are darkened together and the result multiplied over the page: for one light the
  * darkest frame is the union of the shadows, and because the browser combines them
  * on every frame, a frame scrolling on the compositor never meets a stale neighbour.
+ * Off-frame shadows (a gobo's light, or moving posts) fall from outside the view, so
+ * they are drawn once, fixed to the view, as if everything stood on the page. Each
+ * raised floor shows a copy slid sideways by its height: a fixed canvas inside a
+ * clip-path of that floor's surfaces, which the browser moves with them, so no copy
+ * ever depends on where another frame's surfaces were when it was drawn.
  * Each redraws only when the scene changes within its frame, or while off-frame
  * casters move.
  */
@@ -56,8 +61,20 @@ uniform vec3 uInk;
 uniform vec2 uOrigin;
 uniform float uScale;
 uniform float uRows;
+uniform bool uGobo;
+uniform bool uSplit;
+uniform sampler2D uGoboMask;
+uniform vec2 uGoboBase;
+uniform vec2 uGoboAcross;
+uniform vec2 uGoboSize;
+uniform float uGoboUnit;
+uniform float uGoboStretch;
+uniform float uGoboBlur;
+uniform float uGoboDistance;
+uniform float uGoboTime;
 layout(location = 0) out vec4 outShade;
 layout(location = 1) out vec4 outGlow;
+layout(location = 2) out vec4 outGobo;
 const float PI = 3.14159265;
 const float HALF_ROOT2 = 0.70710678;
 const float EPS = 1e-3;
@@ -108,7 +125,8 @@ float entry(vec2 q, vec2 u, vec2 b, float r, vec4 c) {
 
 // The shadow at p from this frame's own casters: the share of the source hidden (x)
 // and the sky hidden for global illumination (y). Every frame's surfaces still set
-// the height p stands at.
+// the height p stands at. Off-frame casters are drawn in their own pass, with no
+// surfaces, so they always fall on the page; the copies on raised floors slide them.
 vec2 shade(vec2 p, float jitter, out float floorZ) {
   floorZ = 0.0;
   for (int i = 0; i < uCount; i++) {
@@ -210,6 +228,48 @@ vec3 bounce(vec2 p, float floorZ) {
   return sum;
 }
 
+float hash(vec2 c) {
+  return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float valueNoise(vec2 x) {
+  vec2 i = floor(x);
+  vec2 f = fract(x);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+// The share of the light the gobo blocks at p, on the page. The image is held across
+// the rays, so it stretches along the light; the copies on raised floors slide the
+// whole pattern, its size and blur unchanged. It sways: a slow, smooth warp that grows
+// toward its free (top) edge, in gusts, over a slower lean and drift. The source's
+// size blurs it over a disc as wide as the gap between mask and page allows.
+float goboShadow(vec2 p, float spin) {
+  vec2 along = vec2(-uGoboAcross.y, uGoboAcross.x);
+  vec2 q = p - uGoboBase;
+  vec2 t = vec2(dot(q, uGoboAcross), dot(q, along) / uGoboStretch) / uGoboUnit;
+  float tip = clamp(t.y / uGoboSize.y, 0.0, 1.0);
+  vec2 cell = t / uGoboSize.y * 3.0;
+  vec2 sway = vec2(valueNoise(cell + vec2(uGoboTime * 0.11, 0.0)), valueNoise(cell + vec2(23.7, uGoboTime * 0.09))) - 0.5;
+  float gust = 0.6 + 0.4 * sin(uGoboTime * 0.21) * sin(uGoboTime * 0.067 + 1.3);
+  t += sway * uGoboSize.y * (0.008 + 0.03 * tip) * gust;
+  t.x += uGoboSize.y * (0.012 * tip * sin(uGoboTime * 0.05) + 0.02 * sin(uGoboTime * 0.017 + 0.7));
+  float radius = uGoboDistance * uGoboBlur;
+  float lod = log2(max(radius * 0.44, 1.0));
+  int taps = radius < 0.5 ? 1 : 16;
+  float blocked = 0.0;
+  for (int i = 0; i < taps; i++) {
+    float r = radius * sqrt((float(i) + 0.5) / float(taps));
+    float a = float(i) * 2.39996323 + spin;
+    vec2 s = t + r * vec2(cos(a), sin(a));
+    vec2 uv = vec2(s.x / uGoboSize.x + 0.5, 1.0 - s.y / uGoboSize.y);
+    if (uv.y < 0.0) continue;
+    vec4 m = textureLod(uGoboMask, uv, lod);
+    blocked += m.a * (1.0 - dot(m.rgb, vec3(0.2126, 0.7152, 0.0722)));
+  }
+  return blocked / float(taps);
+}
+
 // The light at p from this frame alone, shadow plus bounce, limited so the page colour
 // times the light stays displayable with its hue kept. The browser takes the darkest
 // frame per channel, which is the union of their shadows.
@@ -220,28 +280,46 @@ vec3 frameLight(vec2 s, vec3 glow) {
   return lit / max(1.0, max(seen.r, max(seen.g, seen.b)));
 }
 
+// The light where the gobo blocks all of the source: as deep as a surface's shadow
+// under open sky, and never deeper, since both block the same light.
+vec3 goboFull() {
+  return 1.0 - uIntensity * (1.0 - uGlobal) * (1.0 - uInk);
+}
+
 void main() {
   vec2 p = uOrigin + vec2(gl_FragCoord.x, uRows - gl_FragCoord.y) / uScale;
   float floorZ;
   vec3 ratio;
+  float gobo = 0.0;
   if (uPoint) {
     float d = 0.25 / uScale;
     ratio = vec3(0.0);
     for (int s = 0; s < 4; s++) {
       vec2 shift = vec2((s & 1) == 0 ? -d : d, (s & 2) == 0 ? -d : d);
       vec2 shaded = shade(p + shift, 0.0, floorZ);
+      if (uGobo) gobo += 0.25 * goboShadow(p + shift, 0.0);
       ratio += 0.25 * frameLight(shaded, uGlow ? bounce(p + shift, floorZ) : vec3(0.0));
     }
   } else {
     float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
     vec2 shaded = shade(p, (noise - 0.5) * uStep, floorZ);
+    if (uGobo) gobo = goboShadow(p, noise * 2.0 * PI);
     ratio = frameLight(shaded, uGlow ? bounce(p, floorZ) : vec3(0.0));
   }
   outShade = vec4(clamp(ratio, 0.0, 1.0), 1.0);
-  outGlow = vec4(1.0 - 1.0 / max(ratio, vec3(1.0)), 1.0);
+  // The gobo pass has no bounce, so its glow target takes the gobo's second half. The
+  // gobo and a surface block the same source: where the surfaces leave light F and
+  // the gobo blocks a share g of what reaches the page, the page gets
+  // F (1 - g) + g goboFull(), which is 1 - k (a + g - a g) for a surface blocking a.
+  // It is drawn in two parts the browser combines with the frames: (1 - g) multiplied,
+  // then g goboFull() added. In a surface's full shadow it changes nothing. A browser
+  // that cannot add (uSplit off) multiplies the gobo's own light instead.
+  outGlow = uGobo ? vec4(gobo * goboFull(), 1.0) : vec4(1.0 - 1.0 / max(ratio, vec3(1.0)), 1.0);
+  outGobo = vec4(uSplit ? vec3(1.0 - gobo) : 1.0 - gobo * (1.0 - goboFull()), 1.0);
 }`;
 
-const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uInk', 'uOrigin', 'uScale', 'uRows'];
+const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uInk', 'uOrigin', 'uScale', 'uRows',
+  'uGobo', 'uSplit', 'uGoboMask', 'uGoboBase', 'uGoboAcross', 'uGoboSize', 'uGoboUnit', 'uGoboStretch', 'uGoboBlur', 'uGoboDistance', 'uGoboTime'];
 
 function compile(gl) {
   const program = gl.createProgram();
@@ -263,10 +341,31 @@ function compile(gl) {
     }
     return made;
   };
-  // Two targets drawn in one pass: the shadow factor (multiplied) and the bounce (dodged).
-  const targets = [texture(), texture()];
+  // Three targets drawn in one pass: the shadow factor (darkened with other frames), the
+  // bounce (dodged) and the gobo's light (multiplied after the frames).
+  const targets = [texture(), texture(), texture()];
   const buffer = gl.createFramebuffer();
-  return { program, uniforms, boxes: texture(), walls: texture(), targets, buffer, size: [0, 0], vao: gl.createVertexArray() };
+  // Stands in for a gobo's mask until one is loaded: it blocks nothing.
+  const clear = texture();
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+  return { program, uniforms, boxes: texture(), walls: texture(), clear, targets, buffer, size: [0, 0], vao: gl.createVertexArray() };
+}
+
+/**
+ * A gobo's mask as a texture: mipmapped for its penumbra, mirrored across the light
+ * so a narrow image tiles without seams, and clamped along it.
+ */
+function maskTexture(gl, image) {
+  const made = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, made);
+  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  for (const [key, value] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) {
+    gl.texParameteri(gl.TEXTURE_2D, key, value);
+  }
+  return made;
 }
 
 /** Resolve any CSS colour to sRGB channels and alpha in 0..1 through a 2D canvas. */
@@ -283,6 +382,33 @@ function rgba(colour) {
 
 const rgb = (colour) => rgba(colour).slice(0, 3);
 
+/** A canvas fixed to the view that shows the off-frame light on floors z high. */
+function viewCopy(z) {
+  const canvas = document.createElement('canvas');
+  return { z, canvas, context: canvas.getContext('2d', { alpha: false }), drawn: null };
+}
+
+// A surface's corners clockwise from its top right: which corner, the direction its
+// edge comes in along, and the direction it leaves along.
+const OUTLINE = [['top-right', [1, 0], [0, 1]], ['bottom-right', [0, 1], [-1, 0]], ['bottom-left', [-1, 0], [0, -1]], ['top-left', [0, -1], [1, 0]]];
+
+/** A surface's outline as SVG path data, less shift: its rounded box, one corner maybe cut straight across. */
+function outline({ x, y, width, height, radius, notch }, [sx, sy]) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const left = x - sx;
+  const top = y - sy;
+  const at = { 'top-right': [left + width, top], 'bottom-right': [left + width, top + height], 'bottom-left': [left, top + height], 'top-left': [left, top] };
+  const n = (v) => Math.round(v * 100) / 100;
+  const turns = OUTLINE.map(([name, into, out]) => {
+    const cut = notch?.corner === name ? Math.min(notch.size, width, height) : 0;
+    const k = cut || r;
+    const [px, py] = at[name];
+    return { from: [n(px - into[0] * k), n(py - into[1] * k)], to: [n(px + out[0] * k), n(py + out[1] * k)], arc: !cut && r > 0 };
+  });
+  const start = turns[3].to;
+  return `M${start[0]} ${start[1]}${turns.map(({ from, to, arc }) => `L${from[0]} ${from[1]}${arc ? `A${n(r)} ${n(r)} 0 0 1 ${to[0]} ${to[1]}` : `L${to[0]} ${to[1]}`}`).join('')}Z`;
+}
+
 const scrolling = (style) => /auto|scroll|hidden/.test(style.overflow);
 const clipping = (style) => /auto|scroll|hidden|clip/.test(style.overflow);
 const isRoot = (node) => !node || node === document.body || node === document.documentElement;
@@ -298,9 +424,11 @@ function scrollerOf(node) {
  * carries data-elevation="level"; nested surfaces stand on their ancestors. A surface
  * may cut one corner straight across with the registered length --light-cut-size and
  * --light-cut-corner (top-left, top-right, bottom-right or bottom-left; default
- * top-right). Returns { supported, update(settings, { visible, motion }), destroy(), stats }.
+ * top-right). `gobos` maps a gobo's name (see GOBOS) to its mask's URL; a mask loads
+ * when its gobo is first chosen. Returns { supported, update(settings, { visible,
+ * motion }), destroy(), stats }.
  */
-export function createLightRenderer({ selector = '[data-elevation]', heights, ink = 'var(--light-shadow-ink)', maxScale = 1 } = {}) {
+export function createLightRenderer({ selector = '[data-elevation]', heights, ink = 'var(--light-shadow-ink)', maxScale = 1, gobos = {} } = {}) {
   if (!Array.isArray(heights)) throw new TypeError('heights must list the height of each elevation level.');
   const wrapper = document.createElement('div');
   wrapper.setAttribute('data-light-layer', '');
@@ -311,16 +439,35 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   probe.style.color = ink;
   wrapper.append(probe);
   // Every frame's shadow canvas sits in one group, darkened together and multiplied
-  // over the page; glow frames follow the group, so every bounce brightens the page
-  // after all shadows have darkened it.
+  // over the page; the off-frame sets come last in the group, darkened (posts) or
+  // multiplied (a gobo) over the frames, then added (a gobo's shared light). Glow
+  // frames follow the group, so every bounce brightens the page after all shadows
+  // have darkened it.
   const shadows = document.createElement('div');
   shadows.setAttribute('data-light-shadows', '');
   wrapper.append(shadows);
+  // The off-frame sets, each the view's copy for the page, then each frame's floors
+  // (see makeLayer), in the order the frames stack. Copies paint normally, so each
+  // floor's covers the one beneath it, and only a set as a whole blends with the
+  // frames. The first darkens (posts) or multiplies (a gobo); with a gobo the second
+  // adds back the light a surface's shadow and the gobo's both block (see main).
+  const sets = ['posts', 'add'].map((kind) => {
+    const host = document.createElement('div');
+    host.setAttribute('data-light-offframe', kind);
+    host.hidden = true;
+    const view = viewCopy(0);
+    host.append(view.canvas);
+    shadows.append(host);
+    return { host, view };
+  });
+  const [offFrame, offAdd] = sets.map(({ host }) => host);
+  const split = globalThis.CSS?.supports?.('mix-blend-mode', 'plus-lighter') ?? false;
   document.body.append(wrapper);
   const surface = document.createElement('canvas');
 
   let settings = null;
   let sky = null;
+  let step = [0, 0];
   let visible = false;
   let motion = false;
   let colour = [0, 0, 0];
@@ -334,6 +481,8 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   let lastDraw = 0;
   let lastTick = 0;
   let travel = 0;
+  let goboTime = 0;
+  const masks = new Map();
   let lost = false;
   let listening = null;
   let observer = null;
@@ -393,6 +542,30 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     dirty = true;
     poke();
   };
+
+  /** The chosen gobo's mask once it has loaded, or null. Each mask loads once, on first use. */
+  function goboMask() {
+    const name = settings.offFrame ? settings.gobo ?? 'none' : 'none';
+    if (name === 'none' || !gobos[name]) return null;
+    let entry = masks.get(name);
+    if (!entry) {
+      entry = { texture: null, width: 0, height: 0 };
+      masks.set(name, entry);
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.decoding = 'async';
+      image.src = gobos[name];
+      image.decode().then(() => {
+        if (masks.get(name) !== entry) return;
+        entry.texture = maskTexture(gl, image);
+        entry.width = image.naturalWidth;
+        entry.height = image.naturalHeight;
+        version++;
+        poke();
+      }, (error) => console.warn(`The ${name} gobo could not be loaded.`, error));
+    }
+    return entry.texture ? { name, ...entry } : null;
+  }
 
   /** A scrolling box moves its content by its scroll offset. */
   function scrollFrames(node, style) {
@@ -486,21 +659,72 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     const marker = document.createElement('span');
     shadow.inner.append(marker, shadow.canvas);
     glow.inner.append(glow.canvas);
-    shadows.append(shadow.outer);
+    shadows.insertBefore(shadow.outer, offFrame);
     wrapper.append(glow.outer);
+    // The frame's raised floors for each off-frame set: divs that move like the
+    // frame's, holding one clipped copy per floor height.
+    const floors = sets.map(({ host }) => {
+      const set = { outer: document.createElement('div'), marker: document.createElement('span'), levels: new Map() };
+      set.outer.setAttribute('data-light-clip', fixed ? 'fixed' : 'page');
+      set.outer.hidden = true;
+      set.inner = set.outer;
+      set.nest = frames.map(() => {
+        const div = document.createElement('div');
+        set.inner.append(div);
+        set.inner = div;
+        return div;
+      });
+      set.inner.append(set.marker);
+      host.append(set.outer);
+      return set;
+    });
     const rank = fixed ? (frames.length ? 2 : 3) : (frames.length ? 1 : 0);
-    return { key, fixed, rank, outer: shadow.outer, nest: shadow.nest, marker, canvas: shadow.canvas, context: shadow.context, glow, animations: [], group: 0, drawn: null };
+    return { key, fixed, rank, frames, outer: shadow.outer, nest: shadow.nest, marker, canvas: shadow.canvas, context: shadow.context, glow, floors, animations: [], group: 0, drawn: null };
+  }
+
+  function dropLevel(level) {
+    for (const animation of level.animations) animation.cancel();
+    level.clip.remove();
   }
 
   /** Outer frames wrap inner ones; each follows its scroll container on the compositor. */
   function animate(layer, frames) {
     for (const animation of layer.animations) animation.cancel();
     const outward = [...frames].reverse();
-    layer.animations = [layer.nest, layer.glow.nest].flatMap((nest) => outward.map(({ source, axis, stops }, k) => nest[k].animate(
+    layer.animations = [layer.nest, layer.glow.nest, ...layer.floors.map(({ nest }) => nest)].flatMap((nest) => outward.map(({ source, axis, stops }, k) => nest[k].animate(
       stops.map(([offset, value]) => ({ offset, transform: axis === 'x' ? `translate3d(${value}px, 0, 0)` : `translate3d(0, ${value}px, 0)` })),
       { timeline: new ScrollTimeline({ source, axis }), fill: 'both', easing: 'linear' },
     )));
+    layer.frames = frames;
+    for (const { levels } of layer.floors) for (const level of levels.values()) counter(layer, level);
     layer.drawn = null;
+  }
+
+  /**
+   * A floor's copy stays fixed to the view while its clip moves with the floor. Inside
+   * a frame's moving divs a fixed canvas is placed by them instead, so a chain of divs
+   * undoes each move, the page's own scroll included.
+   */
+  function counter(layer, level) {
+    for (const animation of level.animations) animation.cancel();
+    level.clip.replaceChildren();
+    const moves = [...layer.frames];
+    if (moves.length && !layer.fixed) {
+      const source = document.scrollingElement || document.documentElement;
+      const max = source.scrollHeight - source.clientHeight;
+      if (max > 0) moves.push({ source, axis: 'y', stops: [[0, 0], [1, -max]] });
+    }
+    let inner = level.clip;
+    level.animations = moves.map(({ source, axis, stops }) => {
+      const div = document.createElement('div');
+      inner.append(div);
+      inner = div;
+      return div.animate(
+        stops.map(([offset, value]) => ({ offset, transform: axis === 'x' ? `translate3d(${-value}px, 0, 0)` : `translate3d(0, ${-value}px, 0)` })),
+        { timeline: new ScrollTimeline({ source, axis }), fill: 'both', easing: 'linear' },
+      );
+    });
+    inner.append(level.canvas);
   }
 
   function rebuild() {
@@ -519,6 +743,10 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     for (const [key, layer] of layers) {
       if (wanted.has(key)) continue;
       for (const animation of layer.animations) animation.cancel();
+      for (const floors of layer.floors) {
+        for (const floor of floors.levels.values()) dropLevel(floor);
+        floors.outer.remove();
+      }
       layer.outer.remove();
       layer.glow.outer.remove();
       layers.delete(key);
@@ -531,6 +759,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     [...layers.values()].sort((a, b) => a.rank - b.rank).forEach((layer, group) => {
       layer.group = group;
       layer.drawn = null;
+      layer.floors.forEach((floors, k) => sets[k].host.append(floors.outer));
     });
     stats.frames = layers.size - 2;
   }
@@ -608,20 +837,25 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     }
     const centre = [view.x + width / 2, view.y + view.height / 2];
     boxes.sort((a, b) => Math.hypot(a.x + a.width / 2 - centre[0], a.y + a.height / 2 - centre[1]) - Math.hypot(b.x + b.width / 2 - centre[0], b.y + b.height / 2 - centre[1]));
-    const fixed = layers.get('fixed');
-    const posts = settings.offFrame
+    // Off-frame shadows come from the chosen gobo, or from moving objects when there is none.
+    const mask = goboMask();
+    const gobo = mask && { mask, ...goboProjection({ width, height: view.height, azimuth: settings.azimuth, altitude: settings.altitude, sourceSize: settings.sourceSize, image: mask, gobo: mask.name }) };
+    const posts = settings.offFrame && (settings.gobo ?? 'none') === 'none'
       ? offFrameCasters({ width, height: view.height, azimuth: settings.azimuth, altitude: settings.altitude, sourceSize: settings.sourceSize, travel })
-        .map((box) => ({ ...box, x: box.x + view.x, y: box.y + view.y, cut: [0, 0, 0], layer: fixed, post: true }))
+        .map((box) => ({ ...box, x: box.x + view.x, y: box.y + view.y, cut: [0, 0, 0], layer: null, post: true }))
       : [];
     const casters = [...posts, ...boxes].slice(0, MAX_CASTERS);
     lightWalls(casters, { view, pad, top, bottom });
-    return { casters, origin, view, pad, width };
+    return { casters, surfaces: boxes, origin, view, pad, width, gobo };
   }
 
   /**
    * The light each wall bounces, for walls whose bounce can reach the view: strips
    * { a, b, rgb } with rgb the reflected light (albedo x irradiance x bounce share).
-   * Every caster, off-frame posts included, can shade a wall. Kept while nothing moves.
+   * Surfaces shade each other's walls; off-frame shadows do not. They are fixed to the
+   * view, so a wall's light would change as the page scrolls and lag the compositor;
+   * they still dim the bounce where they fall, since the glow brightens the page after
+   * the shadow group has darkened it. Kept while nothing moves.
    */
   function lightWalls(casters, { view, top, bottom }) {
     const gain = (settings.bounce ?? 0) / 100;
@@ -635,12 +869,13 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       const dy = Math.max(top - (box.y + box.height), box.y - bottom, 0);
       return box.reach > 0 && Math.hypot(dx, dy) <= box.reach;
     };
-    const key = [version, ...casters.flatMap((box) => [box.x, box.y, box.width, box.height, box.z, box.base ?? 0, box.notch?.size ?? 0, box.notch?.corner ?? '', near(box) ? 1 : 0])].join(',');
+    const own = casters.filter((box) => !box.post);
+    const key = [version, ...own.flatMap((box) => [box.x, box.y, box.width, box.height, box.z, box.base ?? 0, box.notch?.size ?? 0, box.notch?.corner ?? '', near(box) ? 1 : 0])].join(',');
     if (wallCache.key !== key) {
-      const solids = casters.map((box) => ({ x: box.x, y: box.y, width: box.width, height: box.height, radius: box.radius, z: box.z, base: box.base, post: box.post, cut: box.notch ?? undefined }));
-      wallCache = { key, strips: litWalls(solids, settings, { count: WALL_BINS, only: (_, i) => near(casters[i]) }) };
+      const solids = own.map((box) => ({ x: box.x, y: box.y, width: box.width, height: box.height, radius: box.radius, z: box.z, base: box.base, cut: box.notch ?? undefined }));
+      wallCache = { key, strips: litWalls(solids, settings, { count: WALL_BINS, only: (_, i) => near(own[i]) }) };
     }
-    casters.forEach((box, i) => {
+    own.forEach((box, i) => {
       for (const { a, b, light } of wallCache.strips[i]) {
         const rgb = box.albedo.map((c) => Math.round(c * light * gain * 1024) / 1024);
         if (Math.max(...rgb) > 0) box.walls.push({ a, b, rgb });
@@ -687,9 +922,9 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
       width: Math.max(1, exact ? Math.round(area.width) : Math.ceil((area.x - shift[0] + area.width) / SNAP) * SNAP - x),
       height: Math.max(1, exact ? Math.round(area.height) : Math.ceil((area.y - shift[1] + area.height) / SNAP) * SNAP - y),
     };
-    const list = casters.filter((box) => box.layer === layer || !box.post);
+    const list = casters.filter((box) => !box.post);
     const count = list.length;
-    const data = new Float32Array(count * 4 * ROWS);
+    const data = new Float32Array(Math.max(count, 1) * 4 * ROWS);
     const strips = [];
     list.forEach((box, i) => {
       const bx = box.width / 2;
@@ -711,10 +946,126 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     const glow = strips.length > 0;
     const scale = Math.min(window.devicePixelRatio || 1, maxScale);
     const key = [version, layer.group, scale, region.x, region.y, region.width, region.height, count, ...data, ...(glow ? walls : [])].join(',');
-    return { key, data, count, walls, width: n, glow, region, scale };
+    return { key, data, count, walls, width: n, glow, region, scale, gobo: null };
   }
 
-  /** Size the two render targets to at least w x h. */
+  /**
+   * Each frame's raised floors, by height, clipped to their surfaces' outlines in the
+   * frame's own coordinates, under the view's copy for the page, in off-frame set k.
+   * Returns every copy.
+   */
+  function placeFloors({ surfaces, origin }, k) {
+    const wanted = new Map();
+    for (const box of surfaces) {
+      if (!box.layer || box.z <= 0) continue;
+      if (!wanted.has(box.layer)) wanted.set(box.layer, new Map());
+      const floors = wanted.get(box.layer);
+      if (!floors.has(box.z)) floors.set(box.z, []);
+      floors.get(box.z).push(box);
+    }
+    const copies = [sets[k].view];
+    for (const layer of layers.values()) {
+      const floors = wanted.get(layer);
+      const { outer, inner, marker, levels } = layer.floors[k];
+      outer.hidden = !floors;
+      for (const [z, level] of levels) {
+        if (floors?.has(z)) continue;
+        dropLevel(level);
+        levels.delete(z);
+      }
+      if (!floors) continue;
+      const mark = marker.getBoundingClientRect();
+      const shift = [mark.left - origin.left, mark.top - origin.top];
+      let added = false;
+      for (const [z, boxes] of floors) {
+        let level = levels.get(z);
+        if (!level) {
+          level = { ...viewCopy(z), clip: document.createElement('div'), animations: [], path: '' };
+          level.clip.append(level.canvas);
+          if (layer.frames.length) counter(layer, level);
+          levels.set(z, level);
+          added = true;
+        }
+        const path = `path('${boxes.map((box) => outline(box, shift)).join(' ')}')`;
+        if (level.path !== path) {
+          level.clip.style.clipPath = path;
+          level.path = path;
+        }
+        copies.push(level);
+      }
+      if (added) [...levels.values()].sort((a, b) => a.z - b.z).forEach((level) => inner.append(level.clip));
+    }
+    return copies;
+  }
+
+  /**
+   * The off-frame pass: the posts or the gobo on a bare page, in view px, with room on
+   * each side for the copies' slides. It does not change as the page scrolls. The
+   * copies reach pad past the view's top and bottom: the browser sizes a clip to what
+   * it clips, so a view-sized copy would leave a floor that scrolls in bare for a frame.
+   */
+  function planOffFrame({ casters, gobo, view, pad }, copies) {
+    const posts = casters.filter((box) => box.post);
+    const top = Math.max(...copies.map(({ z }) => z));
+    const margin = [Math.ceil(top * Math.abs(step[0])) + 1, Math.ceil(top * Math.abs(step[1])) + 1];
+    const size = [Math.max(1, Math.round(view.width)), Math.max(1, Math.round(view.height)) + 2 * pad];
+    const region = { x: -margin[0], y: -pad - margin[1], width: size[0] + 2 * margin[0], height: size[1] + 2 * margin[1] };
+    const count = posts.length;
+    const data = new Float32Array(Math.max(count, 1) * 4 * ROWS);
+    posts.forEach((box, i) => {
+      const bx = box.width / 2;
+      const by = box.height / 2;
+      data.set([box.x + bx - view.x, box.y + by - view.y, bx, by], i * 4);
+      data.set([Math.min(Math.max(box.radius, 0), bx, by), box.z, Math.hypot(bx, by), 1], (count + i) * 4);
+    });
+    const scale = Math.min(window.devicePixelRatio || 1, maxScale);
+    const placed = gobo && { ...gobo, time: goboTime, distance: settings.goboDistance };
+    const key = [version, scale, ...size, pad, ...margin, count, ...data, ...(placed ? [...placed.base, placed.time] : [])].join(',');
+    return { key, data, count, walls: new Float32Array(8), width: 1, glow: false, region, scale, gobo: placed, margin, size, pad };
+  }
+
+  /** Draw the off-frame pass if any copy needs it, then each copy from panel's image, slid by its height. */
+  function drawOffFrame(next, copies, panel, rendered) {
+    for (const target of copies) {
+      if (target.drawn === next.key) continue;
+      const [w, h] = rendered();
+      const { canvas, context, z } = target;
+      const vw = Math.max(1, Math.round(next.size[0] * next.scale));
+      const vh = Math.max(1, Math.round(next.size[1] * next.scale));
+      if (canvas.width !== vw || canvas.height !== vh) {
+        canvas.width = vw;
+        canvas.height = vh;
+      }
+      const sx = panel * w + Math.round((next.margin[0] - z * step[0]) * next.scale);
+      const sy = surface.height - h + Math.round((next.margin[1] - z * step[1]) * next.scale);
+      context.drawImage(surface, sx, sy, vw, vh, 0, 0, vw, vh);
+      canvas.style.top = `${-next.pad}px`;
+      canvas.style.width = `${next.size[0]}px`;
+      canvas.style.height = `${next.size[1]}px`;
+      target.drawn = next.key;
+    }
+  }
+
+  /**
+   * Show the off-frame set when a gobo or posts cast, and with a gobo the set that adds
+   * back the light it shares with the surfaces' shadows; returns whether any shows.
+   */
+  function showOffFrame(scene) {
+    const kind = scene.gobo ? 'gobo' : scene.casters.some((box) => box.post) ? 'posts' : null;
+    offFrame.hidden = !kind;
+    offAdd.hidden = !(kind === 'gobo' && split);
+    if (!kind) return false;
+    if (offFrame.getAttribute('data-light-offframe') !== kind) offFrame.setAttribute('data-light-offframe', kind);
+    const copies = placeFloors(scene, 0);
+    const next = planOffFrame(scene, copies);
+    let drawn = null;
+    const rendered = () => (drawn ??= render(next));
+    drawOffFrame(next, copies, kind === 'gobo' ? 2 : 0, rendered);
+    if (!offAdd.hidden) drawOffFrame(next, placeFloors(scene, 1), 1, rendered);
+    return true;
+  }
+
+  /** Size the three render targets to at least w x h. */
   function targets(w, h) {
     const { targets: made, buffer, size } = glState;
     if (size[0] >= w && size[1] >= h) return;
@@ -725,7 +1076,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     made.forEach((target, k) => gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + k, gl.TEXTURE_2D, target, 0));
-    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
     glState.size = next;
   }
 
@@ -741,20 +1092,21 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     canvas.style.transform = `translate3d(${region.x}px, ${region.y}px, 0)`;
   }
 
-  function draw(layer, { data, count, walls, width, glow, region, scale }) {
+  /** Render one pass into the surface's three w x h panels, side by side at its bottom; returns [w, h]. */
+  function render({ data, count, walls, width, glow, region, scale, gobo }) {
     const w = Math.max(1, Math.round(region.width * scale));
     const h = Math.max(1, Math.round(region.height * scale));
-    if (surface.width < 2 * w) surface.width = 2 * w;
+    if (surface.width < 3 * w) surface.width = 3 * w;
     if (surface.height < h) surface.height = h;
     targets(w, h);
-    const { program, uniforms: u, boxes, walls: wallTexture, buffer, vao } = glState;
+    const { program, uniforms: u, boxes, walls: wallTexture, clear, buffer, vao } = glState;
     gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
     gl.viewport(0, 0, w, h);
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, boxes);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, count, ROWS, 0, gl.RGBA, gl.FLOAT, data);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, Math.max(count, 1), ROWS, 0, gl.RGBA, gl.FLOAT, data);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, wallTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, 2, 0, gl.RGBA, gl.FLOAT, walls);
@@ -780,16 +1132,41 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     gl.uniform2f(u.uOrigin, region.x, region.y);
     gl.uniform1f(u.uScale, scale);
     gl.uniform1f(u.uRows, h);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, gobo ? gobo.mask.texture : clear);
+    gl.uniform1i(u.uGoboMask, 2);
+    gl.uniform1i(u.uGobo, gobo ? 1 : 0);
+    gl.uniform1i(u.uSplit, split ? 1 : 0);
+    if (gobo) {
+      gl.uniform2f(u.uGoboBase, gobo.base[0], gobo.base[1]);
+      gl.uniform2f(u.uGoboAcross, gobo.across[0], gobo.across[1]);
+      gl.uniform2f(u.uGoboSize, gobo.mask.width, gobo.mask.height);
+      gl.uniform1f(u.uGoboUnit, gobo.unit);
+      gl.uniform1f(u.uGoboStretch, gobo.stretch);
+      gl.uniform1f(u.uGoboBlur, gobo.blur);
+      gl.uniform1f(u.uGoboDistance, gobo.distance);
+      gl.uniform1f(u.uGoboTime, gobo.time);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, buffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.readBuffer(gl.COLOR_ATTACHMENT0);
     gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-    if (glow) {
+    if (glow || gobo) {
       gl.readBuffer(gl.COLOR_ATTACHMENT1);
       gl.blitFramebuffer(0, 0, w, h, w, 0, 2 * w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     }
+    if (gobo) {
+      gl.readBuffer(gl.COLOR_ATTACHMENT2);
+      gl.blitFramebuffer(0, 0, w, h, 2 * w, 0, 3 * w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return [w, h];
+  }
+
+  function draw(layer, next) {
+    const { region, glow } = next;
+    const [w, h] = render(next);
     copy(layer.canvas, layer.context, 0, w, h, region);
     if (glow) copy(layer.glow.canvas, layer.glow.context, w, w, h, region);
     stats.draws++;
@@ -799,7 +1176,11 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     frame = 0;
     if (!visible || lost) return;
     const moving = motion && settings.offFrame;
-    if (moving) travel += Math.min(0.1, Math.max(0, now - lastTick) / 1000) * settings.speed * OFF_FRAME.pace;
+    if (moving) {
+      const seconds = Math.min(0.1, Math.max(0, now - lastTick) / 1000);
+      travel += seconds * settings.speed * OFF_FRAME.pace;
+      goboTime += seconds * settings.speed / 5;
+    }
     lastTick = now;
     if (!moving || now < activeUntil || now - lastDraw >= MOTION_MS) {
       if (dirty) rebuild();
@@ -819,6 +1200,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
           layer.drawn = next.key;
         }
       }
+      if (showOffFrame(scene)) shown++;
       Object.assign(stats, { casters: scene.casters.length, layers: shown });
       lastDraw = now;
     }
@@ -861,8 +1243,13 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   surface.addEventListener('webglcontextrestored', () => {
     try {
       glState = compile(gl);
+      masks.clear();
       lost = false;
-      for (const layer of layers.values()) layer.drawn = null;
+      for (const layer of layers.values()) {
+        layer.drawn = null;
+        for (const { levels } of layer.floors) for (const level of levels.values()) level.drawn = null;
+      }
+      for (const { view } of sets) view.drawn = null;
       poke();
     } catch (error) {
       console.warn('Long shadows could not be restored.', error);
@@ -873,6 +1260,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     if (!glState) return;
     settings = next;
     sky = sourceBins(next);
+    ({ step } = offFrameStep(next));
     if (show && !visible) dirty = true;
     visible = show;
     motion = moving;
@@ -894,7 +1282,10 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   function destroy() {
     listening?.abort();
     cancelAnimationFrame(frame);
-    for (const layer of layers.values()) for (const animation of layer.animations) animation.cancel();
+    for (const layer of layers.values()) {
+      for (const animation of layer.animations) animation.cancel();
+      for (const { levels } of layer.floors) for (const level of levels.values()) dropLevel(level);
+    }
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     wrapper.remove();
   }

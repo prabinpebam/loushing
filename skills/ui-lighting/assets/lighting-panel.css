@@ -82,8 +82,21 @@
 .lp-input__label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; font-size: var(--lp-text-sm, 0.875rem); }
 .lp-input output { color: var(--lp-muted, light-dark(#4f5b66, #a9b5c0)); font-variant-numeric: tabular-nums; }
 .lp-input input { width: 100%; min-width: 0; min-height: var(--lp-control, 2.75rem); margin: 0; accent-color: var(--lp-action, light-dark(#1d5f7a, #7fb7cc)); cursor: pointer; }
-.lp-input input[type='color'] { padding: 0.25rem; border: 1px solid var(--lp-outline, light-dark(#4f5b66, #6f7c88)); border-radius: 0.5rem; background: var(--lp-raised, light-dark(#ffffff, #1b1f23)); }
+.lp-input input[type='color'] { appearance: none; padding: 0; overflow: hidden; border: 1px solid var(--lp-outline, light-dark(#4f5b66, #6f7c88)); border-radius: 0.5rem; background: var(--lp-raised, light-dark(#ffffff, #1b1f23)); }
+.lp-input input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+.lp-input input[type='color']::-webkit-color-swatch { border: 0; border-radius: 0; }
+.lp-input input[type='color']::-moz-color-swatch { border: 0; border-radius: 0; }
 .lp-input input:disabled { cursor: not-allowed; opacity: 0.5; }
+.lp-choice { display: grid; gap: 0.5rem; margin: 0; border: 0; padding: 0; min-width: 0; }
+.lp-choice legend { padding: 0; font-size: var(--lp-text-sm, 0.875rem); }
+.lp-choice__options { display: flex; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--lp-sunken, light-dark(#eef3f7, #242a30)); }
+.lp-choice__option { position: relative; flex: 1; }
+.lp-choice__option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.lp-choice__option span { display: flex; align-items: center; justify-content: center; min-height: var(--lp-control, 2.75rem); padding-inline: 0.75rem; border-radius: 999px; font-size: var(--lp-text-sm, 0.875rem); }
+.lp-choice__option input:checked + span { background: var(--lp-raised, light-dark(#ffffff, #1b1f23)); box-shadow: inset 0 0 0 1px var(--lp-outline, light-dark(#4f5b66, #6f7c88)); }
+.lp-choice__option input:focus-visible + span { outline: 3px solid var(--lp-focus, light-dark(#b04f27, #f6ab88)); outline-offset: 2px; }
+.lp-choice:disabled { opacity: 0.5; }
+.lp-choice:disabled input { cursor: not-allowed; }
 .lp-button {
   justify-self: start;
   min-height: var(--lp-control, 2.75rem);

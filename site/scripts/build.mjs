@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { loadCatalog } from './lib/catalog.mjs';
 import { buildModel } from './lib/model.mjs';
 import { catalogJson, feedXml, itemJson, itemMarkdown, llmsTxt, searchIndex } from './lib/outputs.mjs';
-import { decodePng, encodePng, trimToAlpha } from './lib/png.mjs';
+import { decodePng, encodePng, lightMask, trimToAlpha } from './lib/png.mjs';
+import { GOBOS } from '../src/lib/lighting.mjs';
 import { renderView } from '../src/render.mjs';
 import { setBase, url } from '../src/lib/urls.mjs';
 import { frontMatter } from '../src/lib/yaml.mjs';
@@ -62,6 +63,12 @@ for (const [dir, files] of [['client', readdirSync(join(src, 'client'))], ['lib'
   }
 }
 write('assets/favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path fill="#a8412f" d="${iconPaths('pets')[0]}"/></svg>`);
+
+// Gobos: each design/lighting/gobos/<name>.png becomes the greyscale mask of the light it
+// lets through, at half size (the shadow it casts is soft, so detail beyond that is lost).
+for (const name of Object.keys(GOBOS)) {
+  write(`assets/${GOBOS[name].file}`, encodePng(lightMask(decodePng(readFileSync(join(root, 'design', 'lighting', 'gobos', `${name}.png`))), 2)));
+}
 
 // Chopper: renders whose status the library shows (rules.statusesShown) reach the site,
 // trimmed to the figure. Every render is shown at the same reduction, so line weight

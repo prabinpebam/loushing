@@ -1,5 +1,6 @@
-// A minimal PNG reader and writer for Chopper's masters: 8-bit, non-interlaced
-// greyscale, RGB or RGBA in, RGBA out. Dependency-free (node:zlib only).
+// A minimal PNG reader and writer for Chopper's masters and the light's gobos: 8-bit,
+// non-interlaced greyscale, RGB or RGBA in; RGBA or greyscale out. Dependency-free
+// (node:zlib only).
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -58,9 +59,14 @@ export function decodePng(buf) {
   return { width, height, data };
 }
 
-/** Encodes RGBA bytes as a PNG, choosing each row's filter by the usual minimum-sum rule. */
-export function encodePng({ width, height, data }) {
-  const stride = width * 4;
+/**
+ * Encodes RGBA bytes (or, with `channels: 1`, greyscale bytes) as a PNG, choosing each
+ * row's filter by the usual minimum-sum rule.
+ */
+export function encodePng({ width, height, data, channels = 4 }) {
+  if (channels !== 4 && channels !== 1) throw new Error('encodePng writes RGBA or greyscale only');
+  const ch = channels;
+  const stride = width * ch;
   const raw = Buffer.alloc((stride + 1) * height);
   const trial = Array.from({ length: 5 }, () => Buffer.alloc(stride));
   for (let y = 0; y < height; y++) {
@@ -70,9 +76,9 @@ export function encodePng({ width, height, data }) {
       const t = trial[f];
       let sum = 0;
       for (let x = 0; x < stride; x++) {
-        const a = x >= 4 ? data[row + x - 4] : 0;
+        const a = x >= ch ? data[row + x - ch] : 0;
         const b = y ? data[row - stride + x] : 0;
-        const c = x >= 4 && y ? data[row - stride + x - 4] : 0;
+        const c = x >= ch && y ? data[row - stride + x - ch] : 0;
         let p = 0;
         if (f === 1) p = a;
         else if (f === 2) p = b;
@@ -101,8 +107,35 @@ export function encodePng({ width, height, data }) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
-  ihdr.set([8, 6, 0, 0, 0], 8);
+  ihdr.set([8, ch === 4 ? 6 : 0, 0, 0, 0], 8);
   return Buffer.concat([SIGNATURE, chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+}
+
+/**
+ * The light an image lets through when held in a beam, box-filtered down by a whole
+ * `factor`, as greyscale bytes ({ width, height, data, channels: 1 }): a pixel blocks
+ * alpha x (1 - luminance) of the light, so opaque black blocks it all and transparent
+ * or white pixels pass it. White (255) passes; black (0) blocks.
+ */
+export function lightMask({ width, height, data }, factor = 1) {
+  if (!Number.isInteger(factor) || factor < 1) throw new RangeError('factor must be a whole number from 1');
+  const w = Math.floor(width / factor), h = Math.floor(height / factor);
+  const out = Buffer.alloc(w * h);
+  const n = factor * factor;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let sum = 0;
+      for (let dy = 0; dy < factor; dy++) {
+        for (let dx = 0; dx < factor; dx++) {
+          const i = ((y * factor + dy) * width + x * factor + dx) * 4;
+          const luminance = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+          sum += 1 - (data[i + 3] / 255) * (1 - luminance);
+        }
+      }
+      out[y * w + x] = Math.round(255 * sum / n);
+    }
+  }
+  return { width: w, height: h, data: out, channels: 1 };
 }
 
 /** The bounds of every pixel that isn't fully transparent, or null for an empty image. */

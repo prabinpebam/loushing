@@ -6,8 +6,11 @@
  * @key Enter/Space opens the disclosure; arrows adjust sliders; Escape closes it.
  */
 import { html } from '../../lib/html.mjs';
-import { LIGHT_CONTROLS, LIGHT_DEFAULTS } from '../../lib/lighting.mjs';
-import { Button, LightInput, Toggle } from '../fundamentals.mjs';
+import { GOBOS, GOBO_CHOICES, LIGHT_CONTROLS, LIGHT_DEFAULTS } from '../../lib/lighting.mjs';
+import { Button, LightInput, Segmented, Toggle } from '../fundamentals.mjs';
+
+const control = (key) => LIGHT_CONTROLS.find((c) => c.key === key);
+const OWN_PLACE = ['goboDistance', 'speed'];
 
 /** The shared lighting disclosure. Settings are data from the portable engine. */
 export function LightingPanel() {
@@ -18,14 +21,16 @@ export function LightingPanel() {
     <p class="c-lighting__hint">Direction names the light source. Lower light lengthens shadows, a bigger source softens and fades them, and global illumination lightens them away from what casts them.</p>
     <fieldset class="c-lighting__fields" data-lighting-fields disabled>
       <legend class="u-visually-hidden">Light and shadow</legend>
-      ${LIGHT_CONTROLS.filter((c) => c.key !== 'speed').map((c) => LightInput({ ...c, id: `lighting-${c.key}`, data: { 'light-setting': c.key } }))}
+      ${LIGHT_CONTROLS.filter((c) => !OWN_PLACE.includes(c.key)).map((c) => LightInput({ ...c, id: `lighting-${c.key}`, data: { 'light-setting': c.key } }))}
       <div class="c-lighting__tints">
         ${LightInput({ id: 'lighting-highlightTint', label: 'Highlight tint', type: 'color', value: LIGHT_DEFAULTS.highlightTint, data: { 'light-setting': 'highlightTint' } })}
         ${LightInput({ id: 'lighting-shadowTint', label: 'Shadow tint', type: 'color', value: LIGHT_DEFAULTS.shadowTint, data: { 'light-setting': 'shadowTint' } })}
       </div>
       ${Toggle({ label: 'Off-frame shadows', checked: LIGHT_DEFAULTS.offFrame, data: { 'light-setting': 'offFrame' } })}
+      ${Segmented({ name: 'lighting-gobo', label: 'Cast by', value: LIGHT_DEFAULTS.gobo, options: GOBO_CHOICES.map((value) => ({ value, label: value === 'none' ? 'Moving objects' : GOBOS[value].label })), data: { 'light-choice': 'gobo' } })}
+      ${LightInput({ ...control('goboDistance'), id: 'lighting-goboDistance', data: { 'light-setting': 'goboDistance' } })}
       ${Toggle({ label: 'Animate shadows', checked: LIGHT_DEFAULTS.animated, data: { 'light-setting': 'animated' } })}
-      ${LightInput({ ...LIGHT_CONTROLS.find((c) => c.key === 'speed'), id: 'lighting-speed', data: { 'light-setting': 'speed' } })}
+      ${LightInput({ ...control('speed'), id: 'lighting-speed', data: { 'light-setting': 'speed' } })}
     </fieldset>
     <p class="c-lighting__hint" data-lighting-motion></p>
     <p class="c-lighting__status" role="status" data-lighting-status>Turn on long shadows to adjust the light.</p>

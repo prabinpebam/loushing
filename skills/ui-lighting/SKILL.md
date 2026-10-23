@@ -23,9 +23,12 @@ What a person gets:
 - light bounced off the lit walls of surfaces, in their colour, onto the ground beside
   them, fading by the inverse-square law;
 - edges that are lighter on the side facing the light and darker on the far side;
-- shadows from tall objects beyond the view that drift across it, each on its own;
+- shadows from tall objects beyond the view that drift across it, each on its own, or
+  from a gobo, an image held in the light (a palm), swaying slowly. On a raised
+  surface either one slides sideways, its size and blur unchanged;
 - a **Lighting** panel to change the direction, elevation, source size, global
-  illumination, bounce, tints, intensities, off-frame shadows, motion and speed.
+  illumination, bounce, tints, intensities, off-frame shadows and what casts them,
+  gobo distance, motion and speed.
 
 ## The kit
 
@@ -38,8 +41,9 @@ What a person gets:
 | [assets/lighting-host.js](assets/lighting-host.js) | Framework-free adapter: settings, saving, the switch, the panel, accessibility preferences | Yes, if your app has its own state or storage |
 | [assets/lighting-panel.js](assets/lighting-panel.js) | HTML for the switch and the panel, built from the engine's control data | Yes: port it to your components, keeping its attributes |
 | [assets/lighting-panel.css](assets/lighting-panel.css) | Styles for the switch and panel, themable through `--lp-*` properties | Yes: restyle with your tokens |
+| [assets/gobos/palm.png](assets/gobos/palm.png) | The palm gobo: a greyscale mask of the light it lets through | No. Serve it beside `lighting-host.js`, or pass `gobos` |
 | [assets/demo.html](assets/demo.html) | A standalone page with every case: cards, a folded corner, a sticky panel, a scroll box | Use it as the reference to compare against |
-| [scripts/check-lighting.mjs](scripts/check-lighting.mjs) | 29 checks: the physics against a brute-force ray tracer, and the CSS and renderer contracts | Run it on your copies |
+| [scripts/check-lighting.mjs](scripts/check-lighting.mjs) | 30 checks: the physics against a brute-force ray tracer, the gobo and off-frame step, and the CSS and renderer contracts | Run it on your copies |
 
 References, read when the step calls for them:
 
@@ -79,8 +83,9 @@ Before copying anything, find and write down:
 Copy the engine, renderer and CSS into one folder in the host, for example
 `src/lighting/`, unchanged. Keep `lighting.mjs` beside `light-renderer.js`, or change
 only the renderer's single import line to point at it. Copy the adapter, panel and
-tokens too unless the host replaces them. The modules are plain ES modules; bundlers
-take them as they are.
+tokens too unless the host replaces them, and the `gobos/` folder beside the adapter
+(or pass `mountLighting({ gobos: { palm: url } })`). The modules are plain ES
+modules; bundlers take them as they are.
 
 Check: `node --test scripts/check-lighting.mjs` with the variables pointing at your
 copies passes (see step 9).
@@ -196,13 +201,16 @@ The defaults are the owner's chosen look. Don't change them unless asked:
 | Highlight tint | `#ffdfb3` (warm) | any `#rrggbb` |
 | Shadow tint | `#294573` (cool) | any `#rrggbb` |
 | Off-frame shadows (`offFrame`) | on | on, off |
+| Cast by (`gobo`) | moving objects (`none`) | moving objects, palm |
+| Gobo distance (`goboDistance`) | 50 px | 0–600 px |
 | Animate shadows (`animated`) | on | on, off |
 | Motion speed (`speed`) | 5× | 1–10× |
 
 To start with lighting on, or with another look, pass
 `mountLighting({ defaults: { enabled: true } })`; Loushing, the reference host,
-starts on. Reset returns to these defaults and
-keeps the switch where it is.
+starts on, with moving objects casting the off-frame shadows
+(`{ enabled: true, gobo: 'none' }`). Reset
+returns to these defaults and keeps the switch where it is.
 
 ### 9. Verify
 
@@ -217,7 +225,7 @@ keeps the switch where it is.
    ```
 
    In PowerShell, set each with `$env:LIGHTING_ENGINE='src\lighting\lighting.mjs'`.
-   All 29 checks must pass (28 if there's no panel module).
+   All 30 checks must pass (29 if there's no panel module).
 2. Serve the host over HTTP. Modules don't load from `file://`.
 3. Open [assets/demo.html](assets/demo.html), served the same way, beside the host and
    compare. Go through the browser checklist in

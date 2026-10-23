@@ -34,6 +34,8 @@ order with their labels, ranges, steps and units; build the panel from it.
 | `highlightTint` | Highlight tint | colour | `#rrggbb` | `#ffdfb3` | |
 | `shadowTint` | Shadow tint | colour | `#rrggbb` | `#294573` | |
 | `offFrame` | Off-frame shadows | switch | | `true` | |
+| `gobo` | Cast by | choice | `none` (Moving objects), `palm` (Palm) | `none` | |
+| `goboDistance` | Gobo distance | slider | 0–600, 10 | 50 | px |
 | `animated` | Animate shadows | switch | | `true` | |
 | `speed` | Motion speed | slider | 1–10, 1 | 5 | × |
 
@@ -42,6 +44,8 @@ Check the steps against `LIGHT_CONTROLS` in your copy; it is the source of truth
 Dependencies between controls:
 
 - With Long shadows off, every field is disabled.
+- **Cast by** is disabled when off-frame shadows are off. **Gobo distance** is also
+  disabled when the choice is Moving objects.
 - **Animate shadows** is disabled when off-frame shadows are off or reduced motion is
   on. **Motion speed** is also disabled when animation is off.
 - **Reset lighting** returns every setting to the defaults and keeps the switch as it

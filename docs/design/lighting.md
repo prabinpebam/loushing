@@ -303,6 +303,45 @@ are on their way, overlapping and passing each other. The objects go through the
 same calculation as the surfaces, so where their shadows cross they don't darken
 each other.
 
+**A gobo** can cast the off-frame shadows instead (`gobo`; the kit ships `palm`).
+It is an image held across the light's rays beyond the light-facing edge, like a stage
+light's gobo or a tree between the sun and a wall: opaque, dark pixels block the light,
+light or transparent ones let it through. Its shadow on the page is the image
+stretched along the light by 1 / sin(altitude), capped at 3× (`GOBO_STRETCH`), with
+its bottom 15 % beyond the edge (`root`) and its top reaching 80 % of the way across
+the view (`reach`). Its size follows the view, not the light (`goboProjection`). The
+source's size blurs it over a disc of radius `goboDistance × tan(sourceSize / 2)` px,
+sampled with 16 taps from a mipmap level matched to the radius; a point light projects
+it crisp. It sways: a smooth value-noise warp, strongest toward the image's free top
+edge, in slow gusts, over a slower lean and drift. It never jumps.
+
+The gobo and the surfaces block the same source, so where their shadows overlap they
+must not darken each other. Where the surfaces leave light `F` and the gobo blocks a
+share `g`, the page gets `F (1 − g) + g G`, with `G = 1 − intensity × (1 − GI) × (1 − ink)`
+the gobo's full shadow. For a surface blocking `a` that is `1 − k (a + g − a g)`, the
+union of the two: in a surface's full shadow the gobo changes nothing, and a fading
+penumbra merges into the pattern with no seam. It is drawn as `1 − g` multiplied over
+the darkened frames, then `g G` added. In an umbra with sky hidden the result is
+slightly lighter than the umbra, by at most `g × intensity × GI`.
+
+**On a raised surface** an off-frame shadow, from moving objects or a gobo, keeps its
+size and blur and slides sideways, to the left or right of the light (`offFrameStep`):
+
+```text
+step, per px of height  = lift × sin(2 × azimuth) / 2, across the light
+lift                    = how far, per px of height, a long wall's own shadow is
+                          half dark (capped at 24, OFF_FRAME_LIFT)
+```
+
+At the defaults lift ≈ 21, so with the light from 315° the shadow shifts 10.5 px per
+px of height: 63 px on a 6 px card and 125 px on a 12 px card. With the light along
+either axis of the view (0°, 90°, 180°, 270°) it doesn't shift. This rule is stylized,
+so that the step reads on the long bands. Strictly, a distant caster's shadow on a
+raised surface moves toward the light by `lift` per px, which leaves the bands' edges,
+running along the light, unbroken. The step is the part of that move's horizontal
+component that runs across the light. Surfaces' shadows on other surfaces stay
+physical.
+
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
 
@@ -381,6 +420,12 @@ shared WebGL2 shadow layer over marked surfaces  +  rim CSS on those surfaces
   the shadow and glow canvases together, to two render targets. Glow frames sit
   after the shadow group in the layer, so bounce brightens what all the shadows
   have darkened.
+- **The gobo blocks the same light as the surfaces.** The off-frame pass writes
+  `1 − g` to a third render target and `g G` to the glow target. The gobo set
+  (`[data-light-offframe="gobo"]`) multiplies the first over the darkened frames and
+  the add set (`[data-light-offframe="add"]`, `plus-lighter`) adds the second, so the
+  page gets the union of the two shadows, `1 − k (a + g − a g)`: never darker where
+  they overlap, and with no seam where a penumbra fades into the pattern.
 - `site/src/styles/lighting.css`: no Loushing component selectors. Public contract:
   root `data-lighting="on"`, surface `data-elevation="0"…"4"`, the optional cut
   (`--light-cut-size`, `--light-cut-corner`) and the `[data-light-layer]` it styles:
@@ -480,7 +525,7 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 
 | ID | Decision | Working default | Approval |
 | --- | --- | --- | --- |
-| LO1 | Initial appearance | Long shadows on for a first visit; a saved choice wins; independent of system/light/dark. The portable engine and kit stay off until a host turns them on | Owner set, 23 Oct 2026 |
+| LO1 | Initial appearance | Long shadows on for a first visit, with moving objects casting the off-frame shadows; a saved choice wins; independent of system/light/dark. The portable engine and kit stay off until a host turns them on | Owner set, 23 Oct 2026 |
 | LO2 | Controls | Visible Long shadows switch beside theme; compact Lighting disclosure | Awaiting review |
 | LO3 | Motion | Off-frame shadows on and animated, at 5×; separate objects with their own speeds and directions, at least one shadow always in view; reduced motion always wins | Owner set, 23 Oct 2026 |
 | LO4 | Renderer | Dependency-free WebGL2 shadows that work out area-light visibility per pixel, one canvas per scroll frame; edges stay CSS | Awaiting visual review |

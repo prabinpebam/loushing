@@ -44,7 +44,13 @@ It appends one container to `<body>`:
   [data-light-shadows]                 z-index: --layer-lighting; multiply over the page
     [data-light-frame="page"]          darken; one per scroll frame
       div › div … › canvas             nested once per scroll container it follows
-    [data-light-frame="fixed"]         position: fixed; the view's casters and off-frame objects
+    [data-light-frame="fixed"]         position: fixed; the view's casters
+    [data-light-offframe="posts|gobo"] isolate; darken (posts) or multiply (gobo)
+      canvas                           position: fixed; the view's copy for the page
+      [data-light-clip="page|fixed"]   one per frame, nested like the frame's divs
+        div › … › span                 marker: where the frame's floors sit
+        div (clip-path) › div … › canvas   one per floor height, fixed to the view
+    [data-light-offframe="add"]        isolate; plus-lighter; same copies, gobo only
   [data-light-glow="page"]             z-index: --layer-lighting; colour-dodge over the page
   [data-light-glow="fixed"]
   canvas (the WebGL surface, hidden)
@@ -95,17 +101,39 @@ compositor never meets a neighbour drawn for the old position.
 > Never reintroduce cross-frame division or a frame that depends on another frame's
 > pixels.
 
+Off-frame shadows, from the moving posts or a gobo, are drawn once per change for the
+bare page, in view pixels, into the off-frame set: one view-fixed copy for the page
+and, per frame, one copy per raised floor height, clipped to that floor's surfaces and
+slid sideways by its height (`offFrameStep`), so they keep their size and blur. The
+copies paint normally inside the isolated set, each over the floor beneath; only the
+set blends with the frames. Posts darken over the frames, like another frame.
+
+A gobo and a surface block **the same source**, so overlapping shadows must not
+darken each other. Where the surfaces leave light `F` and the gobo blocks a share
+`g`, the page gets `F (1 − g) + g G`, where `G = 1 − intensity × (1 − GI) × (1 − ink)`
+is the gobo's full shadow. With a surface blocking `a` that is `1 − k (a + g − a g)`:
+in the surface's full shadow the gobo changes nothing, and a fading penumbra merges
+into the pattern with no seam. CSS has no blend that does this in one layer, so it is
+two sets with the same copies: the gobo set multiplies `1 − g`, and the add set
+(`plus-lighter`) adds `g G`. Taking the darker of the two leaves a hard seam;
+multiplying the gobo's own light darkens the pattern inside shadows. Where the
+browser lacks `plus-lighter`, the add set stays hidden and the gobo set multiplies
+`1 − g (1 − G)`. In an umbra with sky hidden (`F < G`) the union is slightly lighter
+than the umbra, by at most `g × intensity × GI` at full occlusion.
+
 ## Bounce from the same pass
 
 Each surface's walls are lit on the CPU (`litWalls`): only walls whose bounce can
 reach the view, kept until something moves. The fragment shader adds their bounce to
-the frame's light factor `r = U + B` and writes two render targets at once
-(`drawBuffers([COLOR_ATTACHMENT0, COLOR_ATTACHMENT1])`):
+the frame's light factor `r = U + B` and writes three render targets at once
+(`drawBuffers([COLOR_ATTACHMENT0, COLOR_ATTACHMENT1, COLOR_ATTACHMENT2])`):
 
 - the shadow canvas takes `min(r, 1)`, darkened with the others and multiplied;
 - the glow canvas takes `1 − 1 / max(r, 1)` and is colour-dodged over the page after
   every shadow. Colour dodge divides the page by `1 − s`, so it brightens the page by
-  `max(r, 1)`; black leaves it unchanged.
+  `max(r, 1)`; black leaves it unchanged;
+- the gobo canvas takes `1 − g` and, in the off-frame pass, the glow target takes
+  `g G` for the add set (that pass has no bounce).
 
 Where the page colour times `r` would exceed white, the factor is scaled down evenly
 across its channels, so the hue is kept.
