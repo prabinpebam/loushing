@@ -1,0 +1,17 @@
+/*
+ * Host tokens the lighting layer reads. Map each to your design system's own tokens
+ * if it has them; these values reproduce the reference look.
+ *
+ * light-dark() follows the computed color-scheme, so the host must set
+ * color-scheme: light or dark on the root for the theme it shows.
+ */
+:root {
+  /* Above page content (cards, tiles), below sticky bars, menus, popovers and dialogs. */
+  --layer-lighting: 99;
+  /* Share of the chosen shadow tint mixed into the dark-theme ink. Low, so shadows never glow. */
+  --lighting-dark-tint: 0.12;
+  /* Non-emissive ink the tint mixes toward in dark mode; the light value is unused there. */
+  --color-lighting-ink: light-dark(#1b1f23, #000000);
+  /* Maximum width of the Lighting settings panel. */
+  --size-lighting-panel: 23rem;
+}

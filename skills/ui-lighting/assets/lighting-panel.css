@@ -1,0 +1,110 @@
+/*
+ * Styles for lighting-panel.js. Every value is a custom property with a fallback, so
+ * a host maps them to its own tokens: set --lp-* on :root (or a theme scope).
+ * The panel opens below its summary, inside the host's sticky header, so it sits above
+ * the lighting layer and scrolls internally when the view is short.
+ */
+.lp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--lp-control, 2.75rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--lp-text-sm, 0.875rem);
+  cursor: pointer;
+}
+.lp-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+.lp-toggle__track {
+  position: relative;
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--lp-outline, light-dark(#4f5b66, #6f7c88));
+  transition: background-color 120ms ease;
+}
+.lp-toggle__thumb {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--lp-raised, light-dark(#ffffff, #1b1f23));
+  transition: transform 120ms ease;
+}
+.lp-toggle[aria-checked='true'] .lp-toggle__track { background: var(--lp-action, light-dark(#1d5f7a, #7fb7cc)); }
+.lp-toggle[aria-checked='true'] .lp-toggle__thumb { transform: translateX(150%); }
+.lp-toggle:focus-visible, .lp-panel__summary:focus-visible, .lp-button:focus-visible, .lp-input input:focus-visible {
+  outline: 3px solid var(--lp-focus, light-dark(#b04f27, #f6ab88));
+  outline-offset: 2px;
+}
+
+.lp-panel { position: static; }
+.lp-panel__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--lp-control, 2.75rem);
+  padding-inline: 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: var(--lp-text-sm, 0.875rem);
+  list-style: none;
+}
+.lp-panel__summary::-webkit-details-marker { display: none; }
+.lp-panel[open] .lp-panel__summary { background: var(--lp-sunken, light-dark(#eef3f7, #242a30)); }
+.lp-panel__sheet {
+  position: absolute;
+  top: 100%;
+  right: 1rem;
+  width: min(var(--size-lighting-panel, 23rem), calc(100vw - 2rem));
+  max-height: calc(100dvh - var(--data-light-panel-top, 6rem) - 1rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--lp-outline, light-dark(#4f5b66, #6f7c88));
+  border-radius: var(--lp-radius, 1.25rem);
+  background: var(--lp-raised, light-dark(#ffffff, #1b1f23));
+  color: var(--lp-text, light-dark(#1b1f23, #eef3f7));
+}
+.lp-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.lp-panel__title { margin: 0; font-size: 1.125rem; }
+.lp-panel__badge { padding: 0.25rem 0.5rem; border-radius: 999px; background: var(--lp-sunken, light-dark(#eef3f7, #242a30)); font-size: 0.75rem; }
+.lp-panel__hint, .lp-panel__status { margin: 0; color: var(--lp-muted, light-dark(#4f5b66, #a9b5c0)); font-size: var(--lp-text-sm, 0.875rem); }
+.lp-panel__fields { display: grid; gap: 0.75rem; margin: 0; border: 0; padding: 0; min-width: 0; }
+.lp-panel__tints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.lp-input { display: grid; gap: 0.25rem; min-width: 0; }
+.lp-input__label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; font-size: var(--lp-text-sm, 0.875rem); }
+.lp-input output { color: var(--lp-muted, light-dark(#4f5b66, #a9b5c0)); font-variant-numeric: tabular-nums; }
+.lp-input input { width: 100%; min-width: 0; min-height: var(--lp-control, 2.75rem); margin: 0; accent-color: var(--lp-action, light-dark(#1d5f7a, #7fb7cc)); cursor: pointer; }
+.lp-input input[type='color'] { padding: 0.25rem; border: 1px solid var(--lp-outline, light-dark(#4f5b66, #6f7c88)); border-radius: 0.5rem; background: var(--lp-raised, light-dark(#ffffff, #1b1f23)); }
+.lp-input input:disabled { cursor: not-allowed; opacity: 0.5; }
+.lp-button {
+  justify-self: start;
+  min-height: var(--lp-control, 2.75rem);
+  padding-inline: 1rem;
+  border: 1px solid var(--lp-outline, light-dark(#4f5b66, #6f7c88));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--lp-text-sm, 0.875rem);
+  cursor: pointer;
+}
+.lp-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.lp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-toggle__track, .lp-toggle__thumb { transition: none; }
+}

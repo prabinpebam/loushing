@@ -1,0 +1,63 @@
+/*
+ * Portable opt-in lighting. Only its public data attributes and --data-light-* inputs
+ * are required; no product selectors. The host supplies the --lighting-* tokens and
+ * --layer-lighting, a stacking level above page content and below sticky bars,
+ * menus and notifications.
+ * Named tier-0 escape: lighting styles only explicitly opted-in surface wrappers.
+ * A lit surface's own box-shadow becomes its directional rims. Cast shadows are not
+ * CSS: the renderer draws the light each scroll frame's casters leave into one canvas
+ * per frame ([data-light-frame]). The frames are darkened together inside one group
+ * ([data-light-shadows]) that is multiplied over the page: for one light the darkest
+ * frame is the union of the shadows, so overlapping shadows never darken each other,
+ * and the browser combines frames that scroll separately on every frame. Light that
+ * lit walls bounce onto the ground goes into a second canvas per frame
+ * ([data-light-glow]), colour-dodged over the page after the shadows, which brightens
+ * it by the bounce. The container makes no stacking context, so the group and the
+ * glow frames blend with the page itself; a fixed frame escapes its clip.
+ * A surface with one corner cut straight across sets --light-cut-size (and
+ * --light-cut-corner, default top-right) so its shadow follows the cut.
+ */
+@property --light-cut-size {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0;
+}
+
+:root {
+  --light-highlight: color-mix(in srgb, var(--data-light-highlight-tint) var(--data-light-highlight), transparent);
+  --light-shadow-ink: light-dark(var(--data-light-shadow-tint), color-mix(in srgb, var(--data-light-shadow-tint) calc(var(--lighting-dark-tint) * 100%), var(--color-lighting-ink)));
+  --light-edge-shadow: color-mix(in srgb, var(--light-shadow-ink) var(--data-light-intensity), transparent);
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  [data-lighting='on'] [data-elevation]:not([data-elevation='0']) {
+    box-shadow: var(--data-light-rim);
+  }
+}
+
+[data-light-layer] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+[data-light-layer] :is(div, span, canvas) {
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+[data-light-layer] > [data-light-shadows] {
+  z-index: var(--layer-lighting);
+  mix-blend-mode: multiply;
+}
+[data-light-shadows] > [data-light-frame] { mix-blend-mode: darken; }
+[data-light-shadows] > [data-light-frame='fixed'] { position: fixed; }
+[data-light-layer] > [data-light-glow] {
+  z-index: var(--layer-lighting);
+  mix-blend-mode: color-dodge;
+}
+[data-light-layer] > [data-light-glow='fixed'] { position: fixed; }
+[data-light-layer] canvas { display: block; }
+@media (prefers-contrast: more), (forced-colors: active), print {
+  [data-light-layer] { display: none !important; }
+}

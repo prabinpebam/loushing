@@ -420,6 +420,14 @@ the heights, provide the documented tokens, paint the page colour inside the ble
 group, and adapt the controls and storage. This is a reusable source boundary,
 **not yet a published package or a certified cross-browser library**.
 
+**The ui-lighting skill kit** packages that boundary for any agent:
+`skills/ui-lighting/` holds the engine, renderer
+and CSS unchanged, a framework-free adapter and panel, the host tokens, a standalone
+demo, references for the model, renderer, integration, controls and verification,
+and a check script that runs the engine tests and the CSS and renderer contracts on a
+host's copies. `site/test/ui-lighting-kit.test.mjs` fails when the kit's copies drift
+from the site's sources, so change the site first and copy into the kit.
+
 ### Known approximations and deferred work
 
 - Casters are rounded rectangles from each element's box and corner radius, with an
@@ -475,7 +483,7 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 | LO2 | Controls | Visible Long shadows switch beside theme; compact Lighting disclosure | Awaiting review |
 | LO3 | Motion | Off-frame shadows on and animated, at 5×; separate objects with their own speeds and directions, at least one shadow always in view; reduced motion always wins | Owner set, 23 Oct 2026 |
 | LO4 | Renderer | Dependency-free WebGL2 shadows that work out area-light visibility per pixel, one canvas per scroll frame; edges stay CSS | Awaiting visual review |
-| LO5 | Extraction | Portable source boundary now; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
+| LO5 | Extraction | Portable source boundary, packaged as the ui-lighting skill kit in Loushing; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
 | LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
 | LO7 | Bounced light | On at 100 %, physically scaled; adjustable 0–200 % | Awaiting visual review |
 

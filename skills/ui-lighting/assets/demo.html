@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI lighting demo</title>
+<link rel="stylesheet" href="host-tokens.css">
+<link rel="stylesheet" href="lighting.css">
+<link rel="stylesheet" href="lighting-panel.css">
+<style>
+  /* The host page. These values reproduce the reference look; swap in your own tokens. */
+  :root {
+    --bg: light-dark(#f8fafd, #14181b);
+    --raised: light-dark(#ffffff, #1b1f23);
+    --sunken: light-dark(#eef3f7, #242a30);
+    --text: light-dark(#1b1f23, #eef3f7);
+    --muted: light-dark(#4f5b66, #a9b5c0);
+    --rule: light-dark(#e1e9ef, #313a43);
+    --action: light-dark(#1d5f7a, #7fb7cc);
+    --on-action: light-dark(#ffffff, #14181b);
+    --accent-tint: light-dark(#fde4d8, #4a2a1d);
+    --ear-colour: #f08a5d;
+    --ear-size: 2rem;
+    --shadow-raised: 0 1px 2px light-dark(rgb(27 31 35 / 0.06), rgb(0 0 0 / 0.3)), 0 8px 24px -8px light-dark(rgb(27 31 35 / 0.08), rgb(0 0 0 / 0.4));
+  }
+  /* The lighting layer blends with the page: html gets its own background so body keeps
+     its own, and body isolates the blend group. color-scheme drives light-dark(). */
+  html { color-scheme: light dark; background: var(--bg); }
+  html[data-scheme='light'] { color-scheme: light; }
+  html[data-scheme='dark'] { color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, 'Segoe UI', sans-serif;
+    isolation: isolate;
+  }
+  h1, h2, h3, p { margin: 0; }
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 2rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule);
+  }
+  .header__brand { font-weight: 700; font-size: 1.25rem; margin-inline-end: auto; }
+  .theme { min-height: 2.75rem; padding-inline: 0.75rem; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  main { display: grid; gap: 3rem; max-width: 76rem; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+  .lead { color: var(--muted); max-width: 40rem; margin-top: 0.5rem; }
+  .grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+  .tile { position: relative; display: grid; gap: 0.75rem; align-content: start; padding: 1.5rem; border-radius: 1.25rem; background: var(--sunken); }
+  .tile[data-tone='raised'] { background: var(--raised); box-shadow: var(--shadow-raised); }
+  .tile[data-tone='accent'] { background: var(--accent-tint); }
+  .tile__number { font-size: 2.25rem; font-weight: 700; line-height: 1; }
+  .tile p { color: var(--muted); }
+  /* The dog-ear: a top-right corner folded down. The cut tells the lighting the block's shape. */
+  .ear { --light-cut-size: var(--ear-size); }
+  .ear::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--ear-size);
+    height: var(--ear-size);
+    border-bottom-left-radius: 0.75rem;
+    background: linear-gradient(to bottom left, var(--bg) 50%, var(--ear-colour) 50%);
+    pointer-events: none;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chip { padding: 0.25rem 0.75rem; border-radius: 999px; background: var(--raised); font-size: 0.875rem; }
+  .primary { justify-self: start; min-height: 2.75rem; padding-inline: 1.25rem; border: 0; border-radius: 999px; background: var(--action); color: var(--on-action); font: inherit; font-weight: 600; cursor: pointer; }
+  .layout { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr) 20rem; align-items: start; }
+  .article { display: grid; gap: 1rem; }
+  .article p { color: var(--muted); }
+  .aside { position: sticky; top: 5rem; }
+  .shelf { display: flex; gap: 1.5rem; overflow-x: auto; padding: 1.5rem; border-radius: 1.25rem; background: var(--sunken); }
+  .shelf .tile { flex: 0 0 16rem; }
+  @media (max-width: 52rem) { .layout { grid-template-columns: 1fr; } .aside { position: static; } }
+</style>
+</head>
+<body>
+<header class="header">
+  <span class="header__brand">Lighting demo</span>
+  <span data-slot="toggle"></span>
+  <span data-slot="panel"></span>
+  <button class="theme" type="button" data-theme-toggle>Theme: system</button>
+</header>
+<main>
+  <section>
+    <h1>One light for the whole page</h1>
+    <p class="lead">Turn on Long shadows. Raised surfaces stand on the page as blocks, so their shadows stay attached, grow softer with distance and never darken where they overlap.</p>
+  </section>
+  <section class="grid" aria-label="Numbers">
+    <div class="tile" data-tone="raised" data-elevation="2"><span class="tile__number">3</span><p>kits</p></div>
+    <div class="tile" data-tone="raised" data-elevation="2"><span class="tile__number">1</span><p>stack</p></div>
+    <div class="tile" data-tone="raised" data-elevation="2"><span class="tile__number">49</span><p>parts inside kits</p></div>
+    <div class="tile" data-tone="raised" data-elevation="2"><span class="tile__number">22 Oct</span><p>last updated</p></div>
+  </section>
+  <section>
+    <h2>Cards</h2>
+    <div class="grid" style="margin-top:1.5rem">
+      <div class="tile" data-tone="raised" data-elevation="2"><h3>Product and planning</h3><p>Decide what to build and what success means.</p></div>
+      <div class="tile" data-tone="raised" data-elevation="2"><h3>Running agent work</h3><p>Plan, check and hand over work an agent carries out.</p></div>
+      <div class="tile" data-tone="raised" data-elevation="2"><h3>Documentation</h3><p>Turn notes and plans into pages people can browse.</p></div>
+    </div>
+  </section>
+  <section>
+    <h2>A highlighted card with a folded corner</h2>
+    <div class="tile ear" data-tone="accent" data-elevation="3" style="margin-top:1.5rem">
+      <h3>Plan, build and document a product</h3>
+      <div class="chips"><span class="chip">agentic-craft</span><span class="chip">agent-orchestration</span><span class="chip">Slate</span></div>
+      <p>Its walls bounce a warm glow into the shade around it. The primary button stands on the card, so it casts from the card’s height.</p>
+      <button class="primary" type="button" data-elevation="1">Get the stack</button>
+    </div>
+  </section>
+  <section class="layout">
+    <div class="article">
+      <h2>A sticky panel</h2>
+      <p>Scroll fast and to the very end. The panel’s shadow moves with it on the compositor, so it stays attached at the scroll limit.</p>
+      <p>Lorem ipsum stands in for long content here. Each paragraph adds height so the page scrolls well past the panel’s sticking range, which exercises the sticky frame.</p>
+      <p>Shadows darken the text they fall on. That is physically right; the more-contrast preference removes the layer.</p>
+      <p>The off-frame objects are tall posts beyond the edge of the view that faces the light. Each drifts at its own speed and direction, and at least one shadow is always in view.</p>
+      <p>Change the theme. Dark surfaces bounce almost nothing, while light and coloured ones still do.</p>
+      <div class="shelf" aria-label="A scrolling shelf">
+        <div class="tile" data-tone="raised" data-elevation="2"><h3>In a scroller</h3><p>Shadows follow the box’s scroll.</p></div>
+        <div class="tile" data-tone="raised" data-elevation="2"><h3>Second</h3><p>Clipped to the box.</p></div>
+        <div class="tile" data-tone="raised" data-elevation="2"><h3>Third</h3><p>Scroll sideways.</p></div>
+        <div class="tile" data-tone="raised" data-elevation="2"><h3>Fourth</h3><p>Still attached.</p></div>
+      </div>
+      <p style="min-height:60rem">The end of the article is far below, so the sticky panel has room to travel.</p>
+    </div>
+    <aside class="aside">
+      <div class="tile ear" data-tone="accent" data-elevation="3">
+        <h3>Get it</h3>
+        <p>A sticky surface with a cut corner. The upper edge of its shadow starts at the fold.</p>
+        <button class="primary" type="button" data-elevation="1">Copy the command</button>
+      </div>
+    </aside>
+  </section>
+</main>
+<script type="module">
+  import { lightingPanelMarkup, lightingToggleMarkup } from './lighting-panel.js';
+  import { mountLighting } from './lighting-host.js';
+
+  document.querySelector('[data-slot="toggle"]').outerHTML = lightingToggleMarkup();
+  document.querySelector('[data-slot="panel"]').outerHTML = lightingPanelMarkup();
+  mountLighting({ storageKey: 'ui-lighting-demo' });
+
+  const schemes = ['system', 'light', 'dark'];
+  const button = document.querySelector('[data-theme-toggle]');
+  const apply = (scheme) => {
+    if (scheme === 'system') delete document.documentElement.dataset.scheme;
+    else document.documentElement.dataset.scheme = scheme;
+    button.textContent = `Theme: ${scheme}`;
+  };
+  let scheme = localStorage.getItem('ui-lighting-demo.scheme') ?? 'system';
+  apply(scheme);
+  button.addEventListener('click', () => {
+    scheme = schemes[(schemes.indexOf(scheme) + 1) % schemes.length];
+    localStorage.setItem('ui-lighting-demo.scheme', scheme);
+    apply(scheme);
+  });
+</script>
+</body>
+</html>

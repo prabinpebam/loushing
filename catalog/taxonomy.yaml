@@ -15,6 +15,10 @@ areas:
     title: Documentation
     summary: Turn notes and plans into pages people can browse
     icon: menu_book
+  - id: interface-design
+    title: Interface design
+    summary: Shape how a product looks and feels
+    icon: draw
 
 tags:
   - specs
@@ -29,6 +33,9 @@ tags:
   - static-site
   - diagrams
   - presentations
+  - lighting
+  - shadows
+  - webgl
 
 agents:
   - id: copilot-vscode
