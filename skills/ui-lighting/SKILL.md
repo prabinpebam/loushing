@@ -1,6 +1,6 @@
 ---
 name: ui-lighting
-description: Adds a physically based lighting system to any web UI - one distant area light that casts long, attached shadows from raised surfaces treated as solid blocks, with umbra and penumbra that fade by the light's size, global illumination, coloured bounced light, lit and shaded edges, slowly moving shadows from objects beyond the view, and a Long shadows switch beside the theme toggle with a settings panel. Use when asked for long shadows, light direction, area-light or soft shadows, bounce light, glowing or lit borders, or a lighting toggle on a web page, design system or component library. Works in light and dark mode, with any framework or none, using WebGL2 and no dependencies.
+description: Adds a physically based lighting system to any web UI - one distant area light that casts long, attached shadows from raised surfaces treated as solid blocks, with umbra and penumbra that fade by the light's size, global illumination, coloured bounced light, lit and shaded edges, slowly moving shadows from objects beyond the view or from a gobo (a palm) held in the light, and a Long shadows switch beside the theme toggle with a settings panel. Use when asked for long shadows, light direction, area-light or soft shadows, gobo or dappled shade, bounce light, glowing or lit borders, or a lighting toggle on a web page, design system or component library. Works in light and dark mode, with any framework or none, using WebGL2 and no dependencies.
 ---
 
 # UI lighting
@@ -249,6 +249,9 @@ Report what you checked and what you couldn't.
 | Only edges change, and the panel says cast shadows are unavailable | No WebGL2 | Expected fallback |
 | A shadow is detached or floats | A surface is a thin sheet in your model | Don't add CSS drop shadows; the engine extrudes blocks |
 | Shadows look darker where they overlap | The host multiplies extra shadows or edited the engine | Restore the kit files; remove other drop shadows |
+| Sticky surfaces jump or stop sticking, and the page redraws constantly while idle | The layer rebuilds every frame: an older renderer copy, or host code that writes to the DOM under `<body>` every frame | Copy the current renderer; keep per-frame host writes off the page's DOM (use CSS animations or a canvas) |
+| Cast by: Palm shows no pattern, and the console says the gobo could not be loaded | `gobos/palm.png` isn't served beside `lighting-host.js` | Serve the `gobos/` folder there, or pass `mountLighting({ gobos: { palm: url } })` |
+| The palm pattern darkens inside shadows, or a hard seam shows where it meets them | The browser lacks `mix-blend-mode: plus-lighter`, so the renderer falls back to multiplying | Expected in that browser; use a current Chromium, Safari or Firefox |
 
 ## Rules
 

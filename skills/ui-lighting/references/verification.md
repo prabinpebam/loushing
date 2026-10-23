@@ -84,6 +84,7 @@ Go through every row, in light and dark mode, and at a desktop and a phone width
 | Palm over a card's shadow | Inside the shadow's dark core the pattern disappears: the same light can't be blocked twice. It shows only where the shadow fades |
 | Off-frame shadow on a raised card, light at 315° | The band or pattern on the card is the same size and blur as on the page, shifted sideways (about 10.5 px per px of height at the defaults). At 0°, 90°, 180° and 270° it crosses the card unbroken |
 | Fast scroll, then the very end of the page | Sticky surfaces and scroll boxes keep their shadows attached; nothing flickers |
+| Scroll until a sticky panel sticks, then stop | The panel stays put and its own scroll still works. In the console, a `MutationObserver` on `document.body` (`subtree`, `attributes`, `childList`) that skips targets inside `[data-light-layer]` records nothing for two seconds while off-frame motion is off: the layer isn't rebuilding itself |
 | Lighting panel | Opens and closes (Escape returns focus, outside click closes), casts its own shadow, every control works and updates the page at once |
 | Light source size 0° | Crisp shadows that never end |
 | Source size 120° | Short umbra, shadows fade from their tips |

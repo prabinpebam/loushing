@@ -99,6 +99,11 @@ HTML by hand), and load one module:
 </script>
 ```
 
+Serve the kit's `gobos/` folder beside `lighting-host.js` (here `/lighting/gobos/`);
+the adapter finds the palm there. If the masks live elsewhere, pass their URLs:
+`mountLighting({ gobos: { palm: '/images/palm.png' } })`. A mask loads only when its
+gobo is first chosen.
+
 The markup starts with the switch and fields disabled and a `<noscript>` note, so it's
 honest without scripts. On multi-page sites, settings carry across pages through
 `localStorage`.
@@ -155,15 +160,17 @@ If the host has its own state store or settings page, drive the engine and rende
 directly:
 
 ```js
-import { LIGHT_DEFAULTS, LIGHT_LEVELS, lightingMotion, lightingProperties, validateLighting } from './lighting.mjs';
+import { GOBOS, LIGHT_DEFAULTS, LIGHT_LEVELS, lightingMotion, lightingProperties, validateLighting } from './lighting.mjs';
 import { createLightRenderer } from './light-renderer.js';
 
+// Each gobo's mask URL, by name; here the kit's gobos/ folder beside this module.
+const gobos = Object.fromEntries(Object.entries(GOBOS).map(([name, { file }]) => [name, new URL(`./${file}`, import.meta.url).href]));
 let renderer;
 export function applyLighting(value, { reducedMotion, contrast, hidden }) {
   const settings = validateLighting(value);               // throws on bad input
   for (const [name, v] of Object.entries(lightingProperties(settings))) document.documentElement.style.setProperty(name, v);
   document.documentElement.dataset.lighting = settings.enabled ? 'on' : 'off';
-  if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...LIGHT_LEVELS] });
+  if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...LIGHT_LEVELS], gobos });
   renderer?.update(settings, {
     visible: settings.enabled && !contrast,
     motion: lightingMotion(settings, { reducedMotion, hidden: hidden || contrast }),
@@ -189,3 +196,7 @@ any of these media queries or `document.hidden` change. Validate saved settings 
 | A shadow is cut off at a box's edge | The surface is inside a scrolling or clipping box | Expected: shadows are clipped to the box they scroll in |
 | A coloured card's bounce looks grey | The card's background is transparent or a gradient image | The albedo is `background-color`; set one |
 | The panel opens under the layer | The panel's `z-index` | Above `--layer-lighting` |
+| A sticky surface jumps or stops sticking; the page redraws while idle | A `MutationObserver` on `body` that skips `[data-light-layer]`: does it record changes every frame? | The renderer measures sticky surfaces on every rebuild and rebuilds on any DOM change under `body`. Copy the current renderer, and move per-frame host writes (a `requestAnimationFrame` loop setting styles) to CSS animations or a canvas |
+| Cast by: Palm shows nothing | The console warns the gobo could not be loaded; the mask's URL in the network panel | Serve `gobos/` beside the adapter, or pass `gobos` |
+| The gobo's pattern darkens inside shadows | `CSS.supports('mix-blend-mode', 'plus-lighter')` | Expected without `plus-lighter`: the renderer falls back to multiplying the gobo |
+| Off-frame shadows don't shift on raised cards | The cards' `data-elevation` and whether they sit in a sticky or scrolling frame | They shift by height along the light's sideways axis; at 0°, 90°, 180° and 270° the shift is zero by design |
