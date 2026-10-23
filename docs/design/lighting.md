@@ -317,8 +317,8 @@ edge, in slow gusts, over a slower lean and drift. It never jumps.
 
 The gobo and the surfaces block the same source, so where their shadows overlap they
 must not darken each other. Where the surfaces leave light `F` and the gobo blocks a
-share `g`, the page gets `F (1 − g) + g G`, with `G = 1 − intensity × (1 − GI) × (1 − ink)`
-the gobo's full shadow. For a surface blocking `a` that is `1 − k (a + g − a g)`, the
+share `g`, the page gets `F (1 − g) + g G`, with `G` the ink's light at depth `intensity × (1 − GI)`,
+the gobo's full shadow. For a surface blocking `a` that is, in depth, `k (a + g − a g)`, the
 union of the two: in a surface's full shadow the gobo changes nothing, and a fading
 penumbra merges into the pattern with no seam. It is drawn as `1 − g` multiplied over
 the darkened frames, then `g G` added. In an umbra with sky hidden the result is
@@ -344,9 +344,14 @@ physical.
 
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
-In light mode, for looks, a raised surface's edge also stays lit where a shadow
-falls on it, fading inward over 3 px and along the edge with the shadow; in dark mode
-the shadow dims it (LO8).
+For looks, a raised surface's edge also stays lit where a shadow falls on it, fading
+inward over 3 px and along the edge with the shadow, in both themes (LO8).
+
+**Shadow colour** is a multiply, the physically right blend: what a surface shows is
+its colour times the light on it, so its hue is kept. Colour burn would leave white
+cards unshadowed and turn the dark page black. The tint is mixed with full light as
+light, not as sRGB numbers, which cast several times too much tint and turned a pale
+coral badge mauve-grey (LO9).
 
 ## Promise, flows and observable success
 
@@ -427,7 +432,7 @@ shared WebGL2 shadow layer over marked surfaces  +  rim CSS on those surfaces
   `1 − g` to a third render target and `g G` to the glow target. The gobo set
   (`[data-light-offframe="gobo"]`) multiplies the first over the darkened frames and
   the add set (`[data-light-offframe="add"]`, `plus-lighter`) adds the second, so the
-  page gets the union of the two shadows, `1 − k (a + g − a g)`: never darker where
+  page gets the union of the two shadows, of depth `k (a + g − a g)`: never darker where
   they overlap, and with no seam where a penumbra fades into the pattern.
 - `site/src/styles/lighting.css`: no Loushing component selectors. Public contract:
   root `data-lighting="on"`, surface `data-elevation="0"…"4"`, the optional cut
@@ -535,7 +540,8 @@ rows are reversible working defaults, **not owner-approved product decisions**.
 | LO5 | Extraction | Portable source boundary, packaged as the ui-lighting skill kit in Loushing; compare adapting Ambient CSS before choosing an independent package, name, API and license | Not decided |
 | LO6 | Default light | From the north-west (315°), altitude 0°, source 9°, global illumination 30 %, highlight 30 %, shadow 33 %, warm and cool tints | Owner set, 23 Oct 2026 |
 | LO7 | Bounced light | On at 100 %, physically scaled; adjustable 0–200 % | Awaiting visual review |
-| LO8 | Edges under shadow | Light mode: a raised surface's edge stays lit where any shadow falls on it, solid for 1 px and fading by 3 px in, fading along the edge with the shadow (for looks, not physics). Dark mode: the shadow dims the edge. Set by the theme's `--light-edge-lift` | Owner set, 23 Oct 2026; fade width awaiting visual review |
+| LO8 | Edges under shadow | In light and dark mode, a raised surface's edge stays lit where any shadow falls on it, solid for 1 px and fading by 3 px in, fading along the edge with the shadow (for looks, not physics). Set by the theme's `--light-edge-lift` | Owner set, 23 Oct 2026 (dark mode added the same day); fade width awaiting visual review |
+| LO9 | Shadow colour | The page is multiplied by the light left in the shadow, with the tint mixed as light at the ink's depth. Keeps pale colours' hue; the cool cast on white is subtler than before | Owner asked, 23 Oct 2026; strength of the cool cast awaiting visual review |
 
 **Try it:** open the site in a private window: **Long shadows** is already on. Watch the off-frame
 shadows for a minute: several drift across at different speeds, some each way, and

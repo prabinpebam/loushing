@@ -595,7 +595,10 @@ test('renderer contract: one pass, one import, frames shade only with their own 
   assert.match(renderer, /drawBuffers\(\[gl\.COLOR_ATTACHMENT0, gl\.COLOR_ATTACHMENT1, gl\.COLOR_ATTACHMENT2\]\)/, 'shadow, bounce and gobo come from one pass');
   assert.ok(renderer.includes('shadows.insertBefore(shadow.outer, offFrame)') && renderer.includes('shadows.append(host)') && renderer.includes("['posts', 'add'].map(") && renderer.includes('wrapper.append(glow.outer)') && renderer.indexOf('wrapper.append(shadows)') > 0, 'every glow frame follows the shadow group, and the off-frame sets come last in it');
   assert.match(renderer, /const own = box\.layer === layer;/, 'each frame shades with its own casters and others only as ground');
-  assert.match(renderer, /return 1\.0 - uIntensity \* \(1\.0 - uGlobal\) \* \(1\.0 - uInk\);/, 'the gobo’s full shadow is as deep as a surface’s under open sky');
+  assert.match(renderer, /return inkLight\(uIntensity \* \(1\.0 - uGlobal\)\);/, 'the gobo’s full shadow is as deep as a surface’s under open sky');
+  assert.match(renderer, /float y = dot\(toLinear\(vec3\(1\.0 - d \* \(1\.0 - uInk\)\)\), luma\);/, 'a shadow keeps the ink’s depth');
+  assert.match(renderer, /vec3 tint = 1\.0 - d \* \(1\.0 - uInkLight\);/, 'a shadow’s tint is the ink mixed as light, so it never cancels pale colours');
+  assert.match(renderer, /gl\.uniform3fv\(u\.uInkLight, linearColour\(colour\)\);/, 'the ink’s light is linear');
   assert.match(renderer, /outGlow = uGobo \? vec4\(gobo \* goboFull\(\), 1\.0\)/, 'the add set carries g times the gobo’s full shadow');
   assert.match(renderer, /outGobo = vec4\(uSplit \? vec3\(1\.0 - gobo\)/, 'the gobo set multiplies 1 - g, so overlapping shadows of one source never darken each other');
   assert.match(renderer, /vec2 q = p - uGoboBase;/, 'the gobo is drawn once, for the bare page');
@@ -608,7 +611,7 @@ test('renderer contract: one pass, one import, frames shade only with their own 
   assert.match(renderer, /uRim \* \(1\.0 - smoothstep\(RIM_SOLID, RIM_FADE, d\)\)/, 'the lifted edge fades inward rather than ending abruptly');
   assert.match(renderer, /liftEdges\(layer\.floors\[k\], rim > 0 \?/, 'off-frame shadows leave raised edges lit too, only when the theme lifts them');
   const css = readFileSync(CSS, 'utf8');
-  assert.match(css, /--light-edge-lift: light-dark\(#000, transparent\);/, 'a raised edge stays lit under a shadow in light mode only; dark mode stays physical');
+  assert.match(css, /--light-edge-lift: #000;/, 'a raised edge stays lit under a shadow, in both themes');
   assert.match(css, /\[data-light-offframe='add'\] \[data-light-edge\] \{ --light-edge-fill: #000; \}/, 'a lifted edge adds nothing back in the add set');
   const lib = readFileSync(ENGINE, 'utf8');
   assert.doesNotMatch(lib, /^import /m, 'the geometry is pure');

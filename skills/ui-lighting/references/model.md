@@ -279,8 +279,8 @@ edge, in slow gusts, over a slower lean and drift. It never jumps.
 
 The gobo and the surfaces block the same source, so where their shadows overlap they
 must not darken each other. Where the surfaces leave light `F` and the gobo blocks a
-share `g`, the page gets `F (1 − g) + g G`, with `G = 1 − intensity × (1 − GI) × (1 − ink)`
-the gobo's full shadow. For a surface blocking `a` that is `1 − k (a + g − a g)`, the
+share `g`, the page gets `F (1 − g) + g G`, with `G` the ink's light at depth `intensity × (1 − GI)`,
+the gobo's full shadow. For a surface blocking `a` that is, in depth, `k (a + g − a g)`, the
 union of the two: in a surface's full shadow the gobo changes nothing, and a fading
 penumbra merges into the pattern with no seam. It is drawn as `1 − g` multiplied over
 the darkened frames, then `g G` added. In an umbra with sky hidden the result is
@@ -307,14 +307,30 @@ physical.
 **Edges** stay CSS: a lit surface's own `box-shadow` becomes inset rims, warm on
 the edges facing the light and cool on the far edges, with their own intensities.
 
-**Lifted edges under a shadow** are deliberately not physical. In light mode, a raised
-surface's edge keeps its light wherever any shadow falls on it (another surface's,
-the moving objects' or a gobo's), so it reads as a light edge highlight against the
-shade. The lift is whole on the outer pixel and fades out by 3 px in, and since it
-only cancels the shadow, it fades along the edge exactly as the shadow does: there is
-no hard end. In dark mode a shadow dims the edge, as physics says. The theme decides:
-`--light-edge-lift` is `light-dark(#000, transparent)`, and its alpha is the lift's
-strength. A host that leaves it unset keeps physical edges in both modes.
+**Lifted edges under a shadow** are deliberately not physical. A raised surface's
+edge keeps its light wherever any shadow falls on it (another surface's, the moving
+objects' or a gobo's), so it reads as a light edge highlight against the shade. The
+lift is whole on the outer pixel and fades out by 3 px in, and since it only cancels
+the shadow, it fades along the edge exactly as the shadow does: there is no hard end.
+It works the same in light and dark mode. The theme decides: `--light-edge-lift` is
+`#000`, and its alpha is the lift's strength. A host that leaves it unset, or sets it
+to `transparent` (in one theme or both, for example with `light-dark()`), keeps
+physical edges, where a shadow dims the edge.
+
+**The shadow's colour** comes from multiplying the page by the light left in the
+shadow, which is how light works: what a surface shows is its colour times the light
+on it, so a multiply keeps every surface's hue. Colour burn is not a shadow: it leaves
+white untouched (no shadow at all on a white card), turns a dark page black, and
+swings the hue of dark colours. The tint is the colour of the light in a full shadow.
+It is mixed with full light **as light**, in linear values, at the depth the ink's
+sRGB mix gives: in a shadow of depth `d`, the light is
+`(1 − d (1 − ink_linear)) × Y / luminance(1 − d (1 − ink_linear))`, encoded back to
+sRGB, where `Y` is the luminance of `1 − d (1 − ink)` taken in sRGB values. Mixing the
+sRGB numbers instead would give white a cast several times too strong, and
+cancel pale colours: a pale coral badge would lose about 60% of its colour and swing
+55° toward mauve. Mixed as light, it keeps about 70% and shifts about 10°, against
+80% and no shift in a neutral shadow of the same depth. The edge rims keep the ink as
+a CSS colour.
 
 ## Rims: the exact CSS
 
@@ -340,7 +356,8 @@ edge is lit and the bottom edge shaded. From the north-west (`315°`) it is
 --light-edge-shadow = the ink at shadow intensity over transparent
 ```
 
-The shadow layer uses the same ink, so cast shadows and shaded edges agree.
+The shadow layer uses the same ink, so cast shadows and shaded edges agree; it mixes
+the ink as light (see "The shadow's colour" above).
 
 ## Motion
 

@@ -41,9 +41,9 @@
   --light-highlight: color-mix(in srgb, var(--data-light-highlight-tint) var(--data-light-highlight), transparent);
   --light-shadow-ink: light-dark(var(--data-light-shadow-tint), color-mix(in srgb, var(--data-light-shadow-tint) calc(var(--lighting-dark-tint) * 100%), var(--color-lighting-ink)));
   --light-edge-shadow: color-mix(in srgb, var(--light-shadow-ink) var(--data-light-intensity), transparent);
-  /* How much a raised edge keeps its light under a cast shadow: all of it in light
-     mode, for looks; none in dark mode, where a shadow dims the edge as it should. */
-  --light-edge-lift: light-dark(#000, transparent);
+  /* How much a raised edge keeps its light under a cast shadow: all of it, in both
+     themes. Not physical; a lit edge reads as a highlight. */
+  --light-edge-lift: #000;
 }
 
 @media (forced-colors: none) and (prefers-contrast: no-preference) {

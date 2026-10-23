@@ -22,9 +22,11 @@ What a person gets:
   lightens a shadow evenly or casts one of its own;
 - light bounced off the lit walls of surfaces, in their colour, onto the ground beside
   them, fading by the inverse-square law;
-- edges that are lighter on the side facing the light and darker on the far side. In
-  light mode a raised surface's edge stays lit where a shadow falls on it, a highlight
-  that fades with the shadow; in dark mode the shadow dims it;
+- edges that are lighter on the side facing the light and darker on the far side. A
+  raised surface's edge stays lit where a shadow falls on it, a highlight that fades
+  with the shadow, in light and dark mode;
+- shadows that keep the colours they fall on: the page is multiplied by the light
+  left in the shadow, its tint mixed as light, so a pale badge stays its colour;
 - shadows from tall objects beyond the view that drift across it, each on its own, or
   from a gobo, an image held in the light (a palm), swaying slowly. On a raised
   surface either one slides sideways, its size and blur unchanged;

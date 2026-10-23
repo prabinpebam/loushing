@@ -86,8 +86,10 @@ can lag again during fast scrolls. Everything else still works.
 
 ## Compositing: the union of shadows, with no flicker
 
-Group `k` draws only the light its own surfaces leave on the ground, `1 − α_k m` per
-channel, where `α_k` is their shadow and `m` is one minus the ink. Every group's
+Group `k` draws only the light its own surfaces leave on the ground: `inkLight(α_k)`
+per channel, where `α_k` is their shadow. `inkLight(d)` has the depth of the sRGB mix
+`1 − d (1 − ink)` and the colour of the same mix done in linear light (see
+[model.md](model.md)). Every group's
 surfaces still set the height each pixel stands at, so a card in the page group is
 ground for the sticky panel's shadow.
 
@@ -112,21 +114,21 @@ set blends with the frames. Posts darken over the frames, like another frame.
 
 A gobo and a surface block **the same source**, so overlapping shadows must not
 darken each other. Where the surfaces leave light `F` and the gobo blocks a share
-`g`, the page gets `F (1 − g) + g G`, where `G = 1 − intensity × (1 − GI) × (1 − ink)`
-is the gobo's full shadow. With a surface blocking `a` that is `1 − k (a + g − a g)`:
+`g`, the page gets `F (1 − g) + g G`, where `G = inkLight(intensity × (1 − GI))`
+is the gobo's full shadow. With a surface blocking `a` that is close to `inkLight(k (a + g − a g))`:
 in the surface's full shadow the gobo changes nothing, and a fading penumbra merges
 into the pattern with no seam. CSS has no blend that does this in one layer, so it is
 two sets with the same copies: the gobo set multiplies `1 − g`, and the add set
 (`plus-lighter`) adds `g G`. Taking the darker of the two leaves a hard seam;
 multiplying the gobo's own light darkens the pattern inside shadows. Where the
 browser lacks `plus-lighter`, the add set stays hidden and the gobo set multiplies
-`1 − g (1 − G)`. In an umbra with sky hidden (`F < G`) the union is slightly lighter
+`inkLight(g × intensity × (1 − GI))`. In an umbra with sky hidden (`F < G`) the union is slightly lighter
 than the umbra, by at most `g × intensity × GI` at full occlusion.
 
-## Lifted edges (light mode)
+## Lifted edges
 
-For looks, a raised surface's edge keeps its light under any shadow in light mode
-(see [model.md](model.md)). The renderer reads the strength from the alpha of `lift`
+For looks, a raised surface's edge keeps its light under any shadow, in light and dark
+mode (see [model.md](model.md)). The renderer reads the strength from the alpha of `lift`
 through a second probe, again on every theme change. In each frame's pass, the
 shader finds the topmost surface at the pixel and its depth `d` inside it, and mixes
 the light toward unshadowed by `lift × (1 − smoothstep(1, 3, d))`. The off-frame
@@ -134,7 +136,7 @@ copies can't know where a frame's surfaces are, so each frame's floors in an
 off-frame set end with one band per raised surface (`[data-light-edge]`): an inset
 `box-shadow`, solid for 1 px and fading by 3 px, white in the posts or gobo set
 (no shadow) and black in the add set (nothing added). They move with the frame like
-the floors' clips, and are hidden when the lift is 0, as in dark mode.
+the floors' clips, and are hidden when the lift is 0.
 
 ## Bounce from the same pass
 

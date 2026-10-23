@@ -75,8 +75,8 @@ Go through every row, in light and dark mode, and at a desktop and a phone width
 | Look at a card's foot | The shadow is attached at the contact edge and darkest there; it never floats apart |
 | Two cards' shadows overlap | The overlap is no darker than either shadow |
 | Edges | The top and left edges are lit warm, the bottom and right edges shaded cool, from the north-west |
-| Light mode: a shadow (a card's, a band or the palm) across a raised card's edge | The edge stays light where the shadow covers it, a thin highlight that fades inward over about 3 px and fades along the edge with the shadow; it never ends abruptly |
-| Dark mode: the same | The shadow dims the edge like the rest of the card; nothing is lifted |
+| A shadow (a card's, a band or the palm) across a raised card's edge, in light and in dark mode | The edge stays light where the shadow covers it, a thin highlight that fades inward over about 3 px and fades along the edge with the shadow; it never ends abruptly |
+| A shadow across a coloured badge or bar | It keeps its hue: a pale coral badge stays coral, not mauve or grey |
 | A folded corner | The shadow's upper edge starts at the fold, not at the uncut corner |
 | A button on a card | It casts from the card's height onto the card |
 | A coloured card | Its lit north and west walls throw a soft glow of its colour into the shade above and left of it, fading with distance |
@@ -117,7 +117,8 @@ Shadow alpha beside a 12 px block at shadow intensity 33 %, global illumination 
 full light at 1 px, 0.10 at 12 px, 0.01 at 48 px.
 
 To probe a number in the page, compare screenshots with lighting off and on: the ratio
-of the two pixel values is the light left, `1 − alpha × (1 − ink)` per channel.
+of the two pixel values is the light left, `inkLight(alpha)` per channel. Its luminance
+matches `1 − alpha × (1 − ink)` taken in sRGB values; its tint is the ink's mixed as light.
 
 ## 4. The flicker check
 

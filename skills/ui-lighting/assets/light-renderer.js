@@ -9,8 +9,8 @@ import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, 
  * Surfaces move in different scroll frames: with the page, with a sticky bar or a
  * scrolling box, or fixed to the view. Each frame gets its own canvas, which the
  * browser moves with the surfaces it holds through scroll-driven animations, so a
- * shadow never lags its caster. Canvas k holds only the light its own casters leave,
- * per channel 1 - a_k m, with a_k their shadow and m one minus the ink. The canvases
+ * shadow never lags its caster. Canvas k holds only the light its own casters leave:
+ * the ink's light at their shadow's depth a_k, mixed as light (see inkLight). The canvases
  * are darkened together and the result multiplied over the page: for one light the
  * darkest frame is the union of the shadows, and because the browser combines them
  * on every frame, a frame scrolling on the compositor never meets a stale neighbour.
@@ -21,9 +21,9 @@ import { CUT_CORNERS, OFF_FRAME, SKY_BINS, WALL_BINS, bounceReach, casterReach, 
  * ever depends on where another frame's surfaces were when it was drawn.
  * Each redraws only when the scene changes within its frame, or while off-frame
  * casters move.
- * In light mode (the theme's --light-edge-lift) a raised surface's edge keeps its
- * light under any shadow, fading inward over a few px, so it reads as an edge
- * highlight. This is for looks, not physics; in dark mode a shadow dims the edge.
+ * A raised surface's edge keeps its light under any shadow (the theme's
+ * --light-edge-lift), fading inward over a few px, so it reads as an edge highlight.
+ * This is for looks, not physics.
  */
 const MAX_CASTERS = 128;
 const MAX_LAYERS = 8;
@@ -65,6 +65,7 @@ uniform float uIntensity;
 uniform float uGlobal;
 uniform float uRim;
 uniform vec3 uInk;
+uniform vec3 uInkLight;
 uniform vec2 uOrigin;
 uniform float uScale;
 uniform float uRows;
@@ -284,12 +285,32 @@ float goboShadow(vec2 p, float spin) {
   return blocked / float(taps);
 }
 
+vec3 toLinear(vec3 c) {
+  return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
+}
+
+vec3 toEncoded(vec3 c) {
+  return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c));
+}
+
+// What the page is multiplied by in a shadow of depth d (0 none, 1 the full ink).
+// Its brightness is the ink's, 1 - d (1 - ink) in the page's sRGB values; its colour
+// is the ink's light (uInkLight, linear) mixed with full light as light, not as sRGB
+// numbers, which would cast several times the tint and cancel pale colours.
+// Multiplied, it keeps each surface's hue as real tinted light does.
+vec3 inkLight(float d) {
+  const vec3 luma = vec3(0.2126, 0.7152, 0.0722);
+  float y = dot(toLinear(vec3(1.0 - d * (1.0 - uInk))), luma);
+  vec3 tint = 1.0 - d * (1.0 - uInkLight);
+  return toEncoded(min(tint * (y / max(dot(tint, luma), 1e-4)), vec3(1.0)));
+}
+
 // The light at p from this frame alone, shadow plus bounce, limited so the page colour
 // times the light stays displayable with its hue kept. The browser takes the darkest
 // frame per channel, which is the union of their shadows.
 vec3 frameLight(vec2 s, vec3 glow, float rim) {
   float shadow = uIntensity * s.x * (1.0 - uGlobal * (1.0 - min(s.y, 1.0)));
-  vec3 lit = 1.0 - shadow * (1.0 - uInk) + glow;
+  vec3 lit = inkLight(shadow) + glow;
   lit = mix(lit, max(lit, vec3(1.0)), rim);
   vec3 seen = uGround * lit;
   return lit / max(1.0, max(seen.r, max(seen.g, seen.b)));
@@ -297,7 +318,7 @@ vec3 frameLight(vec2 s, vec3 glow, float rim) {
 
 // How much a raised surface's edge keeps its light under a shadow, at depth d inside
 // it: all of it on its outer pixel, fading out inward. Not physical: a lifted edge
-// reads as a highlight. uRim is its strength (light mode only, from the theme).
+// reads as a highlight. uRim is its strength, from the theme.
 float rimLift(float floorZ, float d) {
   return floorZ > 0.0 ? uRim * (1.0 - smoothstep(RIM_SOLID, RIM_FADE, d)) : 0.0;
 }
@@ -305,7 +326,7 @@ float rimLift(float floorZ, float d) {
 // The light where the gobo blocks all of the source: as deep as a surface's shadow
 // under open sky, and never deeper, since both block the same light.
 vec3 goboFull() {
-  return 1.0 - uIntensity * (1.0 - uGlobal) * (1.0 - uInk);
+  return inkLight(uIntensity * (1.0 - uGlobal));
 }
 
 void main() {
@@ -338,10 +359,10 @@ void main() {
   // then g goboFull() added. In a surface's full shadow it changes nothing. A browser
   // that cannot add (uSplit off) multiplies the gobo's own light instead.
   outGlow = uGobo ? vec4(gobo * goboFull(), 1.0) : vec4(1.0 - 1.0 / max(ratio, vec3(1.0)), 1.0);
-  outGobo = vec4(uSplit ? vec3(1.0 - gobo) : 1.0 - gobo * (1.0 - goboFull()), 1.0);
+  outGobo = vec4(uSplit ? vec3(1.0 - gobo) : inkLight(gobo * uIntensity * (1.0 - uGlobal)), 1.0);
 }`;
 
-const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uRim', 'uInk', 'uOrigin', 'uScale', 'uRows',
+const NAMES = ['uBoxes', 'uWalls', 'uCount', 'uGlow', 'uGround', 'uBins', 'uBinCount', 'uPoint', 'uWrap', 'uSpan', 'uStep', 'uInvTotal', 'uThreshold', 'uAzimuth', 'uIntensity', 'uGlobal', 'uRim', 'uInk', 'uInkLight', 'uOrigin', 'uScale', 'uRows',
   'uGobo', 'uSplit', 'uGoboMask', 'uGoboBase', 'uGoboAcross', 'uGoboSize', 'uGoboUnit', 'uGoboStretch', 'uGoboBlur', 'uGoboDistance', 'uGoboTime'];
 
 function compile(gl) {
@@ -1035,7 +1056,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
   }
 
   /**
-   * In light mode, each raised surface's edge in an off-frame set: a band that covers
+   * Each raised surface's edge in an off-frame set: a band that covers
    * the copies beneath it with no shadow (see lighting.css), whole at the outer px and
    * fading inward like the frames' (rimLift), so moving shadows leave it lit too.
    */
@@ -1190,6 +1211,7 @@ export function createLightRenderer({ selector = '[data-elevation]', heights, in
     gl.uniform1f(u.uGlobal, settings.globalIllumination / 100);
     gl.uniform1f(u.uRim, rim);
     gl.uniform3fv(u.uInk, colour);
+    gl.uniform3fv(u.uInkLight, linearColour(colour));
     gl.uniform2f(u.uOrigin, region.x, region.y);
     gl.uniform1f(u.uScale, scale);
     gl.uniform1f(u.uRows, h);
