@@ -200,7 +200,7 @@ The defaults are the owner's chosen look. Don't change them unless asked:
 | Light source size (`sourceSize`) | 9° | 0–120° |
 | Global illumination | 30 % | 0–100 % |
 | Bounced light (`bounce`) | 100 % | 0–200 % |
-| Highlight intensity | 30 % | 0–100 % |
+| Highlight intensity | 15 % | 0–100 % |
 | Shadow intensity | 33 % | 0–100 % |
 | Highlight tint | `#ffdfb3` (warm) | any `#rrggbb` |
 | Shadow tint | `#294573` (cool) | any `#rrggbb` |

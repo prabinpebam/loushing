@@ -20,7 +20,7 @@ agents:
   cursor: expected
   agents: expected
 status: beta
-version: 0.2.0
+version: 0.3.0
 effects: [runs-scripts]
 requires:
   - A browser with WebGL2 for cast shadows; edges still follow the light without it

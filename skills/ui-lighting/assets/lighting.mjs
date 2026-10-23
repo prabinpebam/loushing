@@ -16,7 +16,7 @@ export const LIGHT_CONTROLS = [
   { key: 'sourceSize', label: 'Light source size', min: 0, max: 120, step: 1, unit: '°', value: 9 },
   { key: 'globalIllumination', label: 'Global illumination', min: 0, max: 100, step: 1, unit: '%', value: 30 },
   { key: 'bounce', label: 'Bounced light', min: 0, max: 200, step: 1, unit: '%', value: 100 },
-  { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 30 },
+  { key: 'highlightIntensity', label: 'Highlight intensity', min: 0, max: 100, step: 1, unit: '%', value: 15 },
   { key: 'shadowIntensity', label: 'Shadow intensity', min: 0, max: 100, step: 1, unit: '%', value: 33 },
   { key: 'goboDistance', label: 'Gobo distance', min: 0, max: 600, step: 10, unit: 'px', value: 50 },
   { key: 'speed', label: 'Motion speed', min: 1, max: 10, step: 1, unit: '×', value: 5 },

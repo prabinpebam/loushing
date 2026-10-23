@@ -29,7 +29,7 @@ order with their labels, ranges, steps and units; build the panel from it.
 | `sourceSize` | Light source size | slider | 0–120, 1 | 9 | ° |
 | `globalIllumination` | Global illumination | slider | 0–100, 1 | 30 | % |
 | `bounce` | Bounced light | slider | 0–200, 1 | 100 | % |
-| `highlightIntensity` | Highlight intensity | slider | 0–100, 1 | 30 | % |
+| `highlightIntensity` | Highlight intensity | slider | 0–100, 1 | 15 | % |
 | `shadowIntensity` | Shadow intensity | slider | 0–100, 1 | 33 | % |
 | `highlightTint` | Highlight tint | colour | `#rrggbb` | `#ffdfb3` | |
 | `shadowTint` | Shadow tint | colour | `#rrggbb` | `#294573` | |

@@ -103,7 +103,7 @@ test('impossible light geometry is explicitly rejected', () => {
 
 test('settings validate types, ranges, booleans, colours and unknown fields', () => {
   const { enabled, highlightTint, shadowTint, ...panel } = LIGHT_DEFAULTS;
-  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, bounce: 100, highlightIntensity: 30, shadowIntensity: 33, goboDistance: 50, speed: 5, offFrame: true, animated: true, gobo: 'none' }, 'the owner’s chosen defaults');
+  assert.deepEqual(panel, { azimuth: 315, altitude: 0, sourceSize: 9, globalIllumination: 30, bounce: 100, highlightIntensity: 15, shadowIntensity: 33, goboDistance: 50, speed: 5, offFrame: true, animated: true, gobo: 'none' }, 'the owner’s chosen defaults');
   assert.deepEqual([enabled, highlightTint, shadowTint], [false, '#ffdfb3', '#294573']);
   assert.deepEqual(validateLighting({}), LIGHT_DEFAULTS);
   assert.equal(validateLighting({ altitude: 0 }).altitude, 0, 'the light may sit on the horizon');
