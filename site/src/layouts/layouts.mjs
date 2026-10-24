@@ -69,7 +69,8 @@ const NAV = [
 
 /**
  * The page shell: head, header, main and footer. The theme is set before first paint
- * from the saved choice, so there is no flash.
+ * from the saved choice, so there is no flash. The header stays one row; a native
+ * disclosure holds navigation and secondary controls below the wide breakpoint.
  */
 export function Shell({ title, description, path, layout, main, assets, chopper, alternate, headerSearch = true }) {
   const docTitle = title === 'Loushing' ? 'Loushing: the AI agent skills and kits I use' : `${title} · Loushing`;
@@ -94,13 +95,18 @@ ${alternate && html`<link rel="alternate" type="text/markdown" href="${alternate
 <header class="l-header">
   <div class="l-header__inner">
     <a class="l-header__brand" href="${url('/')}" aria-label="Loushing home">${Icon({ name: 'pets' })}<span>Loushing</span></a>
-    <nav class="l-header__nav" aria-label="Main"><ul>${NAV.map((n) => html`<li>${Link({ href: url(n.href), label: n.label, current: path === n.href })}</li>`)}</ul></nav>
-    ${headerSearch && html`<div class="l-header__search">${SearchBox({ id: 'header-search', label: 'Search the catalog', placeholder: 'Search skills and kits', action: url('/catalog') })}</div>`}
-    <div class="l-header__appearance">
-      ${Toggle({ label: 'Long shadows', data: { 'lighting-toggle': 'true' }, disabled: true })}
-      ${LightingPanel()}
-      ${IconButton({ label: 'Theme: match my system', icon: 'contrast', data: { 'theme-toggle': 'true' } })}
-    </div>
+    <details class="l-header__menu" data-header-menu>
+      <summary class="l-header__menu-trigger" aria-label="Open menu" title="Open menu" aria-controls="header-menu">${Icon({ name: 'menu' })}</summary>
+      <div class="l-header__menu-panel" id="header-menu">
+        <nav class="l-header__nav" aria-label="Main"><ul>${NAV.map((n) => html`<li>${Link({ href: url(n.href), label: n.label, current: path === n.href, standalone: true })}</li>`)}</ul></nav>
+        ${headerSearch && html`<div class="l-header__search">${SearchBox({ id: 'header-search', label: 'Search the catalog', placeholder: 'Search skills and kits', action: url('/catalog'), live: true })}</div>`}
+        <div class="l-header__appearance">
+          ${Toggle({ label: 'Long shadows', data: { 'lighting-toggle': 'true' }, disabled: true })}
+          ${IconButton({ label: 'Theme: match my system', icon: 'contrast', data: { 'theme-toggle': 'true' } })}
+        </div>
+      </div>
+    </details>
+    ${LightingPanel()}
   </div>
 </header>
 <main id="main" class="l-main" tabindex="-1">

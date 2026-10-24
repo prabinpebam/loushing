@@ -178,6 +178,19 @@ at 4.5:1 and outlines, focus and chart series at 3:1.
 **Fundamentals:** Button, IconButton, Link, Icon, Chip, Badge, Input, SearchBox, Tabs,
 CopyField, Toggle, Tooltip, Skeleton, Divider, Tile, Metric.
 
+CopyField uses a small, icon-only copy control at the code or prompt block’s top-right,
+without a separate button row. Its 16 px glyph keeps a 44 px interaction target.
+The tooltip and accessible name identify what is copied; success shows a check and
+announces “Copied”. A clipboard failure selects the original text and shows a
+persistent manual-copy instruction.
+
+Links and selection states never use underlines, including on hover or focus.
+Title-bar navigation and selected tabs use the action color and semibold weight for the
+current item; ordinary navigation remains medium weight. Breadcrumbs and other text
+links use the action color and medium weight; links embedded in prose use semibold
+weight so they remain identifiable without color alone. Keyboard focus keeps its
+outline. Borders separating sections or tab groups are dividers, not selection cues.
+
 | Compound | Shows | Block |
 | --- | --- | --- |
 | Hero | The page's promise and the search box | `hero` |
@@ -206,6 +219,25 @@ Gone). Each declares its regions and its [cameo zones](chopper.md#where-he-appea
 **Every state, in every context.** Each component documents and shows default, hover,
 focus-visible, pressed, disabled, loading, error and empty where they apply, in light,
 dark, more-contrast and forced-colours, and at 320 px wide and 200% zoom.
+
+### Responsive title bar
+
+The sticky title bar stays on one row. Navigation never wraps or becomes a second
+horizontal strip; secondary controls move into a native disclosure before they crowd
+the brand.
+
+| Viewport | Title bar | Menu |
+| --- | --- | --- |
+| Below `breakpoint.lg` (72rem) | Brand, bulb icon, menu button | Main navigation, header search where present, long-shadow switch and theme control |
+| 72rem to below `breakpoint.xl` (90rem) | Brand, main navigation, long-shadow switch, theme and bulb controls | None; search stays available on the catalog |
+| 90rem and above | The same row, plus header search where present | None |
+
+The same links and controls serve every width: no duplicate search fields, IDs or
+saved settings. The menu overlays the page below the bar, scrolls within the remaining
+viewport height, works without JavaScript, and retains native Enter/Space behavior.
+With JavaScript, Escape returns focus to its trigger, outside clicks dismiss it, and
+the navigation and lighting panels never remain open together. Navigation links and
+icon controls have `size.control` targets.
 
 ## Views from data
 

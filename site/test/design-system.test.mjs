@@ -37,6 +37,29 @@ test('tokens: generated output is current and every contrast pair holds', () => 
   assert.equal(contrast.status, 0, contrast.stdout + contrast.stderr);
 });
 
+test('links and selected states use color and weight, never underlines', () => {
+  const styles = readdirSync(join(src, 'styles')).filter((name) => name.endsWith('.css'));
+  for (const name of styles) {
+    const css = read(src, 'styles', name).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(css, /text-decoration(?:-line)?\s*:[^;{}]*\bunderline\b/, name);
+    assert.doesNotMatch(css, /text-underline-|text-decoration-(?:color|thickness)\s*:/, name);
+  }
+  const base = read(src, 'styles', 'base.css');
+  assert.match(base, /(?:^|\n)a\s*\{[^}]*text-decoration:\s*none/);
+  assert.match(base, /\.prose a\s*\{[^}]*font-weight:\s*var\(--weight-semibold\)/);
+  const fundamentals = read(src, 'styles', 'fundamentals.css');
+  for (const selector of [".f-link[aria-current='page']", ".f-tabs__tab[aria-selected='true']"]) {
+    const rule = fundamentals.slice(fundamentals.indexOf(selector)).split('}')[0];
+    assert.ok(rule.startsWith(selector), selector);
+    assert.match(rule, /color:\s*var\(--color-action\)/, selector);
+    assert.match(rule, /font-weight:\s*var\(--weight-semibold\)/, selector);
+    assert.doesNotMatch(rule, /border-bottom|text-decoration/);
+  }
+  const tab = fundamentals.match(/\.f-tabs__tab\s*\{([^}]+)\}/)[1];
+  assert.doesNotMatch(tab, /border-bottom/);
+  assert.match(base, /:focus-visible\s*\{[^}]*outline:\s*var\(--border-focus\)/);
+});
+
 test('tiers: each tier imports only from below', () => {
   assert.deepEqual(imports(read(src, 'components', 'fundamentals.mjs')).filter((p) => !/^\.\.\/lib\/|^\.\/icons\.mjs$/.test(p)), [], 'fundamentals use tier 0 only');
   const compounds = readdirSync(join(src, 'components', 'compounds')).filter((f) => f.endsWith('.mjs') && f !== 'format.mjs');

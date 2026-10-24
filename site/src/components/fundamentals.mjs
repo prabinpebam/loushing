@@ -46,10 +46,11 @@ export function IconButton({ label, icon, pressed, data }) {
 
 /**
  * Link: inline navigation. External links say so with an arrow and open in place.
- * @param {{ href: string, label: string, external?: boolean, current?: boolean }} props
+ * @param {{ href: string, label: string, external?: boolean, current?: boolean, standalone?: boolean }} props
+ * `standalone` gives navigation links a full control-height target instead of inline sizing.
  */
-export function Link({ href, label, external = false, current = false }) {
-  return html`<a${attrs({ class: 'f-link', href, 'aria-current': current ? 'page' : null, rel: external ? 'noopener' : null })}>${label}${external && html`<span class="f-link__ext">${Icon({ name: 'north_east' })}</span>`}</a>`;
+export function Link({ href, label, external = false, current = false, standalone = false }) {
+  return html`<a${attrs({ class: 'f-link', href, 'aria-current': current ? 'page' : null, rel: external ? 'noopener' : null, 'data-standalone': standalone ? 'true' : null })}>${label}${external && html`<span class="f-link__ext">${Icon({ name: 'north_east' })}</span>`}</a>`;
 }
 
 /**
@@ -102,16 +103,17 @@ export function Tabs({ id, label, tabs, selected }) {
 }
 
 /**
- * CopyField: a command or prompt in a monospace well with a copy button.
- * The button says "Copy command" then "Copied" (ui-copy); `copyLabel` names the thing.
- * @a11y The copied text is real text, selectable; the result is announced politely.
+ * CopyField: a command or prompt with a compact, icon-only copy control.
+ * `copyLabel` supplies its accessible name and tooltip; a check confirms success.
+ * @a11y 44 px target; selectable text; polite status and visible manual-copy errors.
  * @param {{ lines: string[], copyLabel?: string, wrap?: boolean, data?: object }} props
  */
 export function CopyField({ lines, copyLabel = 'Copy command', wrap = false, data }) {
   const text = lines.join('\n');
   return html`<div${attrs({ class: 'f-copy', 'data-wrap': String(wrap), ...dataAttrs(data) })}>
   <pre class="f-copy__text"><code>${text}</code></pre>
-  <button class="f-copy__button" type="button" data-copy="${text}" data-copy-label="${copyLabel}">${Icon({ name: 'content_copy' })}<span class="f-copy__label">${copyLabel}</span></button>
+  <button class="f-copy__button" type="button" aria-label="${copyLabel}" title="${copyLabel}" data-copy="${text}" data-copy-label="${copyLabel}"><span class="f-copy__idle">${Icon({ name: 'content_copy' })}</span><span class="f-copy__done" hidden>${Icon({ name: 'check' })}</span></button>
+  <span class="f-copy__status u-visually-hidden" role="status"></span>
 </div>`;
 }
 

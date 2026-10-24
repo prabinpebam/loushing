@@ -7,6 +7,7 @@ import { search, facetCounts, filtersToQuery, queryToFilters } from '../lib/sear
 import { comboAction, openIndex, moveIndex, typeahead } from '../lib/listbox.mjs';
 import { emptySlots } from '../lib/slots.mjs';
 import { initLighting } from './lighting.js';
+import { initHeader } from './header.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -46,25 +47,45 @@ function initTabs() {
   }
 }
 
-/* Copy buttons: "Copy command" -> "Copied" for a moment. */
+/* Copy buttons: compact icons with an announced result and a manual-copy fallback. */
 function initCopy() {
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-copy]');
     if (!btn) return;
-    const label = $('.f-copy__label', btn);
+    const status = $('.f-copy__status', btn.parentElement);
+    const idle = $('.f-copy__idle', btn);
+    const done = $('.f-copy__done', btn);
+    clearTimeout(btn._t);
+    delete btn.dataset.copied;
+    idle.hidden = false;
+    done.hidden = true;
+    status.textContent = '';
+    status.classList.add('u-visually-hidden');
     try {
       await navigator.clipboard.writeText(btn.dataset.copy);
       btn.dataset.copied = 'true';
-      if (label) label.textContent = 'Copied';
-    } catch {
-      const pre = btn.parentElement?.querySelector('pre');
-      if (pre) getSelection().selectAllChildren(pre);
-      if (label) label.textContent = 'Press Ctrl+C to copy';
+      idle.hidden = true;
+      done.hidden = false;
+      btn.setAttribute('aria-label', 'Copied');
+      btn.title = 'Copied';
+      status.textContent = 'Copied';
+    } catch (error) {
+      console.warn('The clipboard could not be written.', error);
+      const pre = $('pre', btn.parentElement);
+      getSelection().selectAllChildren(pre);
+      btn.setAttribute('aria-label', btn.dataset.copyLabel);
+      btn.title = btn.dataset.copyLabel;
+      status.textContent = 'Couldn’t copy. Text selected; copy it manually.';
+      status.classList.remove('u-visually-hidden');
+      return;
     }
-    clearTimeout(btn._t);
     btn._t = setTimeout(() => {
       delete btn.dataset.copied;
-      if (label) label.textContent = btn.dataset.copyLabel;
+      idle.hidden = false;
+      done.hidden = true;
+      btn.setAttribute('aria-label', btn.dataset.copyLabel);
+      btn.title = btn.dataset.copyLabel;
+      status.textContent = '';
     }, 2000);
   });
 }
@@ -396,6 +417,7 @@ initTabs();
 initCopy();
 initSlots();
 initTheme();
+initHeader();
 initLighting();
 initChopperToggle();
 initGetIt();
