@@ -1,5 +1,5 @@
 /**
- * Lighting controls: a compact, non-modal disclosure for the experimental renderer.
+ * Lighting controls: a bulb-only, non-modal disclosure for the experimental renderer.
  * Not for theme selection or glow, which are independent systems.
  * @tier 2
  * @a11y Native disclosure, labelled native inputs, switches and a polite status.
@@ -7,7 +7,7 @@
  */
 import { html } from '../../lib/html.mjs';
 import { GOBOS, GOBO_CHOICES, LIGHT_CONTROLS, LIGHT_DEFAULTS } from '../../lib/lighting.mjs';
-import { Button, LightInput, Segmented, Toggle } from '../fundamentals.mjs';
+import { Button, Icon, LightInput, Segmented, Toggle } from '../fundamentals.mjs';
 
 const control = (key) => LIGHT_CONTROLS.find((c) => c.key === key);
 const OWN_PLACE = ['goboDistance', 'speed'];
@@ -15,7 +15,7 @@ const OWN_PLACE = ['goboDistance', 'speed'];
 /** The shared lighting disclosure. Settings are data from the portable engine. */
 export function LightingPanel() {
   return html`<details class="c-lighting" data-lighting-panel>
-  <summary class="c-lighting__summary">Lighting</summary>
+  <summary class="c-lighting__summary" aria-label="Lighting" title="Lighting">${Icon({ name: 'lightbulb' })}</summary>
   <section class="c-lighting__panel" aria-label="Lighting settings" data-elevation="4">
     <div class="c-lighting__head"><h2 class="c-lighting__title">Lighting</h2><span class="c-lighting__badge">Preview</span></div>
     <p class="c-lighting__hint">Direction names the light source. Lower light lengthens shadows, a bigger source softens and fades them, and global illumination lightens them away from what casts them.</p>

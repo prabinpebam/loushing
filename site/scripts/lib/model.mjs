@@ -81,6 +81,7 @@ export function partItem(kit, p) {
     files: p.files,
     hub: kit.anatomy?.hub === p.name,
     source: { repo: kit.source.repo, commit: kit.source.commit, path: p.path },
+    standalone: p.standalone ?? null,
   };
 }
 

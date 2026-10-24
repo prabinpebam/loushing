@@ -546,6 +546,12 @@ can overturn.
 - Source files are shown without syntax highlighting.
 - The catalog is a tile grid with a live search in the sidebar that filters as you
   type, without a submit button.
+- All 19 skills inside the pinned kits also have independent adaptations in
+  `skills/`, with their own cards, instructions, resources and pinned source notes.
+  Kit and part pages link to these versions; search, JSON, Markdown and `llms.txt`
+  include them. The kits and their pinned commits are unchanged. Slate adaptations
+  are host-neutral workflows rather than copies of its runtime or validators, and
+  retain `NOASSERTION` licensing. Compatibility is labeled expected, not agent-tested.
 
 **Design system.**
 
@@ -589,5 +595,6 @@ drafts stop showing. Zones can take extra size classes from a breakpoint
 (`extraSizes`): a 3:1 strip in section breaks and the footer from medium screens up,
 and a tall scene in the gutter on very wide screens.
 
-**Not built yet.** Real skills (stage 1 needs at least five from you), component
-stories, automated Lighthouse and axe runs, a custom domain (O13), and the CLI.
+**Not built yet.** Component stories, automated Lighthouse and axe runs, a custom
+domain (O13), and the CLI. The standalone workflows have not yet been exercised
+end-to-end in every supported agent.

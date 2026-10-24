@@ -30,7 +30,8 @@ export function catalogJson(model) {
     status: i.status,
     version: i.version ?? null,
     effects: i.effects ?? [],
-    ...(i.type === 'kit' ? { parts: (i.parts ?? []).map((p) => ({ kind: p.kind, name: p.name, url: absolute(`/items/${i.id}/${p.slug}`) })) } : {}),
+    ...(i.derivedFrom ? { derivedFrom: i.derivedFrom } : {}),
+    ...(i.type === 'kit' ? { parts: (i.parts ?? []).map((p) => ({ kind: p.kind, name: p.name, url: absolute(`/items/${i.id}/${p.slug}`), ...(p.standalone ? { standalone: { id: p.standalone.id, url: absolute(p.standalone.url) } } : {}) })) } : {}),
     ...(i.type === 'stack' ? { members: (i.members ?? []).map((m) => m.id) } : {}),
     updated: i.updated,
     source: sourceOf(i),
@@ -54,7 +55,7 @@ export function catalogVersion(model) {
 
 export function itemJson(item, model) {
   const card = {};
-  for (const k of ['id', 'type', 'title', 'summary', 'useWhen', 'notFor', 'area', 'tags', 'agents', 'status', 'version', 'effects', 'requires', 'license', 'origin', 'owner', 'docs', 'examples', 'members', 'handoffs']) if (item[k] !== undefined) card[k] = item[k];
+  for (const k of ['id', 'type', 'title', 'summary', 'useWhen', 'notFor', 'area', 'tags', 'agents', 'status', 'version', 'effects', 'requires', 'license', 'licenseNote', 'origin', 'owner', 'docs', 'examples', 'members', 'handoffs', 'derivedFrom']) if (item[k] !== undefined) card[k] = item[k];
   return {
     ...card,
     updated: item.updated,
@@ -63,7 +64,7 @@ export function itemJson(item, model) {
     url: absolute(item.url),
     page: { markdown: absolute(`${item.url}.md`) },
     files: (item.files ?? []).map(({ path, size, sha256, role, runs }) => ({ path, size, sha256, role, runs })),
-    parts: (item.parts ?? []).map((p) => ({ kind: p.kind, name: p.name, path: p.path, description: p.description, files: p.files.map(({ path, size, sha256 }) => ({ path, size, sha256 })) })),
+    parts: (item.parts ?? []).map((p) => ({ kind: p.kind, name: p.name, path: p.path, description: p.description, ...(p.standalone ? { standalone: { id: p.standalone.id, url: absolute(p.standalone.url) } } : {}), files: p.files.map(({ path, size, sha256 }) => ({ path, size, sha256 })) })),
     related: (item.related ?? []).map((r) => ({ id: r.id, relation: r.kind, reason: r.reason })),
     install: {
       note: 'One plan per agent and scope, keyed "<agent>:<scope>". "git" is the exact command list; "ask" is a prompt for an agent; "command" is the CLI line (not published yet).',
@@ -81,8 +82,9 @@ export function itemMarkdown(item, model) {
   if (item.useWhen?.length) lines.push('## When I use it', '', ...item.useWhen.map((l) => `- ${l}`), '');
   if (item.notFor?.length) lines.push('## Not for', '', ...item.notFor.map((l) => `- ${l}`), '');
   lines.push(String(item.body ?? '').trim(), '');
+  if (item.derivedFrom) lines.push('## Source skill', '', `Independent adaptation of \`${item.derivedFrom.skill}\` in [${item.derivedFrom.kit}](${absolute(`/items/${item.derivedFrom.kit}`)}); installing the kit is not required.`, '');
   if (item.examples?.length) lines.push('## Try it', '', ...item.examples.flatMap((e) => [`- Prompt: ${e.prompt}`, `  Expect: ${e.expect}`]), '');
-  if (item.parts?.length) lines.push("## What's inside", '', ...item.parts.map((p) => `- ${p.kind} \`${p.name}\`: ${p.description}`), '');
+  if (item.parts?.length) lines.push("## What's inside", '', ...item.parts.map((p) => `- ${p.kind} \`${p.name}\`: ${p.description}${p.standalone ? ` [Use separately](${absolute(p.standalone.url)})` : ''}`), '');
   if (item.type === 'stack') lines.push('## Members', '', ...(item.members ?? []).map((m, i) => `${i + 1}. ${model.byId.get(m.id)?.title ?? m.id}: ${m.role}`), '');
   const p = item.plans['copilot-vscode:project'];
   if (p?.supported) lines.push('## Get it (VS Code Copilot, this project)', '', '```', ...p.git, '```', '', `Every agent and scope: ${absolute(`${item.url}.json`)}`, '');
@@ -91,6 +93,7 @@ export function itemMarkdown(item, model) {
 }
 
 export function llmsTxt(model) {
+  const skills = model.items.filter((i) => i.type === 'skill');
   const kits = model.items.filter((i) => i.type === 'kit');
   const stacks = model.items.filter((i) => i.type === 'stack');
   return [
@@ -109,6 +112,7 @@ export function llmsTxt(model) {
     '## Kits',
     '',
     ...kits.map((k) => `- [${k.title}](${absolute(`${k.url}.md`)}): ${k.summary}`),
+    ...(skills.length ? ['', '## Skills', '', ...skills.map((s) => `- [${s.title}](${absolute(`${s.url}.md`)}): ${s.summary}`)] : []),
     ...(stacks.length ? ['', '## Stacks', '', ...stacks.map((s) => `- [${s.title}](${absolute(`${s.url}.md`)}): ${s.summary}`)] : []),
     '',
   ].join('\n');

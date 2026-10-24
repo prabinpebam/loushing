@@ -5,7 +5,8 @@ page for each and the steps to set it up. It's a personal collection, not a
 marketplace: these work for me, and if one looks useful to you, take it.
 
 **Status:** stage 1, "A catalog you can read", is built in [site/](site/) and lists the
-first kits; real skills are added one or a few at a time. "Loushing" is the working
+first kits, UI lighting and [19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
+"Loushing" is the working
 name. The plan and spec live in the Slate documentation in [docs/](docs/).
 
 ## Preview the site

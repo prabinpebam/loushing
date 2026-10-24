@@ -59,8 +59,18 @@ a distribution channel, not a different kind of item.
 | **Stack** | A curated combination of items for one outcome, with the order to set them up and how they hand off | Loushing (`stacks/<name>.md`) | "Plan, build and document a product": agentic-craft + agent-orchestration + Slate | Each member, in order, in one confirmed run |
 
 **Parts** are the skills, agents, templates and tools inside a kit. A kit's page lists
-its parts, and each part is searchable, but parts are not installed alone unless the
-kit says they can be. This keeps a kit's method intact.
+its parts, and each part is searchable. The original parts remain in the kit, while
+independent adaptations of all 19 kit skills are also listed as ordinary skills.
+Each standalone folder carries its own instructions and required resources; it
+does not install the kit or silently depend on another skill.
+
+The standalone card declares `derivedFrom: { kit: <id>, skill: <source-name> }`.
+The catalog validates this against the pinned kit, rejects duplicate adaptations,
+and exposes **Use separately** on the kit page and **Get skill** on the part page.
+The source skill and standalone id need not match: Slate's main skill becomes
+`documentation-site`, for example, so it does not collide with the kit's id.
+This source relationship is also present in catalog and item JSON and kit Markdown.
+These are adaptations, not promises that kit-specific runtimes or tools are included.
 
 **Not item types yet (decision [O3](product-spec.md#10-decisions)):** standalone
 custom agents (`.agent.md`), instruction files, prompt files, hooks and MCP server
@@ -110,6 +120,7 @@ from `SKILL.md`.
 | `id` | Yes | All | Stable identifier in URLs, the CLI and the index | Lowercase, digits and hyphens, at most 64 characters; equals the skill's `name` and folder; never reused, even after removal |
 | `type` | Yes | All | `skill`, `kit` or `stack` | Fixed vocabulary |
 | `title` | Yes | All | Display name | Sentence case; may differ from `id` ("Definition of Done") |
+| `derivedFrom` | When adapted from a listed kit skill | Skill | Source identity and the kit-part link to this standalone version | Object with `kit` (kit id) and `skill` (canonical skill name at the pinned commit); one standalone per source skill |
 | `summary` | Yes | All | One sentence: what a person gets | At most 140 characters, outcome first, no jargon |
 | `useWhen` | Yes | All | Two to five situations, in the person's words | Each starts with a verb or "you…"; feeds search |
 | `notFor` | Recommended | All | When to choose something else | Names the alternative when one exists |

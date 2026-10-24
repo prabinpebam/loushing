@@ -21,8 +21,15 @@ function githubAt(item, path = '') {
   return `${repo}/${path && !path.endsWith('/') && /\.\w+$/.test(path) ? 'blob' : 'tree'}/${commit}/${path}`;
 }
 
-function md(src, item, opts = {}) {
-  const resolveLink = (h) => (/^(https?:|mailto:|#)/.test(h) ? h : githubAt(item, h.replace(/^\.\//, '')) ?? h);
+function md(src, item, { filePath, ...opts } = {}) {
+  const path = filePath ?? (item.type === 'skill' ? `${item.source?.path ?? ''}/about.md` : 'about.md');
+  const directory = path.split('/').slice(0, -1).join('/');
+  const base = githubAt(item, directory ? `${directory}/` : '');
+  const resolveLink = (h) => {
+    if (/^(https?:|mailto:|#)/.test(h) || !base) return h;
+    const target = new URL(h, base);
+    return /\.\w+$/.test(target.pathname) ? target.href.replace(`/tree/${item.source.commit}/`, `/blob/${item.source.commit}/`) : target.href;
+  };
   return raw(renderMarkdown(src ?? '', { resolveLink, headingShift: 1, ...opts }));
 }
 
@@ -42,7 +49,7 @@ export function ItemHeader({ item }, { model }) {
     ${item.area && html`<li>${Link({ href: url(`/catalog?area=${item.area}`), label: item.areaTitle })}</li>`}
     ${kit && html`<li>${Link({ href: url(kit.url), label: kit.title })}</li>`}
   </ol></nav>
-  ${kit && Banner({ icon: 'inventory_2', tone: 'info', text: html`Part of <a href="${url(kit.url)}">${kit.title}</a>. Get the kit to use it.` })}
+  ${kit && Banner({ icon: 'inventory_2', tone: 'info', text: html`Part of <a href="${url(kit.url)}">${kit.title}</a>. ${item.standalone ? html`You can also <a href="${url(item.standalone.url)}">use it separately</a>.` : 'Get the kit to use it.'}` })}
   ${item.status === 'experimental' && Banner({ icon: 'construction', tone: 'caution', text: 'Experimental: may change or be removed. Pin a version if you depend on it.' })}
   ${item.status === 'deprecated' && Banner({ icon: 'warning', tone: 'caution', text: `Deprecated: ${item.statusReason ?? 'use its replacement.'}` })}
   ${item.status === 'moved' && Banner({ icon: 'drive_file_move', tone: 'info', text: `Moved: ${item.statusReason ?? 'now lives in its own repository. Installing still works.'}` })}
@@ -76,8 +83,9 @@ export function GetItPanel({ item }, { model }) {
   if (item.type === 'part') {
     return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-elevation="3">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
-  <p class="c-getit__line">${item.title} comes with ${item.kit.title}. Get the kit to use it.</p>
-  ${Button({ label: `Get ${item.kit.title}`, icon: 'arrow_forward', kind: 'primary', href: url(`${item.kit.url}#get-it`) })}
+  <p class="c-getit__line">${item.standalone ? `${item.title} has an independent version. Get the skill alone, or the full kit with its other parts.` : `${item.title} comes with ${item.kit.title}. Get the kit to use it.`}</p>
+  ${item.standalone && Button({ label: 'Get skill', icon: 'download', kind: 'primary', href: url(`${item.standalone.url}#get-it`) })}
+  ${Button({ label: item.standalone ? 'Get kit' : `Get ${item.kit.title}`, icon: 'arrow_forward', kind: item.standalone ? 'secondary' : 'primary', href: url(`${item.kit.url}#get-it`) })}
 </section>`;
   }
   const agents = model.taxonomy.agents;
@@ -211,7 +219,7 @@ export function KitAnatomy({ item }) {
   <div class="c-anatomy__groups">${item.groups.map((g) => html`<section class="c-anatomy__group" data-kind="${g.kind}" aria-labelledby="g-${g.kind}">
     <h3 class="c-anatomy__group-title" id="g-${g.kind}">${Icon({ name: g.icon })}${g.title}<span class="c-anatomy__count">${g.parts.length}</span></h3>
     <p class="c-anatomy__group-line">${g.line}</p>
-    <ul>${item.partItems.filter((p) => p.kind === g.kind).map((p) => html`<li><a class="c-anatomy__part" href="${url(p.url)}"><code>${p.name}</code><span>${firstSentence(p.summary)}</span></a></li>`)}</ul>
+    <ul>${item.partItems.filter((p) => p.kind === g.kind).map((p) => html`<li><a class="c-anatomy__part" href="${url(p.url)}"><code>${p.name}</code><span>${firstSentence(p.summary)}</span></a>${p.standalone && Link({ href: url(p.standalone.url), label: 'Use separately' })}</li>`)}</ul>
   </section>`)}</div>
 </section>`;
 }
@@ -347,7 +355,7 @@ function SourceFile(f, item, open) {
   const content = f.text == null
     ? html`<p class="c-source__binary">${bytes(f.size)}${f.sha256 && html` · SHA-256 <code>${f.sha256.slice(0, 16)}…</code>`}. Too large or not text, so it isn’t shown here.</p>`
     : isMd
-      ? html`<div class="prose c-source__md">${md(stripFront(f.text), item, { headingShift: 2, idPrefix: `src-${name.replace(/\W/g, '')}-` })}</div>`
+      ? html`<div class="prose c-source__md">${md(stripFront(f.text), item, { filePath: item.type === 'skill' ? `${item.source.path}/${f.path}` : f.path, headingShift: 2, idPrefix: `src-${name.replace(/\W/g, '')}-` })}</div>`
       : html`<pre class="c-source__code"><code>${f.text.split(/\r?\n/).map((l) => html`<span class="c-source__line">${l}</span>\n`)}</code></pre>`;
   return html`<details class="c-source__file"${open ? raw(' open') : ''}><summary>${Icon({ name: isMd ? 'description' : 'code' })}<code>${f.path}</code><span class="c-source__size">${bytes(f.size)}</span></summary>${content}</details>`;
 }

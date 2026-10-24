@@ -8,7 +8,7 @@ import {
   rayEntry, shadowAt, skyOcclusion, sourceBins, upgradeLighting, validateLighting, wallFaces, wallFormFactor,
 } from '../src/lib/lighting.mjs';
 import { LightingPanel } from '../src/components/compounds/lighting.mjs';
-import { Button, Tile } from '../src/components/fundamentals.mjs';
+import { Button, Icon, Tile } from '../src/components/fundamentals.mjs';
 
 const near = (actual, expected, tolerance = 1e-8) => assert.ok(Math.abs(actual - expected) < tolerance, `${actual} != ${expected}`);
 const rad = Math.PI / 180;
@@ -551,6 +551,16 @@ test('motion requires every opt-in and pauses when hidden or reduced motion is r
   for (const key of ['enabled', 'offFrame', 'animated']) assert.equal(lightingMotion({ ...on, [key]: false }), false);
   assert.equal(lightingMotion(on, { reducedMotion: true }), false);
   assert.equal(lightingMotion(on, { hidden: true }), false);
+});
+
+test('the lighting disclosure uses only a bulb icon with an accessible name and tooltip', () => {
+  const markup = String(LightingPanel());
+  const summary = markup.match(/<summary\b([^>]*)>([\s\S]*?)<\/summary>/);
+  assert.ok(summary);
+  assert.match(summary[1], /aria-label="Lighting"/);
+  assert.match(summary[1], /title="Lighting"/);
+  assert.equal(summary[2], String(Icon({ name: 'lightbulb' })));
+  assert.match(markup, /<details[^>]*data-lighting-panel>/);
 });
 
 test('control panel covers every setting, with labels and no duplicate IDs', () => {

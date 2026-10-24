@@ -19,6 +19,11 @@ in plain words, and a **Get it** panel with the exact steps for your agent.
 - **Stack:** a few kits or skills I use together, in order, with what each hands to
   the next.
 
+The skills inside the kits also have independent versions. Choose **Use separately**
+on a kit page, or **Get skill** on its part page, to use only that capability.
+Each standalone version carries its own instructions and resources; it does not
+install the kit. Its page explains what differs from the full system.
+
 ## Get one
 
 1. Find it. Search by the job you have, like "write a spec" or "publish docs", or

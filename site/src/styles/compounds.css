@@ -5,7 +5,7 @@
 
 /* Lighting disclosure: the panel is anchored to the header, not the viewport. */
 .c-lighting { position: static; }
-.c-lighting__summary { display: flex; align-items: center; min-height: var(--size-control); padding-inline: var(--space-3); border-radius: var(--radius-pill); cursor: pointer; font-size: var(--text-sm); list-style: none; }
+.c-lighting__summary { display: grid; place-items: center; width: var(--size-control); height: var(--size-control); border-radius: var(--radius-pill); cursor: pointer; list-style: none; }
 .c-lighting__summary::-webkit-details-marker { display: none; }
 .c-lighting[open] .c-lighting__summary { background: var(--color-bg-sunken); }
 .c-lighting__summary:active { background: var(--color-bg-hover); }

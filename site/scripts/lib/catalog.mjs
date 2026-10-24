@@ -152,6 +152,7 @@ export function loadCatalog(root, { now = new Date() } = {}) {
     byId.set(item.id, item);
   }
   for (const item of items) validateCard(item, vocab, byId, problem);
+  linkStandaloneSkills(items, problem);
   const relations = buildRelations(items, byId);
   for (const item of items) {
     item.sections = sections(item.body);
@@ -162,6 +163,34 @@ export function loadCatalog(root, { now = new Date() } = {}) {
   }
 
   return { root, taxonomy, items, byId, problems, repo: repoUrl, head: repoHead, generated: now.toISOString() };
+}
+
+/** Validates source identities and links kit parts to independently installable adaptations. */
+export function linkStandaloneSkills(items, problem) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const linked = new Set();
+  for (const item of items) {
+    if (item.derivedFrom === undefined) continue;
+    const source = item.derivedFrom;
+    if (item.type !== 'skill' || !source || typeof source !== 'object' || Array.isArray(source)
+      || typeof source.kit !== 'string' || typeof source.skill !== 'string') {
+      problem(item.file, 'derivedFrom needs a kit id and a skill name on a skill card', 'Use derivedFrom: { kit: kit-id, skill: canonical-skill-name }.');
+      continue;
+    }
+    const kit = byId.get(source.kit);
+    const part = kit?.type === 'kit' ? kit.parts.find((p) => p.kind === 'skill' && p.name === source.skill) : null;
+    if (!part) {
+      problem(item.file, `derivedFrom names no skill "${source.skill}" in kit "${source.kit}"`, 'Use the kit id and skill name shown on its pinned part page.');
+      continue;
+    }
+    const key = `${source.kit}/${source.skill}`;
+    if (linked.has(key)) {
+      problem(item.file, `the kit skill "${key}" has more than one standalone version`, 'Keep one independent skill card for each source skill.');
+      continue;
+    }
+    linked.add(key);
+    part.standalone = { id: item.id, title: item.title, url: `/items/${item.id}` };
+  }
 }
 
 function fileDate(path) {
