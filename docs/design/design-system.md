@@ -191,6 +191,11 @@ links use the action color and medium weight; links embedded in prose use semibo
 weight so they remain identifiable without color alone. Keyboard focus keeps its
 outline. Borders separating sections or tab groups are dividers, not selection cues.
 
+The shared footer leads its links with “More of my work”, pointing to the owner’s
+[personal site](https://prabinpebam.github.io/atiya). This link opens in a new tab,
+with an external-link arrow, a tooltip and a screen-reader notice. Other links keep
+their existing navigation behavior.
+
 | Compound | Shows | Block |
 | --- | --- | --- |
 | Hero | The page's promise and the search box | `hero` |

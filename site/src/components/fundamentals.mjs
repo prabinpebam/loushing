@@ -45,12 +45,13 @@ export function IconButton({ label, icon, pressed, data }) {
 }
 
 /**
- * Link: inline navigation. External links say so with an arrow and open in place.
- * @param {{ href: string, label: string, external?: boolean, current?: boolean, standalone?: boolean }} props
+ * Link: inline navigation. External links show an arrow and open in place by default.
+ * @a11y `newTab` announces the new tab and adds a tooltip; the opener is isolated.
+ * @param {{ href: string, label: string, external?: boolean, newTab?: boolean, current?: boolean, standalone?: boolean }} props
  * `standalone` gives navigation links a full control-height target instead of inline sizing.
  */
-export function Link({ href, label, external = false, current = false, standalone = false }) {
-  return html`<a${attrs({ class: 'f-link', href, 'aria-current': current ? 'page' : null, rel: external ? 'noopener' : null, 'data-standalone': standalone ? 'true' : null })}>${label}${external && html`<span class="f-link__ext">${Icon({ name: 'north_east' })}</span>`}</a>`;
+export function Link({ href, label, external = false, newTab = false, current = false, standalone = false }) {
+  return html`<a${attrs({ class: 'f-link', href, 'aria-current': current ? 'page' : null, rel: external || newTab ? 'noopener' : null, target: newTab ? '_blank' : null, title: newTab ? `${label} (opens in a new tab)` : null, 'data-standalone': standalone ? 'true' : null })}>${label}${(external || newTab) && html`<span class="f-link__ext">${Icon({ name: 'north_east' })}</span>`}${newTab && html`<span class="u-visually-hidden"> (opens in a new tab)</span>`}</a>`;
 }
 
 /**

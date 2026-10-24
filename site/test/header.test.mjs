@@ -34,6 +34,28 @@ test('standalone links opt into a control-height target without changing inline 
   assert.doesNotMatch(String(Link({ href: '/', label: 'Catalog' })), /data-standalone/);
 });
 
+test('new-tab links isolate the opener and announce their behavior without changing existing links', () => {
+  const link = String(Link({ href: 'https://prabinpebam.github.io/atiya', label: 'More of my work', external: true, newTab: true }));
+  assert.match(link, /target="_blank"/);
+  assert.match(link, /rel="noopener"/);
+  assert.match(link, /title="More of my work \(opens in a new tab\)"/);
+  assert.match(link, /<span class="u-visually-hidden"> \(opens in a new tab\)<\/span>/);
+  assert.match(link, /class="f-link__ext"/);
+  for (const external of [false, true]) {
+    const existing = String(Link({ href: 'https://github.com/prabinpebam', label: 'Prabin Pebam', external }));
+    assert.doesNotMatch(existing, /target=|opens in a new tab/);
+  }
+});
+
+test('the shared footer offers the personal site without crowding the title bar', () => {
+  const markup = shell(true);
+  const header = markup.match(/<header class="l-header">([\s\S]*?)<\/header>/)[1];
+  const footer = markup.match(/<footer class="l-footer"[\s\S]*?<\/footer>/)[0];
+  assert.doesNotMatch(header, /prabinpebam\.github\.io\/atiya/);
+  assert.match(footer, /<a[^>]*href="https:\/\/prabinpebam\.github\.io\/atiya"[^>]*target="_blank"[^>]*>More of my work/);
+  assert.match(footer, /href="https:\/\/github\.com\/prabinpebam\/loushing"/);
+});
+
 function fixture() {
   const doc = new EventTarget();
   const view = new EventTarget();

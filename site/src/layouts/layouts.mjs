@@ -119,6 +119,7 @@ ${main}
     <p class="l-footer__owner">A personal collection by ${Link({ href: 'https://github.com/prabinpebam', label: 'Prabin Pebam', external: true })}. These work for me; take what’s useful.</p>
     ${Toggle({ label: 'Show Chopper', checked: true, data: { 'chopper-toggle': 'true' } })}
     <ul class="l-footer__links">
+      <li>${Link({ href: 'https://prabinpebam.github.io/atiya', label: 'More of my work', external: true, newTab: true })}</li>
       <li>${Link({ href: 'https://github.com/prabinpebam/loushing', label: 'GitHub', external: true })}</li>
       <li>${Link({ href: url('/catalog.json'), label: 'catalog.json' })}</li>
       <li>${Link({ href: url('/llms.txt'), label: 'llms.txt' })}</li>

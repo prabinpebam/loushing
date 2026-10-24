@@ -70,6 +70,19 @@ test('every internal link and asset resolves to a built file', () => {
   assert.deepEqual([...broken], []);
 });
 
+test('every page links to the owner’s wider work in a new tab from the footer', () => {
+  for (const file of pages) {
+    const footer = readFileSync(file, 'utf8').match(/<footer class="l-footer"[\s\S]*?<\/footer>/)?.[0];
+    assert.ok(footer, file);
+    const link = footer.match(/<a\b[^>]*href="https:\/\/prabinpebam\.github\.io\/atiya"[^>]*>[\s\S]*?<\/a>/)?.[0];
+    assert.ok(link, file);
+    assert.match(link, /target="_blank"/, file);
+    assert.match(link, /rel="noopener"/, file);
+    assert.match(link, />More of my work</, file);
+    assert.match(link, /opens in a new tab/, file);
+  }
+});
+
 test('the outputs for agents parse and agree with the pages', () => {
   const catalog = JSON.parse(readFileSync(join(out, 'catalog.json'), 'utf8'));
   const index = JSON.parse(readFileSync(join(out, 'search-index.json'), 'utf8'));
