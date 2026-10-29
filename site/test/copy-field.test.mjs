@@ -3,6 +3,26 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { CopyField } from '../src/components/fundamentals.mjs';
+import { GetItPanel } from '../src/components/compounds/item.mjs';
+
+test('download checksums wrap without changing the exact copyable SHA256', () => {
+  const sha256 = '0123456789abcdef'.repeat(4);
+  const plan = { supported: true, git: ['git status'], ask: 'Show the plan', command: 'loushing add skill', download: '/downloads/skill.zip', adds: [] };
+  const item = {
+    id: 'skill', type: 'skill', source: { commit: 'a'.repeat(40) },
+    archive: { sha256, files: 1, size: 100, manifest: '/downloads/skill.json' },
+    plans: { 'copilot-vscode:project': plan, 'copilot-vscode:personal': plan },
+  };
+  const model = { taxonomy: { agents: [{ id: 'copilot-vscode', title: 'VS Code Copilot' }] } };
+  const markup = String(GetItPanel({ item }, { model }));
+  const fields = [...markup.matchAll(/<div class="f-copy" data-wrap="true">([\s\S]*?)<\/div>/g)];
+  const checksums = fields.filter(([, field]) => field.includes('Copy SHA256'));
+  assert.equal(checksums.length, 2, 'the checksum wraps in both scopes');
+  for (const [, field] of checksums) {
+    assert.match(field, new RegExp(`<code>${sha256}</code>`));
+    assert.match(field, new RegExp(`data-copy="${sha256}"`));
+  }
+});
 
 test('copy controls are icon-only with named tooltips, feedback icons and a live status', () => {
   for (const copyLabel of ['Copy command', 'Copy prompt']) {

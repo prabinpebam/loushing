@@ -303,6 +303,30 @@ compound in every state and context, the tokens, the layouts with their regions 
 cameo zones, and every approved Chopper render and set piece. It is the place to review a change
 before it reaches a page.
 
+### Local engineering increment (29 October 2026)
+
+The uncommitted catalog-quality increment generates `/library/` and one isolated
+page per story from `site/src/stories/components.mjs`. It reuses the real components,
+catalog data, layout shell and token CSS; no second component implementation or
+per-story styling is introduced.
+
+| Generated evidence | Source and limit |
+| --- | --- |
+| Examples and applicable states | Stories cover every exported fundamental and registered compound, plus result status and the shared lighting panel. Hover, focus and pressed states use the real controls; they are not static simulations. |
+| Component documentation | Source JSDoc, signatures/defaults, source-level imports and stylesheet token dependencies are emitted to `/library/components.json`. This is source extraction, not a TypeScript type-checker model or exact per-selector token attribution. |
+| Contexts | Light and dark, each with normal and more contrast, plus system forced colours. Context links change only the library preview, not saved site preferences. |
+| Layouts | Existing region and cameo-zone definitions are listed from `LAYOUTS`. Existing Chopper images and placements are unchanged; the new library pages do not load cameos. An approved-render gallery remains blocked on approval and is not claimed complete. |
+| Browser checks | `node site/validation/check.mjs --all` uses the installed local browser and axe. It checks built routes and stories in five contexts, with narrow-screen contexts and representative keyboard/clipboard journeys. Automated results are not a full WCAG conformance claim. |
+
+Scrollable command and source text is keyboard focusable. Title-bar breakpoints use
+its container and the same breakpoint values, so enlarged text can bring back the
+existing disclosure rather than forcing the controls beyond the viewport.
+
+The optional tooling and commands are documented in
+[the validation guide](../working-guide.md#site-quality-checks). This is local
+engineering evidence only; it does not mark PD12 or stage 1.10 complete, and does
+not claim a capture of every interaction-state combination.
+
 ## Making a change
 
 <ol class="slate-steps">

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-29T11:48:50.577Z",
+  "commit": "bc832471af19a7d180e2f406555a326aab2c2b9c",
+  "dirty": true,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26220",
+    "arch": "x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900K",
+    "node": "v26.13.0"
+  },
+  "fixture": {
+    "kind": "200 synthetic search documents sampled from the public catalog; not participant tasks",
+    "documents": 200,
+    "sourceDocuments": 73,
+    "corpusSha256": "1483dc5bf836eda2e8af9766c81c08518438c35582cf91971f46340a0e840c6b"
+  },
+  "definition": "Synchronous search call entry to ranked result return; Node lab only, excludes network and browser paint",
+  "metrics": {
+    "firstSearchMs": 6.650399999999998,
+    "searchMs": {
+      "median": 0.4514000000000067,
+      "p75": 0.5238000000000014,
+      "min": 0.13859999999999673,
+      "max": 6.650399999999998,
+      "samples": 25
+    },
+    "searchIndexGzipBytes": 19716,
+    "fixtureGzipBytes": 55055
+  },
+  "targets": {
+    "searchP75Ms": 50,
+    "met": true
+  },
+  "limitations": [
+    "One machine, no controlled CPU or network throttling",
+    "No browser INP, page LCP or field data in this run",
+    "Candidate baseline remains uncommitted until integrated and reviewed"
+  ]
+}

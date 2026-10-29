@@ -4,6 +4,8 @@
  * See docs/spec/distribution.md (targets, the kits contract) and item-pages.md (Get it).
  * @tier 0
  */
+import { automation } from './kit-contract.mjs';
+import { url } from './urls.mjs';
 
 /** Where single skills go, per CLI agent value (distribution.md, "Targets"). */
 export const SKILL_TARGETS = {
@@ -24,8 +26,9 @@ function repoPath(repo) {
   return m ? m[1] : null;
 }
 
-/** The archive of the pinned commit. GitHub archives are not byte-stable, so no hash is given. */
+/** A checked item archive when prepared; legacy callers retain the pinned Git URL. */
 export function downloadUrl(item) {
+  if (item.archive) return item.archive.url ? url(item.archive.url) : null;
   const path = repoPath(item.source?.repo);
   const commit = item.source?.commit;
   return path && commit ? `https://github.com/${path}/archive/${commit}.zip` : null;
@@ -78,11 +81,13 @@ function kitPlan(item, { agent, scope }) {
     : `Get ${item.title} from ${item.source.repo} at commit ${shortSha(item.source.commit)}. Read what \`${run}\` adds, tell me first, and run it only after I agree.`;
   return {
     supported: true,
+    automation: automation(item),
     scope,
     git,
     ask,
     command: commandLine(item, agent.install, scope),
     download: downloadUrl(item),
+    downloadSteps: [`Extract the ZIP beside your project files; it contains the ${dir}/ folder.`, `Review the files, then run: ${run}`],
     adds: kitAdds(item, target, scope),
     next: c.next,
     dryRun: Boolean(c.dryRun),
@@ -124,6 +129,7 @@ function skillPlan(item, { agent, scope }) {
     ask: `Copy the ${item.id} skill from ${item.source.repo} (folder ${src}, commit ${shortSha(item.source.commit)}) to ${dest}. Show me the files first and copy them only after I agree.`,
     command: commandLine(item, agent.install, scope),
     download: downloadUrl(item),
+    downloadSteps: [`Extract the ZIP; it contains the ${item.id}/ folder.`, `Create ${t[scope]}/ if needed, then copy the entire ${item.id}/ folder into it.`, 'Start a new agent session and ask it to use the skill.'],
     adds: [{ path: dest, role: `The ${item.id} skill (${(item.files ?? []).length} files)` }],
     dryRun: false,
   };
@@ -138,6 +144,7 @@ function stackPlan(item, { agent, scope, byId }) {
   const ok = steps.filter((s) => s.plan.supported);
   return {
     supported: ok.length > 0,
+    automation: { supported: steps.length > 0 && steps.every((s) => s.plan.automation?.supported !== false), reason: 'Stack automation requires a released contract for every kit member.' },
     partial: blocked.length > 0 && ok.length > 0,
     reason: blocked.length ? blocked.map((s) => s.plan.reason).join(' ') : undefined,
     scope,

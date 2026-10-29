@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prabinpebam.github.io/loushing/schema/lifecycle-1.json",
+  "title": "Loushing old-item response v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["schema", "id", "status", "instead", "data"],
+      "properties": {
+        "schema": { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "status": { "const": "alias" },
+        "instead": { "$ref": "#/$defs/id" },
+        "data": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema", "id", "status", "date", "reason"],
+      "properties": {
+        "schema": { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "status": { "const": "removed" },
+        "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "reason": { "type": "string", "minLength": 1 },
+        "instead": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": { "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" } }
+}

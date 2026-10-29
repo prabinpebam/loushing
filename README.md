@@ -5,9 +5,31 @@ page for each and the steps to set it up. It's a personal collection, not a
 marketplace: these work for me, and if one looks useful to you, take it.
 
 **Status:** stage 1, "A catalog you can read", is built in [site/](site/) and lists the
-first kits, UI lighting and [19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
+first kits, one stack, UI lighting, the optional Loushing finder and
+[19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
+Local work for stages 2 to 5 is built but not released; the
+[Definitions of Done](docs/spec/definition-of-done.md#5-status-of-the-original-pending-work)
+say what each remaining row is waiting on. The finder's folder, `skills/loushing`,
+must be committed before a root production build passes.
 "Loushing" is the working
 name. The plan and spec live in the Slate documentation in [docs/](docs/).
+
+## Try the local CLI
+
+The dependency-free [CLI preview](cli/README.md) can install, list, restore, update
+and remove pinned skills. **It is not published to npm.** From this repository:
+
+```powershell
+node cli\bin\loushing.mjs find "ground a product" --json
+node cli\bin\loushing.mjs add ground --agent copilot --dry-run --json
+node --test "cli/test/*.test.mjs"
+```
+
+Run real installs from a disposable project first. `--yes` approves effects, not
+overwriting local edits. Public kit pins keep their existing Git setup routes.
+Safe kit/stack engineering can be tried with the explicit
+[local development contract](cli/README.md#kits-and-stacks-local-contract-testing);
+canonical releases and new pins are still required.
 
 ## Preview the site
 

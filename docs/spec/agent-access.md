@@ -158,6 +158,73 @@ use it when a task might be served by an existing skill or kit. Its instructions
 
 It is optional. The CLI and the files work without it.
 
+## As built
+
+The site already generates the index, item JSON/Markdown, `llms.txt` and search
+index from the same model. The local CLI now implements `find`, `info`, skill
+`add`, `list`, `outdated`, `update`, `remove`, lockfile `install`, and catalog
+`check`. Run `node cli\bin\loushing.mjs <command> --json`; the npm route above is
+still a release plan, not an available package.
+
+Every command accepts `--json` and `--yes`. JSON output is one stdout object;
+download and verification progress goes to stderr. Missing target selection,
+unapproved effects and changed-file conflicts return `needs-decision` with flags
+and options. `--yes` does not replace changed files: use an explicit
+`--conflict keep|replace` choice after asking the person. A dry run returns `ok`,
+the plan and any decisions still needed, and writes nothing.
+
+`find` reads the same prebuilt search index and uses the same ranking module as the
+site, returning up to 20 results with their published install plans. `info` includes
+hashes and source pins; `--agent` additionally resolves skill destinations for the
+current scope. Versioned draft-2020-12 JSON Schemas are now served at
+`schema/catalog-1.json` and `schema/item-1.json`. The build validates the serialized
+index and each active item's JSON against those files before swapping outputs.
+Old-ID alias and removed-item JSON use `schema/lifecycle-1.json` instead of
+pretending to be active cards.
+Both v1 schemas also allow the optional download fields: `archive` (a pinned ZIP's
+URL, manifest, SHA-256, size, root folder and file count, a `blocked` reason, or
+`null` for stacks), each item file's Git `mode`, and each plan's `downloadSteps`.
+The dependency-free validator implements the vocabulary those schemas use and
+rejects unsupported keywords; it is not a general-purpose JSON Schema engine.
+
+The optional `skills/loushing` finder and its card are implemented locally, with
+CLI and static-catalog paths, exact-plan previews and an explicit actual-user
+consent boundary. It is experimental and `UNLICENSED` pending release approval.
+`node cli\scripts\finder-trials.mjs` runs 10 clearly labeled synthetic task phrases,
+checks the expected item in the top five (threshold 7/10), and previews without
+installing. The current regression scores 10/10 with no install commands.
+**This is not a scripted two-agent trial, participant evidence, or proof that an
+agent obeys consent instructions.** Those stage-4 acceptance checks remain open.
+
+`catalog/lifecycle.json` is the authoritative alias/removal source. The build and
+CLI share checks for cycles, invalid or reused IDs, missing targets and removals
+without reasons. Old HTML addresses redirect; old JSON/Markdown addresses explain
+the replacement. Gone pages retain the reason and an alternative or catalog link.
+On a static host these pages are HTML documents, not a claim of HTTP 301/410 status.
+
+Kit/stack engineering is now tested locally, but existing public kit pins still
+have no released executable contract. Their shared page/JSON plans report
+`automation.supported: false`, and the CLI returns the manual route.
+An explicit local development manifest is not a public release.
+
+For contract-capable sources, `--yes` alone is insufficient. First obtain source
+trust with `--trust-source <digest>`: this authorizes code execution in a disposable
+planning copy, not target changes. Then show the resulting combined plan and obtain
+`--approve-plan <plan.digest> --yes`. Sources are pinned and fully hash-verified
+before any installer runs; code is trusted, not sandboxed. The explicit `--kit-cache`
+must be outside the target. Missing approvals return exit 2 with the exact flags.
+Stacks record each completed member and stop on failure; the result's `completed`
+lists the members that were recorded, and a new plan resumes the remaining work.
+For `add` and `update`, kits accept `--conflict keep`, not forced replacement.
+`remove` has no keep option: local edits return `needs-decision` with the edited
+files and leave the kit installed and recorded. Removing a stack stops the same way,
+before anything changes, when any member (kit or skill) has local edits, even with
+`--conflict keep`. Uninstall touches only files the
+kit recorded and, in a shared file, removes only its own marked section. A per-run
+planning folder that cannot be deleted never changes the outcome; the result adds
+`cleanup` naming it.
+See [distribution](distribution.md#version-1-automation-and-local-testing).
+
 ## Decisions on this page
 
 | # | Question | Recommendation | Decided |

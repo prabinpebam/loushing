@@ -20,6 +20,69 @@ Opening the reader as a local file will not work.
 Git, Node.js 22+, and Python 3 are sufficient for these commands.
 No dependency installation or documentation build is needed.
 
+## Site quality checks
+
+The ordinary static build and unit tests still need no packages. The catalog-quality
+increment adds optional, isolated browser tooling under `site/validation/`; it is not
+part of the application bundle or the root CLI package.
+
+Until the Loushing finder's folder, `skills/loushing`, is committed, the build and
+four site tests stop with "loushing: The pinned item has no files": the build reads
+each skill's files from its pinned commit. Commit it before relying on a root build.
+
+```powershell
+node site\scripts\build.mjs
+node --test "site/test/*.test.mjs"
+node site\scripts\benchmark.mjs --check
+
+# Optional real-browser checks. Verify the effective source before installing.
+Push-Location site\validation
+npm config get registry
+npm ci --ignore-scripts --registry=https://packagefeedproxy.microsoft.io/npm/
+Pop-Location
+node site\validation\check.mjs --all
+node site\validation\lighthouse.mjs
+```
+
+The browser commands use the locally installed Microsoft Edge on Windows by default.
+Set `BROWSER_PATH` to an approved existing Chromium executable on another machine;
+they never download a browser. Their production-file server binds an ephemeral
+loopback port, and closes with the browser after the check. Browser profiles and
+scratch data stay under the ignored repository `.agent-orchestration/` directory.
+Results and screenshots go to ignored `site/validation/results/`.
+
+The build enforces the spec's 150 KB compressed search-index limit and keeps browser
+validation code off product entry points. `benchmark.mjs` measures 200 synthetic
+search documents sampled from the catalog, with 25 searches over five query phrases.
+It is a Node ranking benchmark, not participant search evidence or browser INP.
+`--baseline` deliberately records a candidate baseline in `site/perf/baseline.json`;
+`--check` compares only the same machine/runtime, failing when p75 regresses beyond
+both 20% and 5 ms. A changed machine/runtime or corpus needs a deliberate, reviewed
+baseline rather than a misleading comparison.
+
+Lighthouse records five cold-cache runs per profile of one skill page: unthrottled
+desktop and simulated mobile (CPU ×4, 10 Mbps, 40 ms). It records the actual settings,
+LCP, CLS and TBT, and reports the 1.5 s mobile LCP target. Search and Lighthouse
+commands exit unsuccessfully when their configured target is missed.
+These are local lab results, not field p75 or proof that every page meets the target.
+The accessibility runner fails on axe findings, duplicate IDs, runtime errors and
+page overflow. It does not replace a screen-reader review or the participant trial.
+The `site-quality.yml` workflow runs these build, browser and lab checks on pull
+requests and pushes to `main`. It selects preinstalled Node 24 and system Edge on
+a Windows runner, verifies the effective npm registry and scoped overrides, and
+installs only through the approved proxy. Missing runtimes, browsers or feed access
+fail explicitly; there is no public bootstrap or browser-download fallback.
+CI measures search against its target, not a different machine's saved baseline.
+Reports, including failed checks, are retained as workflow artifacts for seven days.
+The workflow is authored locally; a hosted run remains unverified until integration.
+No check publishes catalog content, packages or deployments.
+
+The site adapter now waits for fonts and a content-paint opportunity before
+allocating the decorative lighting renderer. It does not initialize WebGL when a
+contrast preference hides lighting. The shader, resolution, settings and imagery
+are unchanged. `lighting:initialize` records GPU initialization in the Performance
+panel; browser checks verify paint ordering and the zero-allocation hidden state.
+
 ## File ownership
 
 | Location, relative to the repository | Owner and editing rule |

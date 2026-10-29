@@ -55,13 +55,14 @@ export function ResultsStatus({ total }) {
  * @param {{ items: { date: string, kind: string, item: object, line: string }[] }} props
  */
 export function ReleaseTimeline({ items }) {
+  if (!items.length) return html`<p>No catalog releases yet. <a href="${url('/catalog')}">Browse the development catalog</a>.</p>`;
   const months = new Map();
   for (const e of items) {
     const k = formatDate(e.date, 'month');
     if (!months.has(k)) months.set(k, []);
     months.get(k).push(e);
   }
-  const kinds = { pinned: ['Pinned', 'fact_check'], added: ['Added', 'new_label'], updated: ['Updated', 'history'] };
+  const kinds = { pinned: ['Pinned', 'fact_check'], added: ['Added', 'new_label'], updated: ['Updated', 'history'], removed: ['Removed', 'history'] };
   return html`<div class="c-timeline">${[...months].map(([month, list]) => html`<section class="c-timeline__month" aria-labelledby="m-${month.replace(/\s/g, '-')}">
   <h2 class="c-timeline__title" id="m-${month.replace(/\s/g, '-')}">${month}</h2>
   <ol class="c-timeline__list">${list.map((e) => html`<li class="c-timeline__entry" data-kind="${e.kind}">
@@ -83,11 +84,13 @@ const EMPTY = {
 /**
  * EmptyState: what happened, what it means, what to do (block `empty-state`).
  * Layouts place the empty-companion cameo zone beside it, never over it.
- * @param {{ kind: 'no-results'|'not-found'|'gone'|'empty-catalog', hidden?: boolean, pageTitle?: boolean }} props
+ * @param {{ kind: 'no-results'|'not-found'|'gone'|'empty-catalog', hidden?: boolean, pageTitle?: boolean, reason?: string, alternative?: { title: string, href: string } }} props
  *   `pageTitle` makes the title the page's h1, for a page that is only this message
  */
-export function EmptyState({ kind, hidden = false, pageTitle = false }) {
-  const e = EMPTY[kind];
+export function EmptyState({ kind, hidden = false, pageTitle = false, reason, alternative }) {
+  const e = { ...EMPTY[kind] };
+  if (kind === 'gone' && reason) e.body = reason;
+  if (kind === 'gone' && alternative) e.action = { label: `See ${alternative.title}`, href: alternative.href };
   return html`<div class="c-empty" data-empty="${kind}"${hidden ? raw(' hidden') : ''}>
   <span class="c-empty__icon">${Icon({ name: e.icon })}</span>
   <div class="c-empty__text">${pageTitle ? html`<h1 class="c-empty__title">${e.title}</h1>` : html`<p class="c-empty__title">${e.title}</p>`}<p class="c-empty__body">${e.body}</p>
