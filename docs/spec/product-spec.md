@@ -615,8 +615,9 @@ explicit source trust before executing even a dry run, and requires one exact
 combined target-plan approval. Real-kit tests cover installs, restoration, updates,
 unchanged-project removal, local-edit protection and a stack failing then resuming.
 Skill members reuse the skill transaction. Page/JSON/CLI automation availability
-comes from one validator. All canonical changes remain uncommitted and unreleased:
-public pins are unchanged and manual. Explicit `--dev-kits` manifests are a local
+comes from one validator. The canonical changes are committed on each kit's
+`feat/install-contract` branch but not merged or released: the public kit cards
+keep their manual pins. Explicit `--dev-kits` manifests are a local
 test path, not a bypass for published-source verification.
 
 **Local agent access and lifecycle (stages 4–5).** The build validates index/item
@@ -641,19 +642,19 @@ site-quality workflow, and a custom domain (O13). Component stories and automate
 Lighthouse and axe runs now exist only as the local increment below. The
 standalone workflows and CLI target folders have not been exercised end-to-end in
 every supported agent. npm publishing, trusted publishing, provenance and managed
-registry delivery remain blocked on owner/external actions. The finder's folder,
-`skills/loushing`, is not committed, so the root production build stops with "The
-pinned item has no files" until it is; a disposable clone with it committed builds
-169 pages. The [Definitions of Done](definition-of-done.md#5-status-of-the-original-pending-work)
+registry delivery remain blocked on owner/external actions. With the finder's
+folder, `skills/loushing`, committed, the root production build makes 169 pages.
+The [Definitions of Done](definition-of-done.md#5-status-of-the-original-pending-work)
 give the state of every original pending row.
 
-### Uncommitted catalog-quality engineering increment
+### Catalog-quality engineering increment
 
-This increment is local, uncommitted work, not a release or completion of stage 1.
+This increment is committed engineering work, not yet merged to `main` or
+deployed, and not a release or completion of stage 1.
 
 | Area | Implemented behavior | Boundary |
 | --- | --- | --- |
-| Downloads (U7, 1.4) | Deterministic ZIPs from pinned Git blobs; an item root folder, SHA-256 and a complete per-file manifest. Download plans, index and item JSON agree. Every skill resource is included; working-tree drift fails rather than claiming pinned hashes. Kits retain their complete pinned tree and executable modes. | Every skill and two kits pass the payload check at the current pins: 20 skills at the increment's base, 21 in a clean-clone build once the Loushing finder (`skills/loushing`) is committed. Slate's pinned lockfile triggers the existing internal-host publication rule; its new local ZIP is withheld, not silently stripped or allowlisted. Git remains available. Stacks use their member plans rather than a misleading single ZIP. |
+| Downloads (U7, 1.4) | Deterministic ZIPs from pinned Git blobs; an item root folder, SHA-256 and a complete per-file manifest. Download plans, index and item JSON agree. Every skill resource is included; working-tree drift fails rather than claiming pinned hashes. Kits retain their complete pinned tree and executable modes. | Every skill and two kits pass the payload check at the current pins: 21 skills, including the Loushing finder (`skills/loushing`). Slate's pinned lockfile triggers the existing internal-host publication rule; its new local ZIP is withheld, not silently stripped or allowlisted. Git remains available. Stacks use their member plans rather than a misleading single ZIP. |
 | Library (PD12, 1.10) | Generated source documentation and real component stories at `/library/`, with theme/context controls and layout metadata. | Exact type-checker prop extraction, every-state capture coverage and the approved Chopper gallery remain unclaimed. |
 | Quality (PD10, 1.8) | Build-time search-index budget, repeatable Node search benchmark, local-browser axe and Lighthouse commands, and a Windows CI workflow using the approved feed and installed browser. Decorative GPU initialization follows content paint and is skipped when contrast preferences hide it. | Hosted CI remains unverified. Lab measurements are not user trials, field p75 or full WCAG compliance. See the [working guide](../working-guide.md#site-quality-checks). |
 

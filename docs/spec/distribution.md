@@ -330,10 +330,10 @@ install:
 | agent-orchestration | The same installer shape and flags | The same as agentic-craft |
 | Slate | `scripts/init-project.mjs` with `--repo`, `--host`, `--project`; writes a documentation host and a Copilot skill adapter | An agent choice (adapter for Claude Code and the open layout), `--dry-run`, `--json`, `--uninstall`, exit codes, an `about.md` card |
 
-The table describes **the published pins**, not the dirty working copies. Stage 3
-source changes now exist in each canonical repository, with its own contract tests.
-They are uncommitted and unreleased. The public cards remain manual; no contract is
-attached to an old pin.
+The table describes **the published pins**. Stage 3 source changes, each with its
+own contract tests, are committed on each canonical repository's
+`feat/install-contract` branch. They are not merged or released. The public cards
+remain manual; no contract is attached to an old pin.
 
 ### Version-1 automation and local testing
 

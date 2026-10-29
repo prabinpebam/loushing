@@ -111,7 +111,7 @@ This project uses the [agentic-craft](https://github.com/prabinpebam/agentic-cra
   state. Glossary: the product spec's §8. Slate's theme and components belong
   only to documentation.
 - **Performance:** targets and budgets are in the product spec's §7 and
-  `site/perf/budgets.json`. A local, uncommitted search benchmark baseline is in
+  `site/perf/budgets.json`. A local search benchmark baseline is in
   `site/perf/baseline.json` (`node site\scripts\benchmark.mjs`); no hosted or
   field baseline exists yet.
 - **Style lint:** `node .\agentic-craft\tools\lint-styles.mjs site\src`.

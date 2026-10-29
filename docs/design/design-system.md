@@ -305,7 +305,7 @@ before it reaches a page.
 
 ### Local engineering increment (29 October 2026)
 
-The uncommitted catalog-quality increment generates `/library/` and one isolated
+The catalog-quality increment generates `/library/` and one isolated
 page per story from `site/src/stories/components.mjs`. It reuses the real components,
 catalog data, layout shell and token CSS; no second component implementation or
 per-story styling is introduced.

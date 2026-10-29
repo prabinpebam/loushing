@@ -198,13 +198,13 @@ People keep items current, and the catalog grows without breaking anything.
 
 ## 4. Against the promise
 
-**Local engineering note, 29 October 2026.** The uncommitted catalog-quality
-increment adds pinned, hashed downloads for every skill and two kits (20 skills at
-its base; 21 once the Loushing finder in `skills/loushing` is committed); the Slate ZIP
+**Engineering note, 29 October 2026.** The catalog-quality increment, committed
+but not yet merged to `main` or deployed, adds pinned, hashed downloads for all 21
+skills and two kits; the Slate ZIP
 is withheld by the publication scan of its pinned lockfile. It also adds a generated
 component library, a build-time index budget, a repeatable search benchmark and
 axe/Lighthouse runners and an authored, not yet hosted-verified, CI workflow.
-See the [as-built increment](product-spec.md#uncommitted-catalog-quality-engineering-increment)
+See the [as-built increment](product-spec.md#catalog-quality-engineering-increment)
 for the exact boundaries. These checks do **not** close 1.4's manual run per agent,
 1.8's full accessibility/performance promise, 1.10's every-state evidence, participant
 tests or Chopper approval. The stage summary below is not new release
@@ -212,17 +212,16 @@ evidence.
 
 The same-machine, five-run-per-profile comparison now meets the unchanged mobile
 LCP lab target (p75 1,521.48 → 818.08 ms). Mobile TBT remains high at 2,512.49 ms;
-the change is not a material TBT improvement. The [as-built comparison](product-spec.md#uncommitted-catalog-quality-engineering-increment)
+the change is not a material TBT improvement. The [as-built comparison](product-spec.md#catalog-quality-engineering-increment)
 records the profiles and remaining boundary. Hosted CI and real-device/field
 performance still need evidence.
 
 Stage 1 is built in `site/` and deploys to GitHub Pages on every push to `main`.
 The development catalog contains **25 items: 21 skills, three kits and one stack**.
 Nineteen skills are independent adaptations of kit workflows; UI lighting and the
-optional Loushing finder are also listed. The finder's folder, `skills/loushing`, is
-not committed yet, so a root production build stops with "The pinned item has no
-files" until you commit it. A disposable clone with that folder committed builds
-169 pages. Pages, pinned source viewing, manual setup, search, agent-readable outputs
+optional Loushing finder are also listed. With the finder's folder, `skills/loushing`,
+committed, the root production build makes 169 pages and the site suite passes
+135/135. Pages, pinned source viewing, manual setup, search, agent-readable outputs
 and a release-derived feed are built (empty until real releases are registered).
 The earlier account of no skills and four hidden
 Chopper drafts was stale: the current site intentionally shows draft renders for
@@ -257,7 +256,7 @@ work is:
 
 ## 5. Status of the original pending work
 
-Reconciled on 29 October 2026 against the uncommitted working tree. Every row has
+Reconciled on 29 October 2026 against the working tree, then committed. Every row has
 one state:
 
 - **Built, checked locally:** implemented, and the named local check passes. Not a
@@ -277,7 +276,7 @@ hosted CI run or participant result. Local checks ran on Windows with Node 26.
 | PD2, 1.11 | Blocked on outside evidence | Item pages and visual blocks are built. Needs the test with 5 people (A2, A16) |
 | PD3, 1.9, 2.1 | Blocked on outside evidence | Target-folder copies are tested for five agent IDs at both scopes (`cli/test/cli.test.mjs`). Needs discovery in each real agent on Windows and macOS, and a timed session with 3 people |
 | PD4 | Blocked on outside evidence | CLI negative cases, hash checks and the publication check pass locally (`cli/test/`, `site/test/`). The CI hash check is authored in `.github/workflows/cli.yml` but has not run on a hosted runner |
-| PD5, 3.5 | Built, waiting on you | Works well with is build-checked; the stack installs and resumes through the development path (`cli/test/kits.test.mjs`). Needs your commits and releases of the three kit repositories, then genuine pins |
+| PD5, 3.5 | Built, waiting on you | Works well with is build-checked; the stack installs and resumes through the development path (`cli/test/kits.test.mjs`). The kit changes are committed on each kit's `feat/install-contract` branch. Needs them merged and released, then genuine pins |
 | PD6, 4.3 | Blocked on outside evidence | The finder skill and a 10/10 synthetic ranking and preview check exist (`cli/test/agent-access.test.mjs`). Needs scripted trials in two real agents |
 | PD7, 5.1 | Built, checked locally | `outdated`, `update` and `remove` for skills and development kits keep local edits (`cli/test/`). Kit updates from real releases wait on those releases |
 | PD8, 1.6 | Built, waiting on you | Folder plus `about.md` loading names every problem with its fix (`site/test/`). Needs your timed additions: 2 for stage 1, 5 for the project |
@@ -291,11 +290,11 @@ hosted CI run or participant result. Local checks ran on Windows with Node 26.
 | 1.3, 1.5 | Built, waiting on you | Pinned source views, effects and kit anatomy are built and tested. Needs your review of 3 item pages and the three kit pages |
 | 1.4 | Blocked on outside evidence | Git, Ask your agent and SHA-256 ZIP downloads are built for every skill and two kits (`site/test/archives.test.mjs`). The Slate ZIP stays withheld until its pinned lockfile passes review. Needs one manual run per real agent |
 | 1.7 | Built, checked locally | A planted-secret fixture is never built (`site/test/`) |
-| Finder in the root build | Built, waiting on you | `skills/loushing` is untracked. Commit it; until then the root production build and four root site tests stop with "The pinned item has no files" |
+| Finder in the root build | Built, checked locally | `skills/loushing` is committed; the root production build (169 pages, 21 skill downloads) and the site suite (135/135) pass |
 | 2.2 to 2.6 | Built, checked locally | Tamper, conflict, cancellation, rollback, exact remove, lockfile restore, JSON and exit codes (`cli/test/`). Recovery from a killed process or power loss is manual |
 | 2.7 | Built, waiting on you | The allowlisted, dependency-free package packs and installs offline in a disposable project. Needs your package name and license, npm publication with trusted publishing and provenance, and a hosted run of the Node and OS matrix |
 | 2.8 | Blocked on outside evidence | Needs the published package fetched through the managed proxy |
-| 3.1 | Built, waiting on you | Each kit's contract tests pass locally (`test/install-contract.test.mjs` in agentic-craft and agent-orchestration; `scripts/test-install-contract.mjs` in Slate). Needs your commits and releases in each kit repository, then the parent pins |
+| 3.1 | Built, waiting on you | Each kit's contract tests pass locally (`test/install-contract.test.mjs` in agentic-craft and agent-orchestration; `scripts/test-install-contract.mjs` in Slate). Committed and pushed on each kit's `feat/install-contract` branch, which the parent repository pins. Needs merging and releases in each kit repository, then the parent and catalog pins moved to the released commits |
 | 3.2 to 3.4 | Built, checked locally | Real installers through the explicit development path: plan, consent, lock, ordered stack, failure and resume, exact removal (`cli/test/kits.test.mjs`). Public routes stay manual until released pins exist |
 | 4.1, 4.2 | Built, checked locally | Versioned schemas validate every output; `find --json` and `info` share the site's ranking (`site/test/`, `cli/test/agent-access.test.mjs`) |
 | 5.2, 5.3 | Built, checked locally | A disposable move to an external repository keeps ID, links and restores; aliases, redirects and Gone pages are build-checked |

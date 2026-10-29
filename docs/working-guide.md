@@ -26,9 +26,9 @@ The ordinary static build and unit tests still need no packages. The catalog-qua
 increment adds optional, isolated browser tooling under `site/validation/`; it is not
 part of the application bundle or the root CLI package.
 
-Until the Loushing finder's folder, `skills/loushing`, is committed, the build and
-four site tests stop with "loushing: The pinned item has no files": the build reads
-each skill's files from its pinned commit. Commit it before relying on a root build.
+The build reads each skill's files from its pinned commit, so commit a new skill's
+folder before relying on a root build. Until then, the build and the site tests that
+use the real catalog stop with "<id>: The pinned item has no files".
 
 ```powershell
 node site\scripts\build.mjs

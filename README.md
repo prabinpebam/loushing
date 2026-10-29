@@ -9,8 +9,7 @@ first kits, one stack, UI lighting, the optional Loushing finder and
 [19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
 Local work for stages 2 to 5 is built but not released; the
 [Definitions of Done](docs/spec/definition-of-done.md#5-status-of-the-original-pending-work)
-say what each remaining row is waiting on. The finder's folder, `skills/loushing`,
-must be committed before a root production build passes.
+say what each remaining row is waiting on.
 "Loushing" is the working
 name. The plan and spec live in the Slate documentation in [docs/](docs/).
 
