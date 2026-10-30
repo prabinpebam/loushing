@@ -15,9 +15,6 @@ provisional.
   connected to the owner's upstream repositories. Make reusable harness improvements
   in their canonical sources, following each repository's guidance. Keep
   product-specific meaning and policy here, not in the generic harnesses.
-- [ai-integration/](ai-integration/) is also a pinned Git submodule, but only a catalog
-  source: the build reads the ai-integration kit from it. It is not a harness for this
-  workspace; change the kit in its own repository.
 - Never patch generated [docs/shell/](docs/shell/) or the harness-installed copies in
   [.github/skills/](.github/skills/) and [.github/agents/](.github/agents/).
   Refresh the host from the relevant source after harness changes. The exceptions
@@ -109,14 +106,11 @@ This project uses the [agentic-craft](https://github.com/prabinpebam/agentic-cra
   [visual first](docs/design/visual-first.md) and [Chopper](docs/design/chopper.md).
   Components live in [site/src/components/](site/src/components/) (fundamentals,
   compounds) and [site/src/layouts/](site/src/layouts/); the design-system suite is
-  `site/test/design-system.test.mjs`. Component stories (`site/src/stories/`) and a
-  generated library at `/library/` are built locally but not yet reviewed in every
-  state. Glossary: the product spec's §8. Slate's theme and components belong
+  `site/test/design-system.test.mjs`. Component stories and a generated library are
+  not built yet. Glossary: the product spec's §8. Slate's theme and components belong
   only to documentation.
-- **Performance:** targets and budgets are in the product spec's §7 and
-  `site/perf/budgets.json`. A local search benchmark baseline is in
-  `site/perf/baseline.json` (`node site\scripts\benchmark.mjs`); no hosted or
-  field baseline exists yet.
+- **Performance:** targets and budgets are in the product spec's §7; no benchmark or
+  baseline has been recorded yet.
 - **Style lint:** `node .\agentic-craft\tools\lint-styles.mjs site\src`.
 - **Token commands:** `node .\agentic-craft\tools\check-tokens.mjs --src design\tokens --checks design\tokens\checks.json`;
   `node .\agentic-craft\tools\build-tokens.mjs --src design\tokens --css design\tokens\dist\tokens.css --md docs\design\tokens.md`
@@ -128,9 +122,7 @@ This project uses the [agentic-craft](https://github.com/prabinpebam/agentic-cra
 <!-- agent-orchestration:start -->
 ## Orchestration (agent-orchestration harness)
 
-This project uses the [agent-orchestration](https://github.com/prabinpebam/agent-orchestration) skills to carry out work. Start with the `orchestrate` skill: it picks the mode (show me the UX sooner, prove the risky assumption, make this production-ready; work with me or keep going unattended) and routes to `execution-modes`, `stage-validation`, `progress-review` and `coordinate`. Agent: `throughput-reviewer` (about every 30 minutes of running work). The session clock (Copilot hooks in `.github/hooks/orchestration-clock.json`) is **mandatory**: it says when a review is due and when to roll over to a new session. Act on every reminder before the next increment, and never disable it or loosen its limits without the owner. Where the tool has no hooks, keep time by hand on the same limits. A **review build** is always running for the owner to try: built from the last validated commit, isolated from development (its own checkout, port or user-data folder, and demo data), refreshed at each validated increment or stage close, and named in every status report and handoff. These skills decide how work is run, not what to build; product intent comes from the files named below when there are any.
-
-**Keep the coordinator free.** The main chat only reads prompts and live state, triages, queues, routes, steers or stops workers, checks deliveries cheaply and reports. Workers do implementation, builds, test suites and long commands. Keep coordinator turns short and end them; no sleeps, polling loops, blocking waits or watchers that hold a turn open. At every turn, read unread messages, completion records, the live worker list and the durable registry/queue before dispatch. One writer per working copy; check for an existing worker or successor before any launch. Completion is event-driven, and ending a coordinator turn is not completing the owner's task: never mark it complete to silence keep-working reminders while dispatched work remains; where the host can't idle with work pending, say so and use its supported continuation. At the same session limits, hand the registry to one fresh coordinator without restarting workers or resetting their clocks; explicitly mark the old clock's roll-over after transfer. Use `--session <id>` for clock commands when sessions share a folder. This was learned in VS Code agent sessions; other tools differ. Without parallel chats or notifications, keep a file queue, use short turns and start-of-turn status checks, and ask the owner to re-prompt (`orchestrate`).
+This project uses the [agent-orchestration](https://github.com/prabinpebam/agent-orchestration) skills to carry out work. Start with the `orchestrate` skill: it picks the mode (show me the UX sooner, prove the risky assumption, make this production-ready; work with me or keep going unattended) and routes to `execution-modes`, `stage-validation`, `progress-review` and `coordinate`. Agent: `throughput-reviewer` (about every 30 minutes of running work). These skills decide how work is run, not what to build; product intent comes from the files named below when there are any.
 
 ### Project facts
 
@@ -138,14 +130,12 @@ This project uses the [agent-orchestration](https://github.com/prabinpebam/agent
   [Definitions of Done](docs/spec/definition-of-done.md), with the design pages in
   [docs/design/](docs/design/). Stage 1 is "show me the UX sooner"; its working
   defaults still need the owner's decisions before they are treated as approved.
-- **Work plan:** the active worker's session JSON records; use ignored
-  `.agent-orchestration/` when the host only permits workspace-relative writes.
+- **Work plan:** none yet; keep one beside the work it plans, or in the agent's session
+  storage for short tasks.
 - **Commands by validation tier:** Slate host integrity:
   `node .\slate\scripts\runtime-host.mjs check --repo . --host docs`; harness tests:
   `node --test .\agentic-craft\test\harness.test.mjs` and
-  `node --test ".\agent-orchestration\test\*.test.mjs"` (including the clock); CLI:
-  `node --test "cli/test/*.test.mjs"` and `node cli\bin\loushing.mjs check --json`;
-  design tokens: the token
+  `node --test .\agent-orchestration\test\harness.test.mjs`; design tokens: the token
   commands in the Craft facts above; site: `node --test "site/test/*.test.mjs"` (unit,
   catalog, design system, build and links) and `node site\scripts\build.mjs`. Check
   affected documentation paths, links, and HTTP rendering, and look at changed site
@@ -155,21 +145,11 @@ This project uses the [agent-orchestration](https://github.com/prabinpebam/agent
   product progress log during initial setup.
 - **Branches and merges:** use a task branch in the repository being changed.
   The parent repository's `origin` is the owner's public
-  [prabinpebam/loushing](https://github.com/prabinpebam/loushing) on `main`; the
-  Pages workflow deploys pushes to `main`. Harness origins are the owner's repositories; preserve the docs/product boundary and do not
+  [prabinpebam/loushing](https://github.com/prabinpebam/loushing) on `main`, with no
+  deployment configured. Harness origins are the owner's repositories; preserve the docs/product boundary and do not
   commit, push, merge, or deploy without an explicit request.
 - **Reviews and escalation:** review about every 30 minutes of running work.
   Always escalate product decisions (naming, taxonomy, UX, technology), importing
   personal or work resources, and anything that publishes content.
-- **Coordinator registry:** the active coordinator's `orchestration-state.json` in
-  its session storage. Only the coordinator writes it; workers write their own
-  task/attempt completion JSON. If outside-workspace writes are unavailable, record
-  the fallback path under ignored `.agent-orchestration/` in the handoff.
-- **Review build:** a detached worktree under `.agent-orchestration/review-<commit>`,
-  with submodules at that commit's pins. Run its `site/scripts/build.mjs`, then
-  `python -m http.server <free-port> --bind 127.0.0.1 --directory <review>/site/dist`.
-  Record the exact commit, URL and server handle in the worker's completion JSON.
-  Keep the server running; never refresh it from the dirty tree or replace an
-  owner's server. With no commit permission, it stays on the validated baseline.
 - **Refresh:** `node .\agent-orchestration\tools\install.mjs . --for copilot`.
 <!-- agent-orchestration:end -->

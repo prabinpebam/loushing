@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "authority": "docs/spec/product-spec.md section 7; engineering checks are not participant evidence",
-  "searchIndexGzipBytes": 150000,
-  "searchDocuments": 200,
-  "targets": { "searchP75Ms": 50, "mobileLcpP75Ms": 1500 },
-  "comparison": { "relative": 0.2, "searchAbsoluteMs": 5 },
-  "excludedFromProductEntry": ["library.js", "axe", "lighthouse", "playwright"]
-}

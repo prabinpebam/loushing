@@ -34,7 +34,6 @@ loushing/
 ├─ docs/                       Slate planning host (this documentation)
 ├─ slate/ agentic-craft/ agent-orchestration/
 │                              Submodules: tooling for planning and building Loushing
-├─ ai-integration/             Submodule: a kit's source, read only by the catalog build
 └─ .github/
    ├─ workflows/               Check on pull request; build, release and deploy on main
    └─ skills/                  Agent skills for working on Loushing (installed
@@ -60,9 +59,6 @@ Slate, agentic-craft and agent-orchestration appear in two unrelated ways:
 
 Updating a submodule for planning never changes what other people install, and
 publishing a kit release never changes this workspace.
-
-The ai-integration kit has only the second role. Its submodule exists so the build can
-read the kit at the pointer's commit; this workspace does not use it as tooling.
 
 ## What lives where
 

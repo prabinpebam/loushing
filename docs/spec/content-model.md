@@ -55,14 +55,12 @@ a distribution channel, not a different kind of item.
 | Type | What it is | Lives in | Example | Installs as |
 | --- | --- | --- | --- | --- |
 | **Skill** | One capability an agent loads on demand: a `SKILL.md` folder that may carry scripts, references and assets | Loushing (`skills/<name>/`), or inside a kit | A single document-conversion or review skill | Its folder, copied into each chosen agent's skills location |
-| **Kit** | Several parts that work as one system, with its own repository, releases and installer | Its own repository; Loushing holds a pointer | Slate, agentic-craft, agent-orchestration, ai-integration | The kit's own installer, run by the Loushing CLI, or the kit's documented setup |
+| **Kit** | Several parts that work as one system, with its own repository, releases and installer | Its own repository; Loushing holds a pointer | Slate, agentic-craft, agent-orchestration | The kit's own installer, run by the Loushing CLI, or the kit's documented setup |
 | **Stack** | A curated combination of items for one outcome, with the order to set them up and how they hand off | Loushing (`stacks/<name>.md`) | "Plan, build and document a product": agentic-craft + agent-orchestration + Slate | Each member, in order, in one confirmed run |
 
 **Parts** are the skills, agents, templates and tools inside a kit. A kit's page lists
 its parts, and each part is searchable. The original parts remain in the kit, while
-independent adaptations of the 19 skills in agentic-craft, agent-orchestration and
-Slate are also listed as ordinary skills. The ai-integration kit's one skill has no
-separate adaptation; it is installed with its kit.
+independent adaptations of all 19 kit skills are also listed as ordinary skills.
 Each standalone folder carries its own instructions and required resources; it
 does not install the kit or silently depend on another skill.
 
@@ -180,12 +178,12 @@ Rules:
 
 - Every relation carries a reason of at most 100 characters. A relation without a
   reason is not shown.
-- `requires` is used sparingly. The current kits deliberately do not require each
+- `requires` is used sparingly. The three current kits deliberately do not require each
   other, so they relate with `pairsWith` and `feedsInto`.
 - A stack is the place for order and handoff across more than two items, rather than a
   chain of `feedsInto` links.
 
-Example, using three of the current kits (taken from their READMEs):
+Example, using the three current kits (taken from their READMEs):
 
 | From | Relation | To | Reason |
 | --- | --- | --- | --- |

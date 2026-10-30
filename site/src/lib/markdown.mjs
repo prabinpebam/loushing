@@ -14,7 +14,7 @@
 import { esc, slug } from './html.mjs';
 
 export function renderMarkdown(src, options = {}) {
-  const opts = { resolveLink: (h) => h, headingShift: 0, idPrefix: '', ...options, headingIds: new Set() };
+  const opts = { resolveLink: (h) => h, headingShift: 0, idPrefix: '', ...options };
   const lines = String(src ?? '').replace(/\r\n?/g, '\n').split('\n');
   return blocks(lines, opts);
 }
@@ -39,17 +39,13 @@ function blocks(lines, opts) {
       while (i < lines.length && !new RegExp(`^\\s{0,3}${marker[0]}{${marker.length},}\\s*$`).test(lines[i])) body.push(lines[i++]);
       i++;
       const lang = m[3] ? ` data-lang="${esc(m[3])}"` : '';
-      out += `<pre class="md-code"${lang} tabindex="0" role="region" aria-label="Code example"><code>${esc(body.join('\n'))}</code></pre>\n`;
+      out += `<pre class="md-code"${lang}><code>${esc(body.join('\n'))}</code></pre>\n`;
       continue;
     }
     if ((m = HEADING.exec(line))) {
       const level = Math.min(6, m[1].length + opts.headingShift);
       const text = inline(m[2], opts);
-      const base = opts.idPrefix + (slug(m[2]) || 'section');
-      let id = base;
-      for (let n = 2; opts.headingIds.has(id); n++) id = `${base}-${n}`;
-      opts.headingIds.add(id);
-      out += `<h${level} id="${esc(id)}">${text}</h${level}>\n`;
+      out += `<h${level} id="${esc(opts.idPrefix + slug(m[2]))}">${text}</h${level}>\n`;
       i++;
       continue;
     }

@@ -6,13 +6,6 @@ import { createLightRenderer } from './light-renderer.js';
 const SITE_DEFAULTS = Object.freeze({ ...LIGHT_DEFAULTS, enabled: true, gobo: 'none' });
 const GOBO_URLS = Object.fromEntries(Object.entries(GOBOS).map(([name, { file }]) => [name, new URL(`../${file}`, import.meta.url).href]));
 
-/** Let content paint with settled fonts before allocating the decorative GPU layer. */
-export async function afterLightingLayout(start, { fontReady = document.fonts?.ready, frame = requestAnimationFrame } = {}) {
-  await Promise.resolve(fontReady).catch(() => {});
-  await new Promise((resolve) => frame(() => frame(resolve)));
-  start();
-}
-
 /** DOM adapter for the portable engine and its shared shadow layer. */
 export function initLighting() {
   const root = document.documentElement;
@@ -39,7 +32,6 @@ export function initLighting() {
   let warning = '';
   let upgraded = false;
   let renderer = null;
-  let layoutReady = false;
   try {
     const saved = localStorage.getItem(key);
     // Settings saved before a setting existed take the site's default for it, as does a
@@ -70,11 +62,7 @@ export function initLighting() {
     for (const [name, value] of Object.entries(lightingProperties(settings))) root.style.setProperty(name, value);
     root.dataset.lighting = settings.enabled ? 'on' : 'off';
     const preferred = forced.matches || contrast.matches;
-    if (layoutReady && settings.enabled && !preferred && !renderer) {
-      const start = performance.now();
-      renderer = createLightRenderer({ heights: [...LIGHT_LEVELS], gobos: GOBO_URLS });
-      performance.measure('lighting:initialize', { start, end: performance.now() });
-    }
+    if (settings.enabled && !renderer) renderer = createLightRenderer({ heights: [...LIGHT_LEVELS], gobos: GOBO_URLS });
     renderer?.update(settings, {
       visible: settings.enabled && !preferred,
       motion: lightingMotion(settings, { reducedMotion: reduced.matches, hidden: document.hidden || preferred }),
@@ -147,5 +135,4 @@ export function initLighting() {
   document.addEventListener('visibilitychange', show);
   for (const media of [reduced, contrast, forced]) media.addEventListener('change', show);
   show();
-  void afterLightingLayout(() => { layoutReady = true; show(); });
 }

@@ -15,16 +15,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const catalog = loadCatalog(root);
 const model = buildModel(catalog);
 const adaptations = model.items.filter((i) => i.derivedFrom);
-// Kits whose skills have standalone adaptations (skills/README.md). ai-integration's one
-// skill is listed only inside its kit.
-const ADAPTED_KITS = ['agentic-craft', 'agent-orchestration', 'slate'];
 
-test('every skill in an adapted kit has exactly one separately listed standalone adaptation', () => {
+test('every pinned kit skill has exactly one separately listed standalone adaptation', () => {
   assert.deepEqual(catalog.problems, []);
   assert.equal(adaptations.length, 19);
-  const skillParts = model.parts.filter((p) => p.kind === 'skill');
-  const parts = skillParts.filter((p) => ADAPTED_KITS.includes(p.kit.id));
-  assert.deepEqual(skillParts.filter((p) => !ADAPTED_KITS.includes(p.kit.id)).map((p) => [p.kit.id, p.name, Boolean(p.standalone)]), [['ai-integration', 'ai-integration', false]]);
+  const parts = model.parts.filter((p) => p.kind === 'skill');
   assert.equal(parts.length, adaptations.length);
   for (const part of parts) {
     assert.ok(part.standalone, `${part.id} has an independent version`);

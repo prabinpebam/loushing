@@ -34,13 +34,6 @@ test('standalone links opt into a control-height target without changing inline 
   assert.doesNotMatch(String(Link({ href: '/', label: 'Catalog' })), /data-standalone/);
 });
 
-test('header breakpoints scale with enlarged text through their named container', () => {
-  const css = readFileSync(new URL('../src/styles/layouts.css', import.meta.url), 'utf8');
-  assert.match(css, /\.l-header\s*\{[^}]*container-type:\s*inline-size/);
-  assert.match(css, /@container titlebar \(min-width: 72rem\)/);
-  assert.match(css, /@container titlebar \(min-width: 90rem\)/);
-});
-
 test('new-tab links isolate the opener and announce their behavior without changing existing links', () => {
   const link = String(Link({ href: 'https://prabinpebam.github.io/atiya', label: 'More of my work', external: true, newTab: true }));
   assert.match(link, /target="_blank"/);

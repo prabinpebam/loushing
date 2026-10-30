@@ -29,13 +29,6 @@ test('markdown: escapes HTML and renders headings, lists and code', () => {
   assert.equal(plainText('**Bold** and `code`').trim(), 'Bold and code');
 });
 
-test('markdown: code can be scrolled with keys and heading IDs never collide', () => {
-  const out = renderMarkdown('## Repeat\n\n## Repeat\n\n## !!!\n\n## ???\n\n```\nlong code\n```', { idPrefix: 'source-' });
-  assert.match(out, /<pre[^>]*tabindex="0"[^>]*aria-label="Code example"/);
-  const ids = [...out.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['source-repeat', 'source-repeat-2', 'source-section', 'source-section-2']);
-});
-
 test('html: escapes values unless marked raw', () => {
   assert.equal(esc('<a href="x">'), '&lt;a href=&quot;x&quot;&gt;');
   assert.equal(String(html`<p>${'<i>'}</p>`), '<p>&lt;i&gt;</p>');

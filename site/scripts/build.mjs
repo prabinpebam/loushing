@@ -7,9 +7,6 @@ import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCatalog } from './lib/catalog.mjs';
-import { prepareArchives } from './lib/archives.mjs';
-import { buildLibrary } from './lib/library.mjs';
-import { checkBudgets } from './lib/budgets.mjs';
 import { buildModel } from './lib/model.mjs';
 import { catalogJson, feedXml, itemJson, itemMarkdown, llmsTxt, searchIndex } from './lib/outputs.mjs';
 import { decodePng, encodePng, lightMask, trimToAlpha } from './lib/png.mjs';
@@ -18,9 +15,6 @@ import { renderView } from '../src/render.mjs';
 import { setBase, url } from '../src/lib/urls.mjs';
 import { frontMatter } from '../src/lib/yaml.mjs';
 import { iconPaths } from '../src/components/icons.mjs';
-import { assertOutput } from './lib/schema.mjs';
-import { resolveIdentity } from '../src/lib/lifecycle.mjs';
-import { html } from '../src/lib/html.mjs';
 
 const started = performance.now();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -38,7 +32,6 @@ if (catalog.problems.length) {
   for (const p of catalog.problems) console.error(`  ${p.file}: ${p.message}\n    Fix: ${p.fix}`);
   process.exit(1);
 }
-const archives = prepareArchives(catalog, { preview: process.argv.includes('--dev') });
 const model = buildModel(catalog);
 
 rmSync(dist, { recursive: true, force: true });
@@ -52,7 +45,6 @@ const copy = (from, to) => {
   copyFileSync(from, join(dist, to));
 };
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 10);
-for (const archive of archives) write(archive.path, archive.bytes);
 
 // Styles: tokens first, then the tiers in order, as one file.
 const STYLE_FILES = ['base', 'fundamentals', 'compounds', 'layouts', 'chopper', 'lighting'];
@@ -109,43 +101,20 @@ page('/404', views['not-found'], { description: 'This page isn’t here.' });
 for (const item of model.items) {
   const view = { kit: views.kit, skill: views.skill, stack: views.stack }[item.type];
   page(item.url, view, { item, description: item.summary, alternate: url(`${item.url}.md`) });
-  write(`${item.url.slice(1)}.json`, JSON.stringify(assertOutput('item', itemJson(item, model)), null, 2));
+  write(`${item.url.slice(1)}.json`, JSON.stringify(itemJson(item, model), null, 2));
   write(`${item.url.slice(1)}.md`, itemMarkdown(item, model));
 }
 for (const part of model.parts) page(part.url, views.part, { item: part, description: part.summary });
-pages += buildLibrary(root, ctxBase, write);
 
-for (const name of ['catalog', 'item', 'lifecycle']) copy(join(root, 'catalog', 'schema', `${name}-1.json`), `schema/${name}-1.json`);
-for (const release of catalog.releaseRegistry.releases) {
-  copy(join(release.dir, 'manifest.json'), `releases/${release.version}/manifest.json`);
-  for (const name of Object.keys(release.files)) copy(join(release.dir, name), `releases/${release.version}/${name}`);
-}
-for (const [id, removal] of Object.entries(catalog.lifecycle.removed)) {
-  const view = { layout: 'message', title: 'Item removed', regions: { body: [{ type: 'empty-state', kind: 'gone', pageTitle: true, reason: removal.reason, alternative: removal.instead ? { title: model.byId.get(removal.instead).title, href: `/items/${removal.instead}` } : null }] } };
-  page(`/items/${id}`, view, { description: removal.reason });
-  write(`items/${id}.json`, JSON.stringify(assertOutput('lifecycle', { schema: url('/schema/lifecycle-1.json'), id, status: 'removed', ...removal }), null, 2));
-  write(`items/${id}.md`, `# Item removed\n\n${removal.reason}\n\n${removal.instead ? `Alternative: [${removal.instead}](${url(`/items/${removal.instead}`)})` : `[Search the catalog](${url('/catalog')})`}\n`);
-}
-for (const id of Object.keys(catalog.lifecycle.aliases)) {
-  const target = resolveIdentity(catalog.lifecycle, id).id;
-  const href = url(`/items/${target}`);
-  const view = { layout: 'message', title: 'Item moved', regions: { body: [{ type: 'text', markdown: `# Item moved\n\n[Open ${target}](/items/${target})` }] } };
-  const rendered = renderView(view, { ...ctxBase, path: `/items/${id}`, description: 'This item has a new address.' });
-  write(`items/${id}/index.html`, rendered.replace('</head>', `${html`<meta http-equiv="refresh" content="0;url=${href}"><link rel="canonical" href="${href}">`}</head>`));
-  write(`items/${id}.json`, JSON.stringify(assertOutput('lifecycle', { schema: url('/schema/lifecycle-1.json'), id, status: 'alias', instead: target, data: url(`/items/${target}.json`) }), null, 2));
-  write(`items/${id}.md`, `# Item moved\n\n[Open ${target}](${href})\n`);
-}
-write('catalog.json', JSON.stringify(assertOutput('catalog', catalogJson(model)), null, 2));
+write('catalog.json', JSON.stringify(catalogJson(model), null, 2));
 write('search-index.json', JSON.stringify(searchIndex(model)));
 write('llms.txt', llmsTxt(model));
 write('feed.xml', feedXml(model));
 for (const name of ['get-started', 'for-agents']) write(`${name}.md`, readFileSync(join(src, 'content', `${name}.md`), 'utf8'));
 
-const budget = checkBudgets(dist, JSON.parse(readFileSync(join(root, 'site', 'perf', 'budgets.json'), 'utf8')));
-if (budget.problems.length) throw new Error(budget.problems.join('\n'));
 const ms = Math.round(performance.now() - started);
 swapIn();
-console.log(`Built ${pages} pages (${model.items.length} items, ${model.parts.length} parts) in ${ms} ms. Search index: ${budget.searchIndexGzipBytes} gzip bytes.`);
+console.log(`Built ${pages} pages (${model.items.length} items, ${model.parts.length} parts) in ${ms} ms.`);
 
 function swapIn() {
   const old = `${finalDist}.old-${process.pid}`;

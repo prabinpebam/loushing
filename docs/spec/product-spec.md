@@ -457,7 +457,7 @@ pitch words. The rest is reviewed by hand against this table.
 | A1 | People other than you prefer a curated, explained catalog to finding these repositories and vendor directories themselves | Desirability | High (P1, P2; whether to build a site at all) | None | 3 of 5 practitioners, each given a task, find and choose the right item within 5 minutes and say they would come back | A clickable prototype of the home page and three real item pages | Refuted: keep the catalog as a README, an index and a CLI only; drop the site | Open |
 | A2 | A plain-language page lets a first-time person decide within a minute | Usability | High (P2) | Benchmarks: the leading directories lead with install and a README, not explanations | 4 of 5 first-time people correctly state what an item does and what it changes after 60 seconds on the page | The same prototype test | Change the page order or the body template | Open |
 | A3 | One CLI install step can reach every target agent: VS Code Copilot, Copilot CLI, Claude Code, Codex and Cursor | Feasibility | High (P3; the whole CLI design) | Research: the Agent Skills format is shared, but discovery folders differ per agent | A sample skill installed by a prototype CLI is discovered in all five agents on Windows and macOS | A spike: copy one skill to each documented folder and ask each agent to use it | Narrow the supported agents or add per-agent adapters | Open |
-| A4 | Kit installers can be driven non-interactively through one contract with dry-run and uninstall | Feasibility | High (P3, P5 for kits and stacks) | Local canonical source and real-installer fixture tests pass; public pins still lack the new contract | All three kits install, dry-run and uninstall through the contract with no prompts, and the dry-run lists exactly what is written | Repeat contract tests against authorized upstream releases and new pins | Local engineering implemented; release verification remains | Partially validated |
+| A4 | Kit installers can be driven non-interactively through one contract with dry-run and uninstall | Feasibility | High (P3, P5 for kits and stacks) | Partial: craft and orchestration have installers; Slate's setup is a separate init script | All three kits install, dry-run and uninstall through the contract with no prompts, and the dry-run lists exactly what is written | Run the three current installers in a scratch project | Add contract support to each kit before stage 3 | Open |
 | A5 | An agent can draft a good item card from `SKILL.md`, needing at most 10 minutes of your edits | Usability | Medium (P8) | None | For 5 real skills, the median edit time is ≤ 10 minutes and each page passes the quality bar | Draft cards for 5 skills | Add a stricter template or a guided authoring skill | Open |
 | A6 | Agents will use the catalog mid-task when the finder skill is installed | Desirability | Medium (P6) | Benchmarks: Vercel ships a similar "find skills" skill | In 10 tasks where a catalog item applies, the agent proposes the right item unprompted at least 7 times | A scripted trial after stage 4 | Change the finder skill's description, or drop it in favor of instructions | Open |
 | A7 | Keyword search over summaries, `useWhen` and tags puts the right item in the top five for 80% of task phrases, with up to 200 items | Feasibility | Medium (P1) | None | 20 real task phrases against the first 15 items | Run the phrases against a simple index | Add synonyms, or semantic search | Open |
@@ -527,10 +527,9 @@ can overturn.
 - The build writes into a staging folder and swaps it in only when everything
   succeeds. A catalog with any problem exits with the problems listed and writes
   nothing. `OUT_DIR` and `CATALOG_ROOT` let tests build elsewhere and from a fixture.
-- Pinned Git blobs are read in one batch (`git cat-file --batch`); each item's
-  "Updated" date still comes from Git. What's new and RSS use explicit immutable
-  catalog releases. An ordinary working-tree build is `development`, not a release
-  inferred from the latest Git date.
+- Git history is read in one batch (`git cat-file --batch`); "What's new" and each
+  item's "Updated" date come from Git, and the catalog version is the latest change
+  date.
 
 **Cards and pages.**
 
@@ -541,15 +540,13 @@ can overturn.
   tree, kit anatomy, stack path, works with, source viewer, empty states with a page
   title). Views stay pure data.
 - Get it shows tabs in the order Git, Ask your agent, Download, then Command, which
-  says "coming soon" until the CLI exists. The local catalog-quality increment below
-  adds item-specific downloads with SHA-256; this is not released evidence.
+  says "coming soon" until the CLI exists. Downloads carry no SHA-256 yet.
 - An agent a card doesn't list shows as "Not tried yet", never as unsupported.
 - The trust panel (what an item adds and changes) lives inside the adds tree.
 - Source files are shown without syntax highlighting.
 - The catalog is a tile grid with a live search in the sidebar that filters as you
   type, without a submit button.
-- All 19 skills inside the pinned agentic-craft, agent-orchestration and Slate kits
-  also have independent adaptations in
+- All 19 skills inside the pinned kits also have independent adaptations in
   `skills/`, with their own cards, instructions, resources and pinned source notes.
   Kit and part pages link to these versions; search, JSON, Markdown and `llms.txt`
   include them. The kits and their pinned commits are unchanged. Slate adaptations
@@ -598,95 +595,6 @@ drafts stop showing. Zones can take extra size classes from a breakpoint
 (`extraSizes`): a 3:1 strip in section breaks and the footer from medium screens up,
 and a tall scene in the gutter on very wide screens.
 
-**Local CLI (stage 2).** `cli/` and the root `package.json` now provide a
-dependency-free, unpublished CLI preview. It installs skills at pinned commits,
-checks hashes, protects local edits, stages changes with rollback, and records an
-exact-restoration lockfile. Add, find, info, list, remove, install, outdated, update
-and the existing catalog/publication check have structured JSON output. The
-[distribution implementation status](distribution.md#local-implementation-status)
-records target defaults, safety choices and limitations. The package shares the
-site's existing search and catalog modules through an explicit package allowlist.
-The website's Command tab remains unavailable until publishing is approved and
-verified; no public `npx` availability is claimed.
-
-**Local kits and stacks (stage 3; kit updates in 5.1).** Canonical installers now
-have dependency-free, noninteractive dry-run/JSON/uninstall contracts with exact
-ownership records. The CLI verifies their complete source manifests, requires
-explicit source trust before executing even a dry run, and requires one exact
-combined target-plan approval. Real-kit tests cover installs, restoration, updates,
-unchanged-project removal, local-edit protection and a stack failing then resuming.
-Skill members reuse the skill transaction. Page/JSON/CLI automation availability
-comes from one validator. The canonical changes are committed on each kit's
-`feat/install-contract` branch but not merged or released: the public kit cards
-keep their manual pins. Explicit `--dev-kits` manifests are a local
-test path, not a bypass for published-source verification.
-
-**Local agent access and lifecycle (stages 4–5).** The build validates index/item
-JSON against served versioned schemas. The optional finder asks for actual-user
-consent; 10 synthetic search/preview tasks score 10/10 without any install command,
-not evidence of a real two-agent trial. Authoritative aliases/removals produce old
-link redirects and Gone pages. A disposable external-skill move retains ID, links,
-original-pin restoration and new-pin installation. Explicit local private catalogs
-remain isolated from public builds and other source locks; O9 network-auth policy
-is still open.
-
-The release registry is empty: no historical releases were invented. Builds label
-the catalog `development`; What's new and RSS contain only registered immutable
-releases. Local preparation verifies actual Git-pinned bytes, refuses dirty sources
-and never publishes or promotes a channel. The default public metadata cache lasts
-10 minutes, can be bypassed explicitly and never persists dry-run or private data.
-See [distribution](distribution.md#lifecycle-and-release-preparation) for boundaries.
-
-**Not built or proved yet.** Released kit/stack automation, real finder-agent trials,
-authorized catalog releases and private network policy, a hosted run of the
-site-quality workflow, and a custom domain (O13). Component stories and automated
-Lighthouse and axe runs now exist only as the local increment below. The
-standalone workflows and CLI target folders have not been exercised end-to-end in
-every supported agent. npm publishing, trusted publishing, provenance and managed
-registry delivery remain blocked on owner/external actions. With the finder's
-folder, `skills/loushing`, committed, the root production build makes 169 pages.
-The [Definitions of Done](definition-of-done.md#5-status-of-the-original-pending-work)
-give the state of every original pending row.
-
-### Catalog-quality engineering increment
-
-This increment is committed engineering work, not yet merged to `main` or
-deployed, and not a release or completion of stage 1.
-
-| Area | Implemented behavior | Boundary |
-| --- | --- | --- |
-| Downloads (U7, 1.4) | Deterministic ZIPs from pinned Git blobs; an item root folder, SHA-256 and a complete per-file manifest. Download plans, index and item JSON agree. Every skill resource is included; working-tree drift fails rather than claiming pinned hashes. Kits retain their complete pinned tree and executable modes. | Every skill and two kits pass the payload check at the current pins: 21 skills, including the Loushing finder (`skills/loushing`). Slate's pinned lockfile triggers the existing internal-host publication rule; its new local ZIP is withheld, not silently stripped or allowlisted. Git remains available. Stacks use their member plans rather than a misleading single ZIP. |
-| Library (PD12, 1.10) | Generated source documentation and real component stories at `/library/`, with theme/context controls and layout metadata. | Exact type-checker prop extraction, every-state capture coverage and the approved Chopper gallery remain unclaimed. |
-| Quality (PD10, 1.8) | Build-time search-index budget, repeatable Node search benchmark, local-browser axe and Lighthouse commands, and a Windows CI workflow using the approved feed and installed browser. Decorative GPU initialization follows content paint and is skipped when contrast preferences hide it. | Hosted CI remains unverified. Lab measurements are not user trials, field p75 or full WCAG compliance. See the [working guide](../working-guide.md#site-quality-checks). |
-
-The local 29 October comparison used all five cold-cache runs per profile on the
-same machine, runtime, browser and route, with identical throttling:
-
-| Metric (p75) | Before | After | Evidence boundary |
-| --- | --- | --- | --- |
-| Mobile LCP | 1,521.48 ms | 818.08 ms | Meets the unchanged 1,500 ms target; a 46.23% reduction, beyond the 20% and 75 ms comparison allowance |
-| Desktop LCP | 315.41 ms | 270.32 ms | Difference remains within that allowance; no improvement claim |
-| Mobile TBT | 2,689.12 ms | 2,512.49 ms | Still high; no material improvement claim |
-| Desktop TBT | 1,189.06 ms | 1,051.14 ms | No material improvement claim |
-
-Profiling identified synchronous WebGL context creation, shader linking and canvas
-resizing. The site adapter keeps that initialization out of the content's first
-paint, without changing the shader, resolution, settings or imagery. Actual-browser
-checks verify visible lighting afterward, and no WebGL allocation where contrast
-preferences hide it. The remaining renderer long tasks need separate optimization;
-meeting this LCP lab target does not close the full performance promise.
-
-The archive manifest's `files` are the payload relative to its `root`; `size` and
-`sha256` identify the complete ZIP. Payload paths, sizes, hashes and modes match the
-item JSON `files` exactly (a skill’s editorial `about.md` is not in the ZIP). ZIP
-timestamps, ordering and permissions
-are fixed. A publication failure never produces a partial archive.
-The development preview can still show an edited skill, but withholds its download
-until its files match a reviewed commit; production builds reject that drift.
-CRLF-only working-checkout differences use the matching Git blob's canonical bytes
-for sizes, hashes and source text. Other changes are not normalized away.
-
-**Still outside this increment.** A custom domain (O13), CLI publication and actual
-agent-discovery trials. The standalone workflows have not yet been exercised
-end-to-end in every supported agent. Owner decisions, participant tests and Chopper
-approval stay blocked, regardless of engineering checks.
+**Not built yet.** Component stories, automated Lighthouse and axe runs, a custom
+domain (O13), and the CLI. The standalone workflows have not yet been exercised
+end-to-end in every supported agent.

@@ -5,30 +5,9 @@ page for each and the steps to set it up. It's a personal collection, not a
 marketplace: these work for me, and if one looks useful to you, take it.
 
 **Status:** stage 1, "A catalog you can read", is built in [site/](site/) and lists the
-first kits, one stack, UI lighting, the optional Loushing finder and
-[19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
-Local work for stages 2 to 5 is built but not released; the
-[Definitions of Done](docs/spec/definition-of-done.md#5-status-of-the-original-pending-work)
-say what each remaining row is waiting on.
+first kits, UI lighting and [19 independent versions of the kits' skills](skills/README.md#standalone-skills-from-the-kits).
 "Loushing" is the working
 name. The plan and spec live in the Slate documentation in [docs/](docs/).
-
-## Try the local CLI
-
-The dependency-free [CLI preview](cli/README.md) can install, list, restore, update
-and remove pinned skills. **It is not published to npm.** From this repository:
-
-```powershell
-node cli\bin\loushing.mjs find "ground a product" --json
-node cli\bin\loushing.mjs add ground --agent copilot --dry-run --json
-node --test "cli/test/*.test.mjs"
-```
-
-Run real installs from a disposable project first. `--yes` approves effects, not
-overwriting local edits. Public kit pins keep their existing Git setup routes.
-Safe kit/stack engineering can be tried with the explicit
-[local development contract](cli/README.md#kits-and-stacks-local-contract-testing);
-canonical releases and new pins are still required.
 
 ## Preview the site
 
@@ -74,7 +53,6 @@ The preview serves only the documentation directory, not the repository.
 | [slate/](slate/) | Editable Git submodule for your documentation harness |
 | [agentic-craft/](agentic-craft/) | Editable Git submodule for product reasoning: grounded specs, assumptions, success criteria, and product-quality practices |
 | [agent-orchestration/](agent-orchestration/) | Editable Git submodule for execution control: modes, stage validation, progress reviews, logs, and handoffs |
-| [ai-integration/](ai-integration/) | Pinned Git submodule the catalog reads for the ai-integration kit; not a harness for this workspace |
 | [.github/skills/slate/SKILL.md](.github/skills/slate/SKILL.md) | Agent discovery adapter pointing to the canonical Slate skill |
 | [.github/skills/](.github/skills/), [.github/agents/](.github/agents/) | Craft's and Orchestration's installed skill and reviewer copies; refresh from their sources, do not edit these copies |
 | [AGENTS.md](AGENTS.md) | Repository-specific guidance and harness project facts for AI agents |
@@ -110,11 +88,6 @@ snapshots. Each has its own history, branches, and push destination:
 | [slate/](slate/) | [prabinpebam/slate](https://github.com/prabinpebam/slate) | `main` |
 | [agentic-craft/](agentic-craft/) | [prabinpebam/agentic-craft](https://github.com/prabinpebam/agentic-craft) | `main` |
 | [agent-orchestration/](agent-orchestration/) | [prabinpebam/agent-orchestration](https://github.com/prabinpebam/agent-orchestration) | `main` |
-
-The [ai-integration/](ai-integration/) submodule, from
-[prabinpebam/ai-integration](https://github.com/prabinpebam/ai-integration), is pinned
-the same way with `main` as its update branch. It is a catalog source only: the build
-reads the kit from it, and this workspace does not use it as a harness.
 
 Edit the canonical sources in those folders, validate and commit in the relevant
 harness repository, then push its branch to its own `origin`. The parent repository,

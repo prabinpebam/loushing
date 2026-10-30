@@ -20,11 +20,9 @@ evidence that would prove it, and its result is recorded beside it once known.
 >   wanted ([A1](product-spec.md#9-assumptions-and-risks)). A spike on reaching every
 >   agent ([A3](product-spec.md#9-assumptions-and-risks)) runs beside it, because the
 >   CLI design depends on it.
-> - **Against the promise:** stage 1 is built with 21 skills, three kits and one
->   stack and deploys to GitHub Pages. A local skill and kit CLI is implemented but
->   not published. Agent discovery, approved Chopper renders and the test with people
->   remain. See [§4](#4-against-the-promise) and the
->   [status of the original pending work](#5-status-of-the-original-pending-work).
+> - **Against the promise:** stage 1 is built and deploys to GitHub Pages; it waits
+>   on your real skills, approved Chopper renders and the test with people. See
+>   [§4](#4-against-the-promise).
 
 ## 1. Project Definition of Done
 
@@ -71,7 +69,7 @@ language, and set it up by hand with clear steps.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 1.1 | The site lists at least 5 of your real skills and every kit, each with a complete page that meets the [quality bar](item-pages.md#quality-bar-for-every-page) (U3) | Build check; review | |
+| 1.1 | The site lists at least 5 of your real skills and all three kits, each with a complete page that meets the [quality bar](item-pages.md#quality-bar-for-every-page) (U3) | Build check; review | |
 | 1.2 | A person finds the right item for a task by searching in their own words (U1, U2) | 10 task phrases against the index | |
 | 1.3 | A person sees what an item adds and its effects, and reads its source at the pinned version, without leaving the page (U4, U5) | Review of 3 pages | |
 | 1.4 | A person gets an item by Git or Download, follows the steps for their agent, and it works (U7) | One manual run per agent from the spike | |
@@ -105,14 +103,14 @@ and restore a set.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 2.1 | `npx loushing add <skill>` installs a skill for each supported agent at both scopes, and it is discovered in a new session (U6) | End-to-end test per agent on Windows and macOS | Local target-copy tests pass for five IDs and both scopes. Actual agent discovery, macOS and public npx delivery remain unproved |
-| 2.2 | Installed files match the published hashes, and a mismatch writes nothing (U21) | A test with a tampered fixture | Implemented; CLI tamper regression verifies no destination or lockfile changes |
-| 2.3 | A changed file is never overwritten without a choice; a cancelled run leaves nothing behind (U21) | Negative-case tests | Implemented; edits, unowned files, cancellation and transaction-failure rollback covered. Uncatchable process/machine failure recovery is not automatic |
-| 2.4 | `remove` deletes exactly what was added (U12) | A test comparing the project before and after | Implemented; both-scope before/after comparisons, changed-file choices and unrecorded-file preservation covered |
-| 2.5 | `install` restores a project's set from `loushing.lock.json` (U13) | A test on a fresh clone | Implemented; lock-only copy restores exact pins and destinations without current catalog metadata |
-| 2.6 | Every command accepts `--json` and `--yes`, and the exit codes follow [agent access](agent-access.md#exit-codes) (U18) | CLI tests | Implemented for local skill commands; bin tests verify single-object JSON and exit codes 0/1/2 |
-| 2.7 | The package is published from CI with provenance, has no dependencies, and runs on Node.js 22 and later | The npm provenance badge; CI matrix | Dependency-free package and validation matrix prepared. Publication, licensing choice and provenance remain blocked; matrix not yet run |
-| 2.8 | `npx loushing --version` and a skill install work on a managed corporate device through its package proxy | A manual run, recorded | Unproved until the approved package is published and delivered through the managed proxy |
+| 2.1 | `npx loushing add <skill>` installs a skill for each supported agent at both scopes, and it is discovered in a new session (U6) | End-to-end test per agent on Windows and macOS | |
+| 2.2 | Installed files match the published hashes, and a mismatch writes nothing (U21) | A test with a tampered fixture | |
+| 2.3 | A changed file is never overwritten without a choice; a cancelled run leaves nothing behind (U21) | Negative-case tests | |
+| 2.4 | `remove` deletes exactly what was added (U12) | A test comparing the project before and after | |
+| 2.5 | `install` restores a project's set from `loushing.lock.json` (U13) | A test on a fresh clone | |
+| 2.6 | Every command accepts `--json` and `--yes`, and the exit codes follow [agent access](agent-access.md#exit-codes) (U18) | CLI tests | |
+| 2.7 | The package is published from CI with provenance, has no dependencies, and runs on Node.js 22 and later | The npm provenance badge; CI matrix | |
+| 2.8 | `npx loushing --version` and a skill install work on a managed corporate device through its package proxy | A manual run, recorded | |
 
 **Depends on:** your approval to publish `loushing` to npm and set up trusted
 publishing, and access to each agent for testing.
@@ -131,11 +129,11 @@ A person sets up a kit, or a whole stack, with one confirmed command.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 3.1 | Each of agentic-craft, agent-orchestration and Slate meets the [install contract](distribution.md#kits): non-interactive install, dry run, uninstall and JSON output | Contract tests in each kit's own repository | Local source contracts tested; canonical release blocked |
-| 3.2 | `add <kit>` shows the kit's dry-run plan, runs the installer on confirmation and records it (U8) | End-to-end test per kit | All three real installers tested with explicit development opt-in; production pins stay manual |
-| 3.3 | `add <stack>` sets up its members in order, skips those already installed, and resumes after a failure (U10) | End-to-end test with a forced failure | Ordered real-kit failure/resume and mixed skill/kit transaction tests |
-| 3.4 | `remove <kit>` runs the kit's uninstall and leaves the project as before (U12) | A test comparing the project before and after | Exact tree comparisons per real kit and reverse stack removal; local edits block deletion |
-| 3.5 | Kit and stack pages show the same plan as the CLI | Build check | Shared contract validation and manual-availability parity tested; released automation awaits genuine upstream pins |
+| 3.1 | Each of the three kits meets the [install contract](distribution.md#kits): non-interactive install, dry run, uninstall and JSON output | Contract tests in each kit's own repository | |
+| 3.2 | `add <kit>` shows the kit's dry-run plan, runs the installer on confirmation and records it (U8) | End-to-end test per kit | |
+| 3.3 | `add <stack>` sets up its members in order, skips those already installed, and resumes after a failure (U10) | End-to-end test with a forced failure | |
+| 3.4 | `remove <kit>` runs the kit's uninstall and leaves the project as before (U12) | A test comparing the project before and after | |
+| 3.5 | Kit and stack pages show the same plan as the CLI | Build check | |
 
 **Depends on:** changes in the kit repositories: Slate needs an installer that follows
 the contract, and all three need uninstall and JSON output. Each change is made in its
@@ -154,9 +152,9 @@ An agent finds and installs the right item mid-task, with the person's consent.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 4.1 | `catalog.json`, per-item JSON and Markdown, and `llms.txt` are published and match the pages (U17) | Build check; schema validation | Local build serves versioned catalog/item schemas and validates outputs; publication is not implied |
-| 4.2 | `find --json` returns ranked candidates with install plans (U17) | CLI tests | Shared-ranking CLI tests and nullable-version stack discovery pass |
-| 4.3 | The finder skill leads an agent to propose the right item in at least 7 of 10 scripted tasks, and it never installs without consent | A scripted trial in two agents | Finder instructions and 10/10 synthetic ranking/preview regression implemented; real two-agent trial remains blocked, not replaced |
+| 4.1 | `catalog.json`, per-item JSON and Markdown, and `llms.txt` are published and match the pages (U17) | Build check; schema validation | |
+| 4.2 | `find --json` returns ranked candidates with install plans (U17) | CLI tests | |
+| 4.3 | The finder skill leads an agent to propose the right item in at least 7 of 10 scripted tasks, and it never installs without consent | A scripted trial in two agents | |
 
 **Depends on:** nothing outside the product.
 
@@ -174,11 +172,11 @@ People keep items current, and the catalog grows without breaking anything.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 5.1 | `outdated` and `update` work for skills and kits, keeping local edits (U11) | CLI tests | Local skill tests and a pinned disposable real-kit Git update preserve filled facts and reject changed files; real kit release remains blocked |
-| 5.2 | Moving a skill to its own repository keeps its ID, links and installs working (U15, U19) | A rehearsal on a test skill | Disposable external-Git move retains ID, URL, old-link lookup, original-pin restoration and new-pin update/restore |
-| 5.3 | Old IDs and URLs redirect, and removed items show a reason and alternatives (U19) | Build check of aliases; a test of the Gone page | Shared lifecycle validation and base-path HTML/JSON/Markdown redirect/Gone fixtures |
-| 5.4 | You can install items from a private catalog, and none of them appears in the public build (U16, U22) | A test with a private fixture source | Explicit local-source fixture passes; one catalog per scope/lock; network auth and O9 policy remain open |
-| 5.5 | What's new and its feed list each catalog release with item changes | Build check | Local immutable-release tooling and release-derived history/feed tested; no real release fabricated or published |
+| 5.1 | `outdated` and `update` work for skills and kits, keeping local edits (U11) | CLI tests | |
+| 5.2 | Moving a skill to its own repository keeps its ID, links and installs working (U15, U19) | A rehearsal on a test skill | |
+| 5.3 | Old IDs and URLs redirect, and removed items show a reason and alternatives (U19) | Build check of aliases; a test of the Gone page | |
+| 5.4 | You can install items from a private catalog, and none of them appears in the public build (U16, U22) | A test with a private fixture source | |
+| 5.5 | What's new and its feed list each catalog release with item changes | Build check | |
 
 **Depends on:** your decision on how private catalogs work (O9).
 
@@ -198,107 +196,23 @@ People keep items current, and the catalog grows without breaking anything.
 
 ## 4. Against the promise
 
-**Engineering note, 29 October 2026.** The catalog-quality increment, committed
-but not yet merged to `main` or deployed, adds pinned, hashed downloads for all 21
-skills and two kits; the Slate ZIP
-is withheld by the publication scan of its pinned lockfile. It also adds a generated
-component library, a build-time index budget, a repeatable search benchmark and
-axe/Lighthouse runners and an authored, not yet hosted-verified, CI workflow.
-See the [as-built increment](product-spec.md#catalog-quality-engineering-increment)
-for the exact boundaries. These checks do **not** close 1.4's manual run per agent,
-1.8's full accessibility/performance promise, 1.10's every-state evidence, participant
-tests or Chopper approval. The stage summary below is not new release
-evidence.
+Stage 1 is built in `site/` and deploys to GitHub Pages on every push to `main`. A
+person can open the site, search the three kits and their parts by task, read a
+plain page for each with what it adds and its effects, read the source at the pinned
+version, and follow the Git or Ask-your-agent steps for their agent. Every control is
+custom and drawn from tokens in the Harbour palette, and the site speaks as your own
+collection (P9), held by the copy check. 34 tests, the token checks and the style lint
+pass. Four Chopper pilot renders exist as drafts; none is approved, so no cameo shows
+yet. No individual skills are published, and nothing installs in one step. In the
+order they block the promise:
 
-The same-machine, five-run-per-profile comparison now meets the unchanged mobile
-LCP lab target (p75 1,521.48 → 818.08 ms). Mobile TBT remains high at 2,512.49 ms;
-the change is not a material TBT improvement. The [as-built comparison](product-spec.md#catalog-quality-engineering-increment)
-records the profiles and remaining boundary. Hosted CI and real-device/field
-performance still need evidence.
-
-Stage 1 is built in `site/` and deploys to GitHub Pages on every push to `main`.
-The development catalog contains **25 items: 21 skills, three kits and one stack**.
-Nineteen skills are independent adaptations of kit workflows; UI lighting and the
-optional Loushing finder are also listed. With the finder's folder, `skills/loushing`,
-committed, the root production build makes 169 pages and the site suite passes
-135/135. Pages, pinned source viewing, manual setup, search, agent-readable outputs
-and a release-derived feed are built (empty until real releases are registered).
-The earlier account of no skills and four hidden
-Chopper drafts was stale: the current site intentionally shows draft renders for
-review, as recorded in the [as-built section](product-spec.md#11-as-built).
-
-The local CLI now supplies skill install, safe conflict handling, exact removal
-and restore, JSON, find/info, and skill update/outdated. This is engineering
-evidence, not proof of npm delivery or agent discovery. The remaining original
-work is:
-
-1. **Stage 1 engineering and evidence:** real-task search and timed authoring
-   evidence, a hosted run of the site-quality workflow, actual-device and field
-   performance, and the remaining mobile TBT. The component library, automated
-   accessibility/performance runners and hash-bearing item downloads exist only
-   as the local engineering increment noted above.
+1. **Your skills:** stage 1 needs at least 5 of your real skills (1.1).
 2. **Your decisions:** Chopper's drawing standard after the pilot (O33) and approval
    of each render (1.12); the typeface and tribute line (O23, O26) before the
    prototype test; the names (O1, O2, O13).
-3. **The test with people** (A1, A2, A14, A16, A18 and the P9 question), and the
-   **A3 spike** confirming each actual agent's project/personal discovery folders.
-4. **Stage 2 release:** npm approval, package licensing, trusted publisher/account
-   setup, executed Node/OS checks and managed-proxy delivery evidence.
-5. **Stage 3 release:** local canonical contracts and CLI flows are implemented and
-   tested. Authorized upstream commits/releases, parent/external pin updates and
-   exact contract manifests are still required; public routes remain manual.
-6. **Stage 4:** real two-agent consent trials. Finder instructions, versioned schema
-   files/validation and synthetic ranking/preview regression now exist locally.
-7. **Stage 5:** actual authorized releases and channel promotion, plus private
-   network identity/auth policy (O9). Local immutable release preparation,
-   lifecycle pages, moved-skill rehearsal and explicit private-source isolation
-   fixtures do not establish publication or choose an account architecture.
-
-## 5. Status of the original pending work
-
-Reconciled on 29 October 2026 against the working tree, then committed. Every row has
-one state:
-
-- **Built, checked locally:** implemented, and the named local check passes. Not a
-  release, and not proof in a real agent or with people.
-- **Built, waiting on you:** implemented; closing it needs your commit, publication,
-  license, decision or review, named in the row.
-- **Blocked on outside evidence:** needs evidence no local check can supply: real
-  agents, hosted CI, people, devices, screen readers, field metrics, Chopper
-  approvals or the Slate lockfile review.
-
-Nothing here is published: there is no npm package, release, real-agent discovery,
-hosted CI run or participant result. Local checks ran on Windows with Node 26.
-
-| Row | State | Evidence, or what closes it |
-| --- | --- | --- |
-| PD1, 1.2 | Blocked on outside evidence | Search, filters and the search benchmark are built (`site/test/`, `site/scripts/benchmark.mjs`). Needs 20 real task phrases written by someone else |
-| PD2, 1.11 | Blocked on outside evidence | Item pages and visual blocks are built. Needs the test with 5 people (A2, A16) |
-| PD3, 1.9, 2.1 | Blocked on outside evidence | Target-folder copies are tested for five agent IDs at both scopes (`cli/test/cli.test.mjs`). Needs discovery in each real agent on Windows and macOS, and a timed session with 3 people |
-| PD4 | Blocked on outside evidence | CLI negative cases, hash checks and the publication check pass locally (`cli/test/`, `site/test/`). The CI hash check is authored in `.github/workflows/cli.yml` but has not run on a hosted runner |
-| PD5, 3.5 | Built, waiting on you | Works well with is build-checked; the stack installs and resumes through the development path (`cli/test/kits.test.mjs`). The kit changes are committed on each kit's `feat/install-contract` branch. Needs them merged and released, then genuine pins |
-| PD6, 4.3 | Blocked on outside evidence | The finder skill and a 10/10 synthetic ranking and preview check exist (`cli/test/agent-access.test.mjs`). Needs scripted trials in two real agents |
-| PD7, 5.1 | Built, checked locally | `outdated`, `update` and `remove` for skills and development kits keep local edits (`cli/test/`). Kit updates from real releases wait on those releases |
-| PD8, 1.6 | Built, waiting on you | Folder plus `about.md` loading names every problem with its fix (`site/test/`). Needs your timed additions: 2 for stage 1, 5 for the project |
-| PD9 | Built, waiting on you | Needs your own report on using the catalog for a new project or machine |
-| PD10, 1.8 | Blocked on outside evidence | Local axe and Lighthouse runners, an index budget and an authored site-quality workflow exist. In the quality worker's lab batches, mobile LCP p75 is 818 ms against the 1,500 ms target; mobile TBT p75 is 2,512 ms and stays high, so no interaction-performance claim. Needs hosted CI, real devices, screen readers, field metrics and, after a release, the weekly install smoke test |
-| PD11 | Built, waiting on you | The as-built section and this table are updated; needs your review at each stage |
-| PD12, 1.10 | Built, waiting on you | The design-system suite, token check and style lint pass; a generated library is at `/library/`. Needs your review of the library in every context; every interactive state is not yet approved |
-| PD13, 1.12 | Blocked on outside evidence | Cameo rules, the random picker and Hide Chopper are built and tested. Needs your approval of each render and the drawing standard (O33), and the A14 and A18 comparisons with people |
-| PD14, 1.13 | Blocked on outside evidence | The copy check passes (`site/test/copy.test.mjs`). Needs your voice review and the P9 question in the test with people |
-| 1.1 | Built, checked locally | 25 items with complete pages; the site suite and a clean-clone build pass |
-| 1.3, 1.5 | Built, waiting on you | Pinned source views, effects and kit anatomy are built and tested. Needs your review of 3 item pages and the three kit pages |
-| 1.4 | Blocked on outside evidence | Git, Ask your agent and SHA-256 ZIP downloads are built for every skill and two kits (`site/test/archives.test.mjs`). The Slate ZIP stays withheld until its pinned lockfile passes review. Needs one manual run per real agent |
-| 1.7 | Built, checked locally | A planted-secret fixture is never built (`site/test/`) |
-| Finder in the root build | Built, checked locally | `skills/loushing` is committed; the root production build (169 pages, 21 skill downloads) and the site suite (135/135) pass |
-| 2.2 to 2.6 | Built, checked locally | Tamper, conflict, cancellation, rollback, exact remove, lockfile restore, JSON and exit codes (`cli/test/`). Recovery from a killed process or power loss is manual |
-| 2.7 | Built, waiting on you | The allowlisted, dependency-free package packs and installs offline in a disposable project. Needs your package name and license, npm publication with trusted publishing and provenance, and a hosted run of the Node and OS matrix |
-| 2.8 | Blocked on outside evidence | Needs the published package fetched through the managed proxy |
-| 3.1 | Built, waiting on you | Each kit's contract tests pass locally (`test/install-contract.test.mjs` in agentic-craft and agent-orchestration; `scripts/test-install-contract.mjs` in Slate). Committed and pushed on each kit's `feat/install-contract` branch, which the parent repository pins. Needs merging and releases in each kit repository, then the parent and catalog pins moved to the released commits |
-| 3.2 to 3.4 | Built, checked locally | Real installers through the explicit development path: plan, consent, lock, ordered stack, failure and resume, exact removal (`cli/test/kits.test.mjs`). Public routes stay manual until released pins exist |
-| 4.1, 4.2 | Built, checked locally | Versioned schemas validate every output; `find --json` and `info` share the site's ranking (`site/test/`, `cli/test/agent-access.test.mjs`) |
-| 5.2, 5.3 | Built, checked locally | A disposable move to an external repository keeps ID, links and restores; aliases, redirects and Gone pages are build-checked |
-| 5.4 | Built, waiting on you | A local private-source fixture never reaches the public build. Needs your decision on private catalogs (O9) |
-| 5.5 | Built, waiting on you | Immutable release tooling and the release-derived feed are tested; the registry is empty. Needs your first authorized catalog release |
-| A13 | Blocked on outside evidence | Needs a record of real weekly upkeep against 30 minutes |
-| O1, O2, O13, O23, O26 | Built, waiting on you | Working defaults are in place; the names, domain, typeface and tribute line are your decisions |
+3. **The test with people** (A1, A2, A14, A16, A18 and the P9 question) and the
+   automated accessibility and Lighthouse runs (1.8).
+4. **The A3 spike:** where each agent discovers skills. This blocks the CLI design.
+5. **npm publishing approval** and access to a managed device. These block stage 2's
+   evidence.
+6. **Kit installer changes** in three repositories. These block stage 3.
