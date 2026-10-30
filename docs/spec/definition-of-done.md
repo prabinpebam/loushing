@@ -71,7 +71,7 @@ language, and set it up by hand with clear steps.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 1.1 | The site lists at least 5 of your real skills and all three kits, each with a complete page that meets the [quality bar](item-pages.md#quality-bar-for-every-page) (U3) | Build check; review | |
+| 1.1 | The site lists at least 5 of your real skills and every kit, each with a complete page that meets the [quality bar](item-pages.md#quality-bar-for-every-page) (U3) | Build check; review | |
 | 1.2 | A person finds the right item for a task by searching in their own words (U1, U2) | 10 task phrases against the index | |
 | 1.3 | A person sees what an item adds and its effects, and reads its source at the pinned version, without leaving the page (U4, U5) | Review of 3 pages | |
 | 1.4 | A person gets an item by Git or Download, follows the steps for their agent, and it works (U7) | One manual run per agent from the spike | |
@@ -131,7 +131,7 @@ A person sets up a kit, or a whole stack, with one confirmed command.
 
 | # | Done when | Evidence | Result |
 | --- | --- | --- | --- |
-| 3.1 | Each of the three kits meets the [install contract](distribution.md#kits): non-interactive install, dry run, uninstall and JSON output | Contract tests in each kit's own repository | Local source contracts tested; canonical release blocked |
+| 3.1 | Each of agentic-craft, agent-orchestration and Slate meets the [install contract](distribution.md#kits): non-interactive install, dry run, uninstall and JSON output | Contract tests in each kit's own repository | Local source contracts tested; canonical release blocked |
 | 3.2 | `add <kit>` shows the kit's dry-run plan, runs the installer on confirmation and records it (U8) | End-to-end test per kit | All three real installers tested with explicit development opt-in; production pins stay manual |
 | 3.3 | `add <stack>` sets up its members in order, skips those already installed, and resumes after a failure (U10) | End-to-end test with a forced failure | Ordered real-kit failure/resume and mixed skill/kit transaction tests |
 | 3.4 | `remove <kit>` runs the kit's uninstall and leaves the project as before (U12) | A test comparing the project before and after | Exact tree comparisons per real kit and reverse stack removal; local edits block deletion |

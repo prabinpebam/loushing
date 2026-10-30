@@ -19,6 +19,11 @@ areas:
     title: Interface design
     summary: Shape how a product looks and feels
     icon: draw
+  # Working default for the ai-integration kit; the owner confirms the name and icon.
+  - id: ai-features
+    title: AI features
+    summary: Add and update AI in an application
+    icon: smart_toy
 
 tags:
   - specs
@@ -36,6 +41,10 @@ tags:
   - lighting
   - shadows
   - webgl
+  - ai-providers
+  - local-models
+  - privacy
+  - migrations
 
 agents:
   - id: copilot-vscode

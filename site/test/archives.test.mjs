@@ -100,7 +100,9 @@ test('real item ZIPs, manifests, agent outputs and base-path download plans agre
     const model = buildModel(catalog);
     const index = catalogJson(model);
     const safe = catalog.items.filter((item) => item.archive?.url);
-    assert.equal(safe.length, catalog.items.filter((i) => i.type !== 'stack' && i.id !== 'slate').length, 'every skill and both redistributable kits');
+    // Kits whose pinned payload fails the publication check: no local download, Git only.
+    const blocked = ['slate', 'ai-integration'];
+    assert.equal(safe.length, catalog.items.filter((i) => i.type !== 'stack' && !blocked.includes(i.id)).length, 'every skill and both redistributable kits');
     for (const item of safe) {
       const zip = artifacts.find((a) => `/${a.path}` === item.archive.url).bytes;
       const manifest = JSON.parse(artifacts.find((a) => `/${a.path}` === item.archive.manifest).bytes);
@@ -120,10 +122,12 @@ test('real item ZIPs, manifests, agent outputs and base-path download plans agre
         assert.ok(plan.downloadSteps.length >= 2);
       }
     }
-    const slate = catalog.items.find((i) => i.id === 'slate');
-    assert.match(slate.archive.blocked, /publication check/);
-    assert.ok(Object.values(slate.plans).every((p) => !p.download));
-    assert.ok(artifacts.every((a) => !a.path.includes('/slate-')));
+    for (const id of blocked) {
+      const kit = catalog.items.find((i) => i.id === id);
+      assert.match(kit.archive.blocked, /publication check/, id);
+      assert.ok(Object.values(kit.plans).every((p) => !p.download), id);
+      assert.ok(artifacts.every((a) => !a.path.includes(`/${id}-`)), id);
+    }
     const second = prepareArchives(loadCatalog(root));
     assert.deepEqual(artifacts, second, 'separate builds reproduce every byte');
   } finally { setBase(); }

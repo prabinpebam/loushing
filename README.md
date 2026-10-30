@@ -74,6 +74,7 @@ The preview serves only the documentation directory, not the repository.
 | [slate/](slate/) | Editable Git submodule for your documentation harness |
 | [agentic-craft/](agentic-craft/) | Editable Git submodule for product reasoning: grounded specs, assumptions, success criteria, and product-quality practices |
 | [agent-orchestration/](agent-orchestration/) | Editable Git submodule for execution control: modes, stage validation, progress reviews, logs, and handoffs |
+| [ai-integration/](ai-integration/) | Pinned Git submodule the catalog reads for the ai-integration kit; not a harness for this workspace |
 | [.github/skills/slate/SKILL.md](.github/skills/slate/SKILL.md) | Agent discovery adapter pointing to the canonical Slate skill |
 | [.github/skills/](.github/skills/), [.github/agents/](.github/agents/) | Craft's and Orchestration's installed skill and reviewer copies; refresh from their sources, do not edit these copies |
 | [AGENTS.md](AGENTS.md) | Repository-specific guidance and harness project facts for AI agents |
@@ -109,6 +110,11 @@ snapshots. Each has its own history, branches, and push destination:
 | [slate/](slate/) | [prabinpebam/slate](https://github.com/prabinpebam/slate) | `main` |
 | [agentic-craft/](agentic-craft/) | [prabinpebam/agentic-craft](https://github.com/prabinpebam/agentic-craft) | `main` |
 | [agent-orchestration/](agent-orchestration/) | [prabinpebam/agent-orchestration](https://github.com/prabinpebam/agent-orchestration) | `main` |
+
+The [ai-integration/](ai-integration/) submodule, from
+[prabinpebam/ai-integration](https://github.com/prabinpebam/ai-integration), is pinned
+the same way with `main` as its update branch. It is a catalog source only: the build
+reads the kit from it, and this workspace does not use it as a harness.
 
 Edit the canonical sources in those folders, validate and commit in the relevant
 harness repository, then push its branch to its own `origin`. The parent repository,

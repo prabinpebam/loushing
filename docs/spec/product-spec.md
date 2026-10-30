@@ -548,7 +548,8 @@ can overturn.
 - Source files are shown without syntax highlighting.
 - The catalog is a tile grid with a live search in the sidebar that filters as you
   type, without a submit button.
-- All 19 skills inside the pinned kits also have independent adaptations in
+- All 19 skills inside the pinned agentic-craft, agent-orchestration and Slate kits
+  also have independent adaptations in
   `skills/`, with their own cards, instructions, resources and pinned source notes.
   Kit and part pages link to these versions; search, JSON, Markdown and `llms.txt`
   include them. The kits and their pinned commits are unchanged. Slate adaptations

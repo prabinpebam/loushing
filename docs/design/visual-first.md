@@ -134,7 +134,7 @@ same order.
   </article>
   <article class="slate-card">
     <p class="slate-card__kicker">Kits</p>
-    <p class="slate-card__body">Slate, agentic-craft and agent-orchestration as tall tiles with their part counts.</p>
+    <p class="slate-card__body">Each kit, such as Slate or ai-integration, as a tall tile with its part count.</p>
   </article>
   <article class="slate-card">
     <p class="slate-card__kicker">Recently updated</p>

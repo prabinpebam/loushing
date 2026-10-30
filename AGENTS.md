@@ -15,6 +15,9 @@ provisional.
   connected to the owner's upstream repositories. Make reusable harness improvements
   in their canonical sources, following each repository's guidance. Keep
   product-specific meaning and policy here, not in the generic harnesses.
+- [ai-integration/](ai-integration/) is also a pinned Git submodule, but only a catalog
+  source: the build reads the ai-integration kit from it. It is not a harness for this
+  workspace; change the kit in its own repository.
 - Never patch generated [docs/shell/](docs/shell/) or the harness-installed copies in
   [.github/skills/](.github/skills/) and [.github/agents/](.github/agents/).
   Refresh the host from the relevant source after harness changes. The exceptions

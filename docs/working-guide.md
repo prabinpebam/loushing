@@ -96,6 +96,7 @@ panel; browser checks verify paint ordering and the zero-allocation hidden state
 | `slate/` | Editable upstream submodule for reusable documentation-harness changes |
 | `agentic-craft/` | Editable upstream submodule for reusable product-reasoning changes |
 | `agent-orchestration/` | Editable upstream submodule for reusable execution-control changes |
+| `ai-integration/` | Pinned upstream submodule the catalog reads for the ai-integration kit; not a harness here, so change the kit in its own repository |
 | `.github/skills/slate/SKILL.md` | Thin agent adapter; points to the canonical authoring contract |
 | Other `.github/skills/` folders and `.github/agents/` | Craft's and Orchestration's installed copies; edit canonical sources, then rerun the installers |
 | `AGENTS.md` | Project-specific instructions and each harness's project facts, preserved by the installers |
@@ -188,7 +189,7 @@ actions, not something the installed orchestration guidance authorizes on its ow
 ### Initialize and update the submodules
 
 ```powershell
-# A fresh clone with all three harnesses at their pinned commits.
+# A fresh clone with every submodule at its pinned commit.
 git clone --recurse-submodules https://github.com/prabinpebam/loushing.git
 
 # An existing clone: check out the pinned commits, then confirm them.
@@ -196,9 +197,12 @@ git submodule update --init --recursive
 git submodule status
 ```
 
-`git submodule status` lists `slate`, `agentic-craft`, and `agent-orchestration`
-with the pinned commit of each; a leading `-` means not initialized and a leading
-`+` means the checked-out commit differs from the pin.
+`git submodule status` lists `slate`, `agentic-craft`, `agent-orchestration` and
+`ai-integration` with the pinned commit of each; a leading `-` means not initialized
+and a leading `+` means the checked-out commit differs from the pin. `ai-integration`
+is a catalog source, not a harness: to list a newer version, check it out in the
+submodule and set the same full commit as `source.ref` in
+`external/ai-integration.yaml`.
 
 ### Fresh clones and pinned revisions
 

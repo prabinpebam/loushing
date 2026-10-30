@@ -322,18 +322,20 @@ install:
 | Exit codes: 0 done, 1 failed, 2 needs a decision | Same meaning as the [CLI's](agent-access.md#exit-codes) |
 | Writes only inside the project, or the personal folders for `--global`, and declares any network use | Effects are known in advance |
 
-**Where the three kits stand today** (from their installers at the pinned commits):
+**Where the kits stand today** (from their installers at the pinned commits):
 
 | Kit | Has | Missing for the contract |
 | --- | --- | --- |
 | agentic-craft | `tools/install.mjs` with `--for copilot,claude,agents`, `--global`, `--templates`, `--dry-run`; keeps filled-in project facts | `--json`, `--uninstall`, exit code 2, an `about.md` card |
 | agent-orchestration | The same installer shape and flags | The same as agentic-craft |
 | Slate | `scripts/init-project.mjs` with `--repo`, `--host`, `--project`; writes a documentation host and a Copilot skill adapter | An agent choice (adapter for Claude Code and the open layout), `--dry-run`, `--json`, `--uninstall`, exit codes, an `about.md` card |
+| ai-integration | `tools/install.mjs` with one `--target github`, `agents` or `claude` per run and `--dry-run`; prints its changes as JSON; refuses edited or unowned files; never changes `AGENTS.md` | Several agents in one run, `--global`, `--uninstall`, the contract's JSON fields and exit code 2, an `about.md` card |
 
 The table describes **the published pins**. Stage 3 source changes, each with its
-own contract tests, are committed on each canonical repository's
-`feat/install-contract` branch. They are not merged or released. The public cards
-remain manual; no contract is attached to an old pin.
+own contract tests, are committed on the `feat/install-contract` branch of the
+agentic-craft, agent-orchestration and Slate repositories; ai-integration has none
+yet. They are not merged or released. The public cards remain manual; no contract is
+attached to an old pin.
 
 ### Version-1 automation and local testing
 
