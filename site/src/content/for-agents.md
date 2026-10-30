@@ -15,7 +15,8 @@ myself; nothing here is ranked or rated.
 | `/items/<id>.json` | Read one item: its card, files with sizes and SHA-256 hashes, and the install plan for every agent and scope |
 | `/items/<id>.md` | Read one item’s page as plain Markdown |
 | [llms.txt](/llms.txt) | Start here: what the site is and where the files are |
-| [feed.xml](/feed.xml) | Follow items as they are added and updated |
+| [feed.xml](/feed.xml) | Follow registered catalog releases; empty before the first release |
+| [Catalog schema](/schema/catalog-1.json) · [Item schema](/schema/item-1.json) · [Old-ID schema](/schema/lifecycle-1.json) | Validate index, item and alias/removal JSON |
 
 ## Install with consent
 
@@ -24,10 +25,19 @@ whether the item runs scripts, uses the network, writes outside its folder or ne
 credentials. The `effects` field and the trust panel say which. Install only after
 they agree.
 
-Kits come with their own installer. When the plan offers a dry run, run it first and
-show its output.
+Kits come with their own installer. Ask the person to trust its pinned source before
+executing any code, including a dry run. Then show the resulting destination plan
+and obtain consent to that plan. Source trust is not permission to change files.
 
-## Coming soon
+## Local CLI and finder
 
-A command-line tool with JSON output for agents: `npx loushing find "<task>" --json`,
-`info`, `add`, `list`, `outdated` and `update`. It isn’t published yet.
+The repository includes a dependency-free CLI with JSON output:
+`node cli\bin\loushing.mjs find "<task>" --json`. It also supports `info`, `add`,
+`list`, `outdated`, `update`, `remove`, `install` and `check`.
+The npm package is not published; `npx loushing` is a planned route.
+
+The optional `loushing` finder skill uses that CLI or these static files. It previews
+effects and destinations and waits for the actual person’s explicit consent before
+installation. Its synthetic regression tasks do not prove behavior in real agents.
+Current public kit pins still use manual setup; their new installer contracts are
+unreleased.

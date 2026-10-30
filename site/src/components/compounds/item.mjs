@@ -45,9 +45,9 @@ export function ItemHeader({ item }, { model }) {
   const agents = Object.entries(item.agents ?? {}).filter(([, v]) => v !== 'unsupported');
   return html`<header class="c-itemhead">
   <nav class="c-crumbs" aria-label="Breadcrumb"><ol>
-    <li>${Link({ href: url('/catalog'), label: 'Catalog' })}</li>
-    ${item.area && html`<li>${Link({ href: url(`/catalog?area=${item.area}`), label: item.areaTitle })}</li>`}
-    ${kit && html`<li>${Link({ href: url(kit.url), label: kit.title })}</li>`}
+    <li>${Link({ href: url('/catalog'), label: 'Catalog', standalone: true })}</li>
+    ${item.area && html`<li>${Link({ href: url(`/catalog?area=${item.area}`), label: item.areaTitle, standalone: true })}</li>`}
+    ${kit && html`<li>${Link({ href: url(kit.url), label: kit.title, standalone: true })}</li>`}
   </ol></nav>
   ${kit && Banner({ icon: 'inventory_2', tone: 'info', text: html`Part of <a href="${url(kit.url)}">${kit.title}</a>. ${item.standalone ? html`You can also <a href="${url(item.standalone.url)}">use it separately</a>.` : 'Get the kit to use it.'}` })}
   ${item.status === 'experimental' && Banner({ icon: 'construction', tone: 'caution', text: 'Experimental: may change or be removed. Pin a version if you depend on it.' })}
@@ -92,6 +92,7 @@ export function GetItPanel({ item }, { model }) {
   const effects = (item.effects ?? []).map((e) => model.effectsById.get(e)).filter(Boolean);
   return html`<section class="c-getit u-ear" id="get-it" aria-labelledby="getit-title" data-elevation="3" data-getit data-default-agent="${DEFAULT_AGENT}">
   <h2 class="c-getit__title" id="getit-title">${Icon({ name: 'download' })}Get it</h2>
+  ${item.archive?.blocked && html`<p class="c-getit__hint">An item download is unavailable while its source awaits a publication check. The pinned Git steps remain below.</p>`}
   <div class="c-getit__pickers">
     ${Select({ id: `agent-${item.id}`, label: 'Your agent', value: DEFAULT_AGENT, options: agents.map((a) => ({ value: a.id, label: a.title })), data: { 'agent-picker': 'true' } })}
     ${Segmented({ name: `scope-${item.id}`, label: 'Where', value: 'project', options: [{ value: 'project', label: 'This project' }, { value: 'personal', label: 'All my projects' }], data: { 'scope-picker': 'true' } })}
@@ -118,7 +119,10 @@ function PlanView(item, agent, scope, model) {
     const tabs = [
       { id: 'git', label: 'Git', icon: 'fork_right', panel: html`${CopyField({ lines: p.git })}<p class="c-getit__hint">Run these in your project’s folder.${p.inputs?.length ? ` Replace ${p.inputs.map((i) => `“${i.example}” with your ${i.ask.toLowerCase()}`).join(', ')}.` : ''}</p>` },
       { id: 'ask', label: 'Ask your agent', icon: 'chat', panel: html`${CopyField({ lines: [p.ask], copyLabel: 'Copy prompt', wrap: true })}<p class="c-getit__hint">Paste this into your agent’s chat. It shows you the plan before changing anything.</p>` },
-      p.download && { id: 'download', label: 'Download', icon: 'download', panel: html`${Button({ label: 'Download ZIP', icon: 'download', kind: 'secondary', href: p.download })}<p class="c-getit__hint">The repository at commit ${short(item.source.commit)}, from GitHub. GitHub builds the ZIP on request, so it has no fixed checksum; the commit is the fingerprint.</p>` },
+      p.download && { id: 'download', label: 'Download', icon: 'download', panel: html`${Button({ label: 'Download ZIP', icon: 'download', kind: 'secondary', href: p.download })}
+        <p class="c-getit__hint">${item.archive?.sha256 ? `This item at commit ${short(item.source.commit)}. ${item.archive.files} files, ${bytes(item.archive.size)}.` : `The repository at commit ${short(item.source.commit)}, from GitHub; no fixed checksum.`}</p>
+        ${item.archive?.sha256 && html`<p>${Link({ href: url(item.archive.manifest), label: 'Read file manifest' })}</p><p class="c-getit__hint">SHA256</p>${CopyField({ lines: [item.archive.sha256], copyLabel: 'Copy SHA256', wrap: true })}`}
+        ${p.downloadSteps?.length && html`<ol>${p.downloadSteps.map((step) => html`<li>${step}</li>`)}</ol>`}` },
       { id: 'command', label: 'Command', icon: 'terminal', panel: html`${CopyField({ lines: [p.command] })}<p class="c-getit__hint">${Badge({ label: 'Coming soon', kind: 'status', value: 'soon' })} The Loushing command isn’t published yet. Use Git or Ask your agent for now.</p>` },
     ].filter(Boolean);
     const first = p.adds[0];
@@ -356,7 +360,7 @@ function SourceFile(f, item, open) {
     ? html`<p class="c-source__binary">${bytes(f.size)}${f.sha256 && html` · SHA-256 <code>${f.sha256.slice(0, 16)}…</code>`}. Too large or not text, so it isn’t shown here.</p>`
     : isMd
       ? html`<div class="prose c-source__md">${md(stripFront(f.text), item, { filePath: item.type === 'skill' ? `${item.source.path}/${f.path}` : f.path, headingShift: 2, idPrefix: `src-${name.replace(/\W/g, '')}-` })}</div>`
-      : html`<pre class="c-source__code"><code>${f.text.split(/\r?\n/).map((l) => html`<span class="c-source__line">${l}</span>\n`)}</code></pre>`;
+      : html`<pre class="c-source__code" tabindex="0" aria-label="Source: ${f.path}"><code>${f.text.split(/\r?\n/).map((l) => html`<span class="c-source__line">${l}</span>\n`)}</code></pre>`;
   return html`<details class="c-source__file"${open ? raw(' open') : ''}><summary>${Icon({ name: isMd ? 'description' : 'code' })}<code>${f.path}</code><span class="c-source__size">${bytes(f.size)}</span></summary>${content}</details>`;
 }
 

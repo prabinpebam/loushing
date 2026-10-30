@@ -3,6 +3,7 @@
  * Markdown, llms.txt, the search index and the feed. Pure functions of the model.
  */
 import { absolute } from '../../src/lib/urls.mjs';
+import { publishedVersions } from './releases.mjs';
 
 const agentLists = (agents = {}) => {
   const out = { tested: [], expected: [], unsupported: [] };
@@ -15,6 +16,7 @@ const sourceOf = (i) => ({
   path: i.source?.path ?? null,
   commit: i.source?.commit ?? null,
 });
+const archiveOf = (i) => i.archive?.url ? { ...i.archive, url: absolute(i.archive.url), manifest: absolute(i.archive.manifest) } : i.archive ?? null;
 
 export function catalogJson(model) {
   const items = model.items.map((i) => ({
@@ -35,40 +37,46 @@ export function catalogJson(model) {
     ...(i.type === 'stack' ? { members: (i.members ?? []).map((m) => m.id) } : {}),
     updated: i.updated,
     source: sourceOf(i),
+    archive: archiveOf(i),
     url: absolute(i.url),
     data: absolute(`${i.url}.json`),
+    ...publishedVersions(i, model.catalog.releaseRegistry),
   }));
   return {
     schema: absolute('/schema/catalog-1.json'),
     catalogVersion: catalogVersion(model),
     generated: model.catalog.generated,
     items,
-    aliases: {},
-    removed: {},
+    aliases: model.catalog.lifecycle?.aliases ?? {},
+    removed: model.catalog.lifecycle?.removed ?? {},
   };
 }
 
-/** Until catalog releases exist, the version is the date of the newest change. */
+/** A working-tree build is not a release, even when main changed. */
 export function catalogVersion(model) {
-  return (model.latest ?? model.catalog.generated).slice(0, 10).replace(/-/g, '.');
+  return model.catalog.releaseVersion ?? 'development';
 }
 
 export function itemJson(item, model) {
   const card = {};
   for (const k of ['id', 'type', 'title', 'summary', 'useWhen', 'notFor', 'area', 'tags', 'agents', 'status', 'version', 'effects', 'requires', 'license', 'licenseNote', 'origin', 'owner', 'docs', 'examples', 'members', 'handoffs', 'derivedFrom']) if (item[k] !== undefined) card[k] = item[k];
   return {
+    schema: absolute('/schema/item-1.json'),
     ...card,
+    effects: item.effects ?? [],
     updated: item.updated,
     added: item.added,
     source: { ...sourceOf(item), url: item.source?.repo ?? null },
+    archive: archiveOf(item),
     url: absolute(item.url),
     page: { markdown: absolute(`${item.url}.md`) },
-    files: (item.files ?? []).map(({ path, size, sha256, role, runs }) => ({ path, size, sha256, role, runs })),
+    files: (item.archiveFiles ?? item.files ?? []).map(({ path, size, sha256, mode, role, runs }) => ({ path, size, sha256, mode, role, runs })),
     parts: (item.parts ?? []).map((p) => ({ kind: p.kind, name: p.name, path: p.path, description: p.description, ...(p.standalone ? { standalone: { id: p.standalone.id, url: absolute(p.standalone.url) } } : {}), files: p.files.map(({ path, size, sha256 }) => ({ path, size, sha256 })) })),
     related: (item.related ?? []).map((r) => ({ id: r.id, relation: r.kind, reason: r.reason })),
     install: {
+      ...(item.install?.contract ? { contract: item.install.contract } : {}),
       note: 'One plan per agent and scope, keyed "<agent>:<scope>". "git" is the exact command list; "ask" is a prompt for an agent; "command" is the CLI line (not published yet).',
-      plans: Object.fromEntries(Object.entries(item.plans).map(([k, p]) => [k, { supported: p.supported, reason: p.reason, git: p.git, ask: p.ask, command: p.command, download: p.download, adds: p.adds, next: p.next, dryRun: p.dryRun }])),
+      plans: Object.fromEntries(Object.entries(item.plans).map(([k, p]) => [k, { supported: p.supported, automation: p.automation, reason: p.reason, git: p.git, ask: p.ask, command: p.command, download: p.download, downloadSteps: p.downloadSteps, adds: p.adds, next: p.next, dryRun: p.dryRun }])),
     },
     changes: model.releases.filter((r) => r.item.id === item.id).map((r) => ({ date: r.date, kind: r.kind, line: r.line })),
   };
@@ -88,6 +96,9 @@ export function itemMarkdown(item, model) {
   if (item.type === 'stack') lines.push('## Members', '', ...(item.members ?? []).map((m, i) => `${i + 1}. ${model.byId.get(m.id)?.title ?? m.id}: ${m.role}`), '');
   const p = item.plans['copilot-vscode:project'];
   if (p?.supported) lines.push('## Get it (VS Code Copilot, this project)', '', '```', ...p.git, '```', '', `Every agent and scope: ${absolute(`${item.url}.json`)}`, '');
+  if (item.archive?.url) lines.push('## Download', '',
+    `[Download ZIP](${absolute(item.archive.url)}) · [File manifest](${absolute(item.archive.manifest)})`, '',
+    `SHA256: \`${item.archive.sha256}\``, '', ...(p?.downloadSteps ?? []).map((step, i) => `${i + 1}. ${step}`), '');
   if (item.related?.length) lines.push('## Works well with', '', ...item.related.map((r) => `- ${model.byId.get(r.id)?.title ?? r.id} (${r.kind}): ${r.reason}`), '');
   return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
 }
@@ -132,7 +143,7 @@ export function feedXml(model) {
 <title>Loushing: what's new</title>
 <link>${xmlEsc(absolute('/whats-new'))}</link>
 <description>Skills, kits and stacks added, updated or pinned to a new version.</description>
-${entries.map((e) => `<item><title>${xmlEsc(`${e.kind === 'pinned' ? 'Pinned' : e.kind === 'added' ? 'Added' : 'Updated'}: ${e.item.title}`)}</title><link>${xmlEsc(absolute(e.item.url))}</link><guid isPermaLink="false">${xmlEsc(`${e.item.id}@${e.date}`)}</guid><pubDate>${new Date(e.date).toUTCString()}</pubDate><description>${xmlEsc(e.line)}</description></item>`).join('\n')}
+${entries.map((e) => `<item><title>${xmlEsc(`${({ pinned: 'Pinned', added: 'Added', updated: 'Updated', removed: 'Removed' })[e.kind]}: ${e.item.title}`)}</title><link>${xmlEsc(absolute(e.item.url))}</link><guid isPermaLink="false">${xmlEsc(`${e.item.id}@${e.release}`)}</guid><pubDate>${new Date(e.date).toUTCString()}</pubDate><description>${xmlEsc(e.line)}</description></item>`).join('\n')}
 </channel>
 </rss>
 `;

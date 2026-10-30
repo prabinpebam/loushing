@@ -1,0 +1,89 @@
+name: Site quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site-quality:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      NPM_CONFIG_REGISTRY: https://packagefeedproxy.microsoft.io/npm/
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Select preinstalled Node 24 and system Edge
+        run: |
+          $scratch = "$env:GITHUB_WORKSPACE\.agent-orchestration\ci-temp"
+          New-Item -ItemType Directory -Force $scratch | Out-Null
+          "TEMP=$scratch" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "TMP=$scratch" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $node = Get-ChildItem "$env:RUNNER_TOOL_CACHE\node\24.*\x64\node.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending | Select-Object -First 1
+          if (!$node) { throw 'Preinstalled Node 24 is unavailable; no public runtime bootstrap is permitted.' }
+          Split-Path $node.FullName | Out-File $env:GITHUB_PATH -Append -Encoding utf8
+          $browsers = @(
+            "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+            "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
+          )
+          $browser = $browsers | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
+          if (!$browser) { throw 'System Edge is unavailable; browser downloads are not permitted.' }
+          "BROWSER_PATH=$browser" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Unit tests and production build budgets
+        id: build
+        run: |
+          if ((node -p "process.versions.node.split('.')[0]") -ne '24') { throw 'Node 24 was not selected.' }
+          node --test (Get-ChildItem site\test\*.test.mjs).FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node site\scripts\build.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node site\scripts\benchmark.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node slate\scripts\runtime-host.mjs check --repo . --host docs
+
+      - name: Install validation tools from the approved proxy only
+        id: validation
+        working-directory: site/validation
+        run: |
+          $config = npm config list --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $approved = 'https://packagefeedproxy.microsoft.io/npm/'
+          foreach ($setting in $config.PSObject.Properties) {
+            if (($setting.Name -eq 'registry' -or $setting.Name.EndsWith(':registry')) -and
+                $setting.Value -and $setting.Value -ne $approved) {
+              throw 'An unapproved registry override is configured; no fallback is permitted.'
+            }
+          }
+          if ($config.registry -ne $approved) { throw 'The effective npm registry is not the approved proxy.' }
+          npm ci --ignore-scripts --cache "$env:GITHUB_WORKSPACE\.agent-orchestration\npm-cache"
+
+      - name: Browser accessibility and interaction checks
+        run: node site\validation\check.mjs --all
+
+      - name: Identical cold-cache desktop and mobile Lighthouse checks
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.validation.outcome == 'success' }}
+        run: node site\validation\lighthouse.mjs
+
+      - name: Retain measured evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-quality-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            site/validation/results/
+            site/perf/runs/

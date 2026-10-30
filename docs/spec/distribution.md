@@ -28,6 +28,101 @@ Related: [product spec](product-spec.md) · [content model](content-model.md) ·
 [repository organization](repository-organization.md) ·
 [agent access](agent-access.md) · [benchmarks](../research/benchmarks.md).
 
+## Local implementation status
+
+The commands above describe the intended published route. **`loushing` is not
+published to npm.** A dependency-free local preview now lives in `cli/`; run
+`node cli\bin\loushing.mjs --help` from the repository. Existing Git, Download and
+Ask-your-agent routes remain available.
+
+| Implemented locally | Not yet proved or released |
+| --- | --- |
+| Skill add, list, remove, lockfile restore, outdated and update; all five target IDs at both scopes | Actual discovery in every supported agent on Windows and macOS |
+| Pinned GitHub bytes, size and SHA-256 checks, staging and rollback, safe paths and exact file ownership | Recovery after an uncatchable process kill or machine failure |
+| Dry run with no writes, explicit noninteractive agents, effects approval, independent conflict choices and backups | npm publication, provenance, trusted publisher/account setup and registry delivery on a managed device |
+| Find using the site's search index, info with published and resolved plans, finder instructions and synthetic regression tasks | Real two-agent finder/consent trials |
+| Canonical kit contracts, verified-source execution, ordered stacks, per-member records, restore/update and exact uninstall in disposable local tests | Authorized canonical releases, new external pins and released contract/source manifests; current public kits remain manual |
+| JSON output and exit codes 0/1/2; dependency-free Node 22-compatible APIs and a proposed Node/OS CI matrix | Executed Node 22/24 and macOS/Linux matrix evidence; this local run uses Windows and Node 26 |
+
+`--yes` approves effects, never replacement of changed or unowned files.
+`--conflict keep` skips the conflicting item; `--conflict replace` keeps the
+replaced bytes in a versioned backup. For kits, `keep` applies to `add` and
+`update` only: `remove` with local edits returns `needs-decision` and leaves the kit
+installed; removing a stack stops the same way before any change when any member,
+kit or skill, has local edits. Uninstall removes only the kit's recorded files and its own marked
+section. `--as <local-name>` offers a separate folder.
+Backups themselves are never overwritten. The lockfile also records source
+manifests and destination ownership, so restoration needs no current item metadata.
+
+The preview accepts `--catalog <file-or-URL>` and `--source-root <local-checkout>`
+for offline verification. The latter reads pinned Git objects, not working files.
+It honors proxy environment variables through Node's built-in HTTP/TLS transports,
+rather than `fetch`, so the same dependency-free transport works on Node 22.
+The default public catalog's metadata persists for 10 minutes in
+`~/.cache/loushing/metadata-v1`; `--refresh` bypasses old metadata and `--no-cache`
+disables reads and writes. Dry runs bypass persistent storage entirely. Local files,
+alternate sources and private catalogs are never persistently cached; URLs cannot
+carry credentials or query parameters. Cache failures are explicit, not an excuse
+to use stale metadata. This is cache-correctness evidence, not an install-speed claim.
+
+Historical versions and `next` require explicit immutable release entries. With no
+registered releases the build says `catalogVersion: "development"` and the release
+timeline/feed is empty. Git dates and a changed `main` are not releases.
+
+The package uses a root allowlist for `cli/` plus the existing catalog/search
+helpers it shares with the site. No skills, submodules or documentation-host
+assets are bundled. There are no dependencies or install scripts. A publish guard
+and `UNLICENSED` metadata keep release approval and the package's license choice
+explicit; neither is permission to publish.
+
+### Lifecycle and release preparation
+
+| Source | Meaning | Guard |
+| --- | --- | --- |
+| `catalog/lifecycle.json` | Aliases and removals, with dates, reasons and optional current alternatives | No cycles, ID reuse, invalid IDs or dangling alternatives; shared by site and CLI |
+| `external/<id>.yaml` with `type: skill` | A moved skill, with `source.path`, card and pinned ref in its external repository | Same ID and `SKILL.md` name; regular Git blobs, hashes, effects and publication checks |
+| `catalog/releases.json` | Explicit release versions, manifest SHA-256 values and stable/next selections | Empty until actual authorized releases exist; no branch-based inference |
+| `catalog/releases/<version>/` | Immutable index, item JSON/Markdown, search index and manifest | Manifest and every artifact hash verified before the public build |
+
+`node site\scripts\release.mjs <local-release-config.json>` prepares an immutable
+**local** artifact. Its config supplies `root`, a new `out` directory, SemVer
+`version`, UTC `date`, explicit `changes` (`id`, `kind`, `line`), and `sourceRoots`
+mapping external repository URLs to local checkouts when verifying skill or
+contract payloads. It rejects dirty catalog sources and any size/hash mismatch
+against the actual pinned Git blobs; output is staged and never overwrites a
+version. An existing item version cannot acquire a different pin.
+An unrelated parent-repository commit retains a local item's recorded pin when
+Git proves its whole source folder is unchanged; changed content requires a version bump.
+
+Change kinds are `added`, `updated`, `pinned` or `removed`; a removal must name an
+authoritative tombstone. Stacks without an item SemVer can follow a recorded
+channel without inventing a version number.
+
+The command neither publishes nor advances a channel. Registration, commits,
+publishing and channel promotion require separate authorization. After reviewing
+an authorized artifact, the release owner places it in the version folder and
+records the returned version/manifest digest in the registry, explicitly choosing
+stable or next. Channels only name recorded versions; stable cannot select a
+prerelease. CLI default selection uses a recorded stable pointer rather than a
+newer development card; `--version` and `--channel next` never guess a ref.
+
+### Explicit local private sources
+
+Working default for the bounded fixture implementation: pass
+`--catalog <local-file>` explicitly; an index may declare `visibility: private`.
+Discovery and dry runs create no lock. A requested installation records that one
+source and its exact manifests; existing installs cannot be mixed with another
+catalog through add, update, outdated or restore. There is **one source per
+scope/lock**, not a multi-source account system. Treat private lockfiles as private:
+they intentionally contain item identities, source paths and manifests.
+
+Public cards or pointers marked `visibility: private` fail the public build.
+Explicit local sources are not searched or imported by that build. Disposable
+fixtures cover source separation, unchanged public output, moves and restoration
+from both the original and new pins. O9 remains undecided for authenticated network
+access, account identity and credential storage. No such architecture or personal
+or work content has been added.
+
 ## Routes
 
 | Route | Command or action | Who it is for | What it gives | Stage |
@@ -227,17 +322,63 @@ install:
 | Exit codes: 0 done, 1 failed, 2 needs a decision | Same meaning as the [CLI's](agent-access.md#exit-codes) |
 | Writes only inside the project, or the personal folders for `--global`, and declares any network use | Effects are known in advance |
 
-**Where the three kits stand today** (from their installers at the pinned commits):
+**Where the kits stand today** (from their installers at the pinned commits):
 
 | Kit | Has | Missing for the contract |
 | --- | --- | --- |
 | agentic-craft | `tools/install.mjs` with `--for copilot,claude,agents`, `--global`, `--templates`, `--dry-run`; keeps filled-in project facts | `--json`, `--uninstall`, exit code 2, an `about.md` card |
 | agent-orchestration | The same installer shape and flags | The same as agentic-craft |
 | Slate | `scripts/init-project.mjs` with `--repo`, `--host`, `--project`; writes a documentation host and a Copilot skill adapter | An agent choice (adapter for Claude Code and the open layout), `--dry-run`, `--json`, `--uninstall`, exit codes, an `about.md` card |
+| ai-integration | `tools/install.mjs` with one `--target github`, `agents` or `claude` per run and `--dry-run`; prints its changes as JSON; refuses edited or unowned files; never changes `AGENTS.md` | Several agents in one run, `--global`, `--uninstall`, the contract's JSON fields and exit code 2, an `about.md` card |
 
-These changes belong in each kit's own repository and are planned for stage 3
-([Definitions of Done](definition-of-done.md#stage-3-kits-and-stacks)). Nothing in this
-page changes the kits now.
+The table describes **the published pins**. Stage 3 source changes, each with its
+own contract tests, are committed on the `feat/install-contract` branch of the
+agentic-craft, agent-orchestration and Slate repositories; ai-integration has none
+yet. They are not merged or released. The public cards remain manual; no contract is
+attached to an old pin.
+
+### Version-1 automation and local testing
+
+The executable declaration is `install.contract`, separate from the existing
+manual-command metadata. It includes a full source file manifest (relative paths,
+sizes and SHA-256), exact Node entry point, project/personal arguments, agent map,
+effects, bounded file/tree write locations, `network: false`, and contract version 1.
+The source is an exact Git commit, not a branch or mutable tag. The site validates
+each listed file against that commit. Page plans and item JSON share the same
+`automation.supported` result; absent contracts stay manual.
+
+Consent has two boundaries because a dry run is also code:
+
+| Step | Explicit choice | What may happen |
+| --- | --- | --- |
+| Read the source plan | None | Metadata only; no installer executes |
+| Trust the exact sources | `--trust-source <digest>` | Verify all source hashes, then run installers in a disposable planning copy to form an ordered combined plan |
+| Approve target changes | `--approve-plan <plan.digest> --yes` | Execute exactly that plan, verify results and record each successful member |
+
+These installers are trusted code, **not sandboxed**. Hashes establish identity,
+not safety. A changed source, destination, effect or plan requires renewed consent.
+An explicit `--kit-cache` outside the destination holds verified sources and the
+planning copy; per-run contents are cleaned up. Dry runs leave the destination
+unchanged. No network use is declared by the canonical installers.
+
+For testing uncommitted sources only, `node cli\scripts\dev-kits.mjs` generates an
+explicit `--dev-kits` manifest. It records a working-source digest separately from
+the true base commit, and marks locks `uncommitted-local`. It never overrides normal
+published verification. See `cli/README.md`, “Kits and stacks: local contract testing”,
+for a disposable-project example. Older development restores/removals require their
+exact source bytes; preserve a copy until removal.
+
+Canonical installers keep original bytes and file/directory ownership in
+`.kit-state/`. Updates keep project facts, templates and owner-tuned hooks. Changed
+managed files block updates/removal; `--conflict keep` skips that member. Kits have
+no forced replacement or partial-agent removal. Slate installs a full source copy
+under `.kits/slate/`; its personal scope remains unsupported. A caught lock-commit
+failure rolls back the affected kit member unless another edit prevents safe
+recovery; such edits are preserved and reported. Power-loss recovery is manual.
+
+Release still requires authorized canonical commits/publication, parent and
+external pin updates, exact released contract manifests, parity tests and the
+separate npm release approvals. Local passing tests do not satisfy that boundary.
 
 ## Stacks
 
@@ -249,6 +390,11 @@ page changes the kits now.
 4. A failure stops the run. The lockfile records the members that succeeded, so
    running the same command again resumes.
 5. The stack's After setup steps are printed at the end.
+
+The local implementation also records stack membership and removes it in reverse
+order. Individual skill members use the existing skill transaction. A resumed run
+asks for a fresh plan covering the remaining members; it never reuses a stale
+approval. A kit conflict stops planning before any target member changes.
 
 ## Security
 

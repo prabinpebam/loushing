@@ -2,7 +2,7 @@
  * Fundamentals: the smallest components, sealed. They take props only (no class or
  * style), pass `data` through as data-* attributes, and read only tokens.
  * Styles: site/src/styles/fundamentals.css. Each one is documented here and shown in
- * every state by the library (stage 1 follow-up: /library/).
+ * its variants by the generated /library/; live controls expose interaction states.
  * @tier 1
  */
 import { attrs, html, raw } from '../lib/html.mjs';
@@ -112,7 +112,7 @@ export function Tabs({ id, label, tabs, selected }) {
 export function CopyField({ lines, copyLabel = 'Copy command', wrap = false, data }) {
   const text = lines.join('\n');
   return html`<div${attrs({ class: 'f-copy', 'data-wrap': String(wrap), ...dataAttrs(data) })}>
-  <pre class="f-copy__text"><code>${text}</code></pre>
+  <pre class="f-copy__text" tabindex="0" aria-label="Text to copy"><code>${text}</code></pre>
   <button class="f-copy__button" type="button" aria-label="${copyLabel}" title="${copyLabel}" data-copy="${text}" data-copy-label="${copyLabel}"><span class="f-copy__idle">${Icon({ name: 'content_copy' })}</span><span class="f-copy__done" hidden>${Icon({ name: 'check' })}</span></button>
   <span class="f-copy__status u-visually-hidden" role="status"></span>
 </div>`;

@@ -39,7 +39,7 @@ export function buildModel(catalog) {
     { id: 'part', value: parts.length, label: 'parts inside kits', icon: 'category' },
   ].filter((c) => c.value > 0);
 
-  const releases = timeline(items);
+  const releases = timeline(items, catalog.releaseRegistry);
   const docs = [...items, ...parts].map(searchDoc);
 
   const model = { catalog, taxonomy, items, parts, byId, areas, counts, latest, releases, docs, agentsById, effectsById, statusById, stacks: items.filter((i) => i.type === 'stack') };
@@ -85,14 +85,14 @@ export function partItem(kit, p) {
   };
 }
 
-/** What's new, derived from Git until catalog releases exist (as built, product spec §11). */
-export function timeline(items) {
-  const entries = [];
-  for (const i of items) {
-    if (i.type === 'kit') entries.push({ date: i.updated, kind: 'pinned', item: i, line: `Pinned to version ${i.version ?? ''} at commit ${String(i.source.commit).slice(0, 7)}` });
-    else entries.push({ date: i.updated, kind: i.updated === i.added ? 'added' : 'updated', item: i, line: i.summary });
-  }
-  return entries.filter((e) => e.date).sort((a, b) => b.date.localeCompare(a.date));
+/** Only explicit immutable catalog releases belong in release history. */
+export function timeline(items, registry) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  return (registry?.releases ?? []).flatMap((release) => release.changes.map((change) => ({
+    date: release.date, kind: change.kind, release: release.version,
+    item: byId.get(change.id) ?? { id: change.id, title: change.id, ...release.index.items.find((item) => item.id === change.id), url: `/items/${change.id}` },
+    line: `${release.version}: ${change.line}`,
+  }))).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function searchDoc(i) {

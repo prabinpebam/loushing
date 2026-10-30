@@ -7,11 +7,14 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, dirname, join, posix, relative } from 'node:path';
+import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { basename, dirname, join, posix, relative, resolve } from 'node:path';
 import { frontMatter, parseYaml } from '../../src/lib/yaml.mjs';
 import { plainText, sections } from '../../src/lib/markdown.mjs';
 import { scanText } from './publication.mjs';
+import { contractProblem } from '../../src/lib/kit-contract.mjs';
+import { lifecycleProblems } from '../../src/lib/lifecycle.mjs';
+import { loadReleases } from './releases.mjs';
 
 export const RELATIONS = ['pairsWith', 'feedsInto', 'requires', 'partOf', 'alternativeTo', 'replacedBy'];
 const BODY_ORDER = ['What it does', 'How it works', 'Try it', 'What it adds to your project', 'Good to know'];
@@ -47,6 +50,13 @@ export function globToRegExp(glob) {
 }
 
 const isBinary = (buf) => buf.subarray(0, 8000).includes(0);
+
+/** A CRLF checkout is the same pinned text, not a different distributable payload. */
+export function pinnedCheckoutBytes(working, pinned) {
+  if (!pinned || isBinary(working) || isBinary(pinned)) return working;
+  const normalized = Buffer.from(working.toString('utf8').replace(/\r\n/g, '\n'));
+  return normalized.equals(pinned) ? pinned : working;
+}
 
 /** Runs the publication check over one file's text and reports each finding as a problem. */
 function checkPublication(file, text, problem) {
@@ -98,7 +108,14 @@ export function loadCatalog(root, { now = new Date() } = {}) {
 
   const items = [];
   const repoUrl = normRepo(tryGit(root, ['config', '--get', 'remote.origin.url']) ?? 'https://github.com/prabinpebam/loushing');
-  const repoHead = tryGit(root, ['rev-parse', 'HEAD'])?.trim() ?? null;
+  const gitRoot = tryGit(root, ['rev-parse', '--show-toplevel'])?.trim();
+  const samePath = (a, b) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
+  const repoHead = gitRoot && samePath(gitRoot, root)
+    ? tryGit(root, ['rev-parse', 'HEAD'])?.trim() ?? null : null;
+  const pinnedSkillPaths = repoHead
+    ? git(root, ['ls-tree', '-rz', '--name-only', repoHead, '--', 'skills'], { buffer: true }).toString('utf8').split('\0').filter((p) => p && !/[\r\n]/.test(p))
+    : [];
+  const pinnedSkills = repoHead ? readBlobs(root, repoHead, pinnedSkillPaths) : new Map();
   const lastChange = (path) => tryGit(root, ['log', '-1', '--format=%cI', '--', path])?.trim() || null;
   const firstAdded = (path) => tryGit(root, ['log', '--diff-filter=A', '--format=%cI', '--', path])?.trim().split(/\r?\n/).pop() || null;
 
@@ -107,8 +124,12 @@ export function loadCatalog(root, { now = new Date() } = {}) {
   if (existsSync(skillsDir)) {
     for (const id of readdirSync(skillsDir).sort()) {
       const dir = join(skillsDir, id);
+      if (lstatSync(dir).isSymbolicLink()) {
+        problem(dir, 'a skill folder is a symbolic link', 'Replace it with reviewed, regular files inside the catalog.');
+        continue;
+      }
       if (!statSync(dir).isDirectory()) continue;
-      const item = loadSkill(root, dir, id, problem);
+      const item = loadSkill(root, dir, id, problem, pinnedSkills);
       if (!item) continue;
       item.updated = lastChange(relative(root, dir)) ?? fileDate(dir);
       item.added = firstAdded(relative(root, dir)) ?? item.updated;
@@ -151,7 +172,20 @@ export function loadCatalog(root, { now = new Date() } = {}) {
     if (byId.has(item.id)) problem(item.file, `the id "${item.id}" is used twice`, 'Give each item its own id; ids are never reused.');
     byId.set(item.id, item);
   }
-  for (const item of items) validateCard(item, vocab, byId, problem);
+  for (const item of items) {
+    validateCard(item, vocab, byId, problem);
+    if (item.visibility !== undefined && item.visibility !== 'public') problem(item.file, 'non-public item cannot enter the public catalog', 'Keep private items in an explicit local source outside this public catalog.');
+  }
+  const lifecycleFile = join(root, 'catalog', 'lifecycle.json');
+  let lifecycle = { version: 1, aliases: {}, removed: {} };
+  if (existsSync(lifecycleFile)) {
+    try { lifecycle = JSON.parse(readFileSync(lifecycleFile, 'utf8')); }
+    catch { problem(lifecycleFile, 'invalid lifecycle JSON', 'Correct the lifecycle JSON before building.'); }
+  }
+  for (const message of lifecycleProblems(lifecycle, items)) problem(lifecycleFile, message, 'Use unique retired IDs, existing targets and acyclic aliases.');
+  let releaseRegistry;
+  try { releaseRegistry = loadReleases(root); }
+  catch (error) { problem(join(root, 'catalog', 'releases.json'), error.message, 'Restore the immutable artifacts and explicitly choose an existing release channel.'); }
   linkStandaloneSkills(items, problem);
   const relations = buildRelations(items, byId);
   for (const item of items) {
@@ -162,7 +196,7 @@ export function loadCatalog(root, { now = new Date() } = {}) {
     item.url = `/items/${item.id}`;
   }
 
-  return { root, taxonomy, items, byId, problems, repo: repoUrl, head: repoHead, generated: now.toISOString() };
+  return { root, taxonomy, items, byId, problems, lifecycle, releaseRegistry, repo: repoUrl, head: repoHead, generated: now.toISOString() };
 }
 
 /** Validates source identities and links kit parts to independently installable adaptations. */
@@ -211,9 +245,15 @@ function readCard(file, problem) {
   }
 }
 
-function loadSkill(root, dir, id, problem) {
+function loadSkill(root, dir, id, problem, pinnedSkills) {
   const skillFile = join(dir, 'SKILL.md');
   const aboutFile = join(dir, 'about.md');
+  for (const file of [skillFile, aboutFile]) {
+    if (existsSync(file) && lstatSync(file).isSymbolicLink()) {
+      problem(file, 'a skill entry or card is a symbolic link', 'Replace the link with a reviewed, regular file.');
+      return null;
+    }
+  }
   if (!existsSync(skillFile)) {
     problem(dir, 'the skill folder has no SKILL.md', 'Add SKILL.md with name and description front matter (Agent Skills format).');
     return null;
@@ -232,9 +272,15 @@ function loadSkill(root, dir, id, problem) {
   const walk = (d) => {
     for (const n of readdirSync(d).sort()) {
       const p = join(d, n);
+      if (lstatSync(p).isSymbolicLink()) {
+        problem(p, 'a skill contains a symbolic link', 'Replace the link with reviewed, regular files inside the skill folder.');
+        continue;
+      }
       if (statSync(p).isDirectory()) walk(p);
       else {
-        const buf = readFileSync(p);
+        const working = readFileSync(p);
+        const sourcePath = relative(root, p).split('\\').join('/');
+        const buf = pinnedCheckoutBytes(working, pinnedSkills.get(sourcePath));
         bytes += buf.length;
         const rel = relative(dir, p).split('\\').join('/');
         if (!isBinary(buf)) checkPublication(p, buf.toString('utf8'), problem);
@@ -251,9 +297,13 @@ function loadSkill(root, dir, id, problem) {
   return { ...data, id, type: 'skill', body, file: aboutFile, skill: { name: skill.name, description: skill.description }, files };
 }
 
+export function fileRole(path) {
+  return path === 'SKILL.md' ? 'instructions' : path.startsWith('scripts/') ? 'script' : path.startsWith('references/') ? 'reference' : path.startsWith('assets/') || path.startsWith('templates/') ? 'template' : 'file';
+}
+
 function fileEntry(path, buf) {
   const binary = isBinary(buf);
-  const role = path === 'SKILL.md' ? 'instructions' : path.startsWith('scripts/') ? 'script' : path.startsWith('references/') ? 'reference' : path.startsWith('assets/') || path.startsWith('templates/') ? 'template' : 'file';
+  const role = fileRole(path);
   return { path, size: buf.length, sha256: sha256(buf), role, runs: role === 'script', text: !binary && buf.length <= TEXT_LIMIT ? buf.toString('utf8') : null };
 }
 
@@ -288,8 +338,8 @@ function loadPointer(root, file, checkouts, problem) {
   if (!isTag && !/^[0-9a-f]{40}$/.test(src.ref)) problem(file, `source.ref "${src.ref}" looks like a branch`, 'Pin a release tag or a full 40-character commit, never a branch.');
 
   const tree = git(local, ['ls-tree', '-r', '-l', '--full-tree', commit]).trim().split(/\r?\n/).map((l) => {
-    const m = /^\d+ (\w+) ([0-9a-f]+)\s+(-|\d+)\t(.+)$/.exec(l);
-    return m && m[1] === 'blob' ? { path: m[4], size: Number(m[3]) } : null;
+    const m = /^(\d+) (\w+) ([0-9a-f]+)\s+(-|\d+)\t(.+)$/.exec(l);
+    return m && m[2] === 'blob' ? { path: m[5], size: Number(m[4]), mode: m[1] } : null;
   }).filter(Boolean);
   // Read every blob at the pinned commit in one process; a process per file is slow on Windows.
   const blobs = readBlobs(local, commit, tree.map((f) => f.path));
@@ -318,7 +368,38 @@ function loadPointer(root, file, checkouts, problem) {
     return null;
   }
   const readme = show('README.md')?.toString('utf8') ?? null;
+  if (data.install?.contract) {
+    const c = data.install.contract;
+    const invalid = contractProblem(c);
+    if (invalid) problem(cardPath, invalid, 'Publish a complete version-1 installer contract at the pinned revision.');
+    else for (const f of c.files) {
+      const bytes = show(f.path);
+      if (!bytes || bytes.length !== f.size || createHash('sha256').update(bytes).digest('hex') !== f.sha256) {
+        problem(cardPath, `installer source ${f.path} does not match the pinned commit`, 'Release the canonical installer first, then update the pin and its exact file hashes.');
+      }
+    }
+  }
   const parts = discoverParts(p.parts ?? {}, tree, show, id, { readme, notes: data.partNotes ?? {} });
+  let skillFiles;
+  if (p.type === 'skill') {
+    if (typeof src.path !== 'string' || !src.path.split('/').every((part) => /^[a-zA-Z0-9._-]+$/.test(part) && !['.', '..', '.git'].includes(part))) {
+      problem(file, 'a moved skill needs a safe source.path folder', 'Set source.path to its folder at the pinned Git commit.');
+      return null;
+    }
+    const selected = tree.filter((entry) => entry.path.startsWith(`${src.path}/`) && entry.path !== `${src.path}/about.md`);
+    skillFiles = selected.map((entry) => {
+      if (!['100644', '100755'].includes(entry.mode)) problem(file, `the moved skill contains a non-regular file: ${entry.path}`, 'Replace links with regular files before releasing the skill.');
+      const bytes = show(entry.path);
+      if (!isBinary(bytes)) checkPublication(file, bytes.toString('utf8'), problem);
+      return fileEntry(entry.path.slice(src.path.length + 1), bytes);
+    });
+    const instructions = show(`${src.path}/SKILL.md`);
+    try {
+      if (!instructions || frontMatter(instructions.toString('utf8')).data.name !== id) throw new Error();
+    } catch { problem(file, 'the moved skill needs SKILL.md with the same stable name', 'Keep its original ID in the skill front matter and pointer.'); }
+    if (skillFiles.length > SKILL_LIMITS.files || skillFiles.reduce((sum, entry) => sum + entry.size, 0) > SKILL_LIMITS.bytes) problem(file, 'the moved skill exceeds the CLI file budget', 'Keep the installable skill within 50 files and 5 MB.');
+    if (skillFiles.some((entry) => entry.runs) && !(data.effects ?? []).includes('runs-scripts')) problem(file, 'the moved skill does not declare its scripts', 'Add runs-scripts to effects.');
+  }
   const committed = git(local, ['show', '-s', '--format=%cI', commit]).trim();
   return {
     ...data,
@@ -327,7 +408,9 @@ function loadPointer(root, file, checkouts, problem) {
     body,
     file: cardFile.startsWith(root) ? cardFile : file,
     pointerFile: file,
-    source: { repo: normRepo(src.repo), ref: src.ref, commit, tag: isTag ? src.ref : null, card: src.card ?? 'about.md', inline: cardFile.startsWith(root) },
+    source: { repo: normRepo(src.repo), ref: src.ref, commit, tag: isTag ? src.ref : null, card: src.card ?? 'about.md', inline: cardFile.startsWith(root), ...(p.type === 'skill' ? { path: src.path } : {}) },
+    ...(skillFiles ? { files: skillFiles } : {}),
+    ...(p.visibility ? { visibility: p.visibility } : {}),
     channels: p.channels ?? {},
     parts,
     readme,

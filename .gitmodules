@@ -10,3 +10,7 @@
 	path = agent-orchestration
 	url = https://github.com/prabinpebam/agent-orchestration.git
 	branch = main
+[submodule "ai-integration"]
+	path = ai-integration
+	url = https://github.com/prabinpebam/ai-integration.git
+	branch = main

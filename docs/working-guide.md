@@ -20,6 +20,69 @@ Opening the reader as a local file will not work.
 Git, Node.js 22+, and Python 3 are sufficient for these commands.
 No dependency installation or documentation build is needed.
 
+## Site quality checks
+
+The ordinary static build and unit tests still need no packages. The catalog-quality
+increment adds optional, isolated browser tooling under `site/validation/`; it is not
+part of the application bundle or the root CLI package.
+
+The build reads each skill's files from its pinned commit, so commit a new skill's
+folder before relying on a root build. Until then, the build and the site tests that
+use the real catalog stop with "<id>: The pinned item has no files".
+
+```powershell
+node site\scripts\build.mjs
+node --test "site/test/*.test.mjs"
+node site\scripts\benchmark.mjs --check
+
+# Optional real-browser checks. Verify the effective source before installing.
+Push-Location site\validation
+npm config get registry
+npm ci --ignore-scripts --registry=https://packagefeedproxy.microsoft.io/npm/
+Pop-Location
+node site\validation\check.mjs --all
+node site\validation\lighthouse.mjs
+```
+
+The browser commands use the locally installed Microsoft Edge on Windows by default.
+Set `BROWSER_PATH` to an approved existing Chromium executable on another machine;
+they never download a browser. Their production-file server binds an ephemeral
+loopback port, and closes with the browser after the check. Browser profiles and
+scratch data stay under the ignored repository `.agent-orchestration/` directory.
+Results and screenshots go to ignored `site/validation/results/`.
+
+The build enforces the spec's 150 KB compressed search-index limit and keeps browser
+validation code off product entry points. `benchmark.mjs` measures 200 synthetic
+search documents sampled from the catalog, with 25 searches over five query phrases.
+It is a Node ranking benchmark, not participant search evidence or browser INP.
+`--baseline` deliberately records a candidate baseline in `site/perf/baseline.json`;
+`--check` compares only the same machine/runtime, failing when p75 regresses beyond
+both 20% and 5 ms. A changed machine/runtime or corpus needs a deliberate, reviewed
+baseline rather than a misleading comparison.
+
+Lighthouse records five cold-cache runs per profile of one skill page: unthrottled
+desktop and simulated mobile (CPU ×4, 10 Mbps, 40 ms). It records the actual settings,
+LCP, CLS and TBT, and reports the 1.5 s mobile LCP target. Search and Lighthouse
+commands exit unsuccessfully when their configured target is missed.
+These are local lab results, not field p75 or proof that every page meets the target.
+The accessibility runner fails on axe findings, duplicate IDs, runtime errors and
+page overflow. It does not replace a screen-reader review or the participant trial.
+The `site-quality.yml` workflow runs these build, browser and lab checks on pull
+requests and pushes to `main`. It selects preinstalled Node 24 and system Edge on
+a Windows runner, verifies the effective npm registry and scoped overrides, and
+installs only through the approved proxy. Missing runtimes, browsers or feed access
+fail explicitly; there is no public bootstrap or browser-download fallback.
+CI measures search against its target, not a different machine's saved baseline.
+Reports, including failed checks, are retained as workflow artifacts for seven days.
+The workflow is authored locally; a hosted run remains unverified until integration.
+No check publishes catalog content, packages or deployments.
+
+The site adapter now waits for fonts and a content-paint opportunity before
+allocating the decorative lighting renderer. It does not initialize WebGL when a
+contrast preference hides lighting. The shader, resolution, settings and imagery
+are unchanged. `lighting:initialize` records GPU initialization in the Performance
+panel; browser checks verify paint ordering and the zero-allocation hidden state.
+
 ## File ownership
 
 | Location, relative to the repository | Owner and editing rule |
@@ -33,6 +96,7 @@ No dependency installation or documentation build is needed.
 | `slate/` | Editable upstream submodule for reusable documentation-harness changes |
 | `agentic-craft/` | Editable upstream submodule for reusable product-reasoning changes |
 | `agent-orchestration/` | Editable upstream submodule for reusable execution-control changes |
+| `ai-integration/` | Pinned upstream submodule the catalog reads for the ai-integration kit; not a harness here, so change the kit in its own repository |
 | `.github/skills/slate/SKILL.md` | Thin agent adapter; points to the canonical authoring contract |
 | Other `.github/skills/` folders and `.github/agents/` | Craft's and Orchestration's installed copies; edit canonical sources, then rerun the installers |
 | `AGENTS.md` | Project-specific instructions and each harness's project facts, preserved by the installers |
@@ -125,7 +189,7 @@ actions, not something the installed orchestration guidance authorizes on its ow
 ### Initialize and update the submodules
 
 ```powershell
-# A fresh clone with all three harnesses at their pinned commits.
+# A fresh clone with every submodule at its pinned commit.
 git clone --recurse-submodules https://github.com/prabinpebam/loushing.git
 
 # An existing clone: check out the pinned commits, then confirm them.
@@ -133,9 +197,12 @@ git submodule update --init --recursive
 git submodule status
 ```
 
-`git submodule status` lists `slate`, `agentic-craft`, and `agent-orchestration`
-with the pinned commit of each; a leading `-` means not initialized and a leading
-`+` means the checked-out commit differs from the pin.
+`git submodule status` lists `slate`, `agentic-craft`, `agent-orchestration` and
+`ai-integration` with the pinned commit of each; a leading `-` means not initialized
+and a leading `+` means the checked-out commit differs from the pin. `ai-integration`
+is a catalog source, not a harness: to list a newer version, check it out in the
+submodule and set the same full commit as `source.ref` in
+`external/ai-integration.yaml`.
 
 ### Fresh clones and pinned revisions
 
