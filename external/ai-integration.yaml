@@ -10,6 +10,9 @@ channels:
   next: main
 # The kit has no about.md yet, so this pointer carries its card temporarily.
 inlineCard: ai-integration.card.md
+# Complete installable package from the pinned source, not its developer test suite.
+# The canonical skill contains all resources and the installer's runtime imports.
+packageFiles: [LICENSE, README.md, package.json, docs/, skills/, tools/]
 # Where the build finds the kit's parts at the pinned commit.
 parts:
   skill: ["skills/*/SKILL.md"]

@@ -70,11 +70,28 @@ registered releases the build says `catalogVersion: "development"`, and the What
 new timeline and feed list each item's history from Git. Git dates and a changed
 `main` are not releases; release entries join that history once they exist.
 
-The package uses a root allowlist for `cli/` plus the existing catalog/search
+The CLI package uses a root allowlist for `cli/` plus the existing catalog/search
 helpers it shares with the site. No skills, submodules or documentation-host
 assets are bundled. There are no dependencies or install scripts. A publish guard
 and `UNLICENSED` metadata keep release approval and the package's license choice
 explicit; neither is permission to publish.
+
+### Pinned ZIP packages
+
+Downloads contain only files read from the pinned Git commit, with a SHA-256 for the
+ZIP and every payload file. Kits default to the full repository tree. A kit pointer
+may explicitly declare `packageFiles`: exact repository-relative files, or complete
+directories ending in `/`. No globs or exclusions are accepted; missing, overlapping
+or unsafe paths, links, nested repositories and packages over 10,000 files or 64 MiB
+are rejected. A selection must retain the root `LICENSE` and every declared part
+with its resources. Every shipped byte still passes the publication check.
+
+ai-integration selects `LICENSE`, `README.md`, `package.json`, `docs/`, `skills/`
+and `tools/`. This is its complete installable package, not its development checkout:
+the canonical skill, references, assets, offline scripts and installer dependencies
+are included; developer tests, fixtures and CI configuration are not. The installer
+supports `github`, `agents` and `claude`, including dry-run. Its lack of a Loushing
+CLI install contract does not block the ZIP; Git and manual setup remain available.
 
 ### Lifecycle and release preparation
 

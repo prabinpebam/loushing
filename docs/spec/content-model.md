@@ -218,6 +218,12 @@ catalog doubles. Candidate areas, to be confirmed against the real items, includ
 product and planning, documentation and writing, engineering workflow, documents and
 office files, data and analysis, communication, and research.
 
+The current catalog has four populated areas. ai-integration belongs to **Product
+and planning**: its canonical workflow starts with requirements, provider and policy
+choices, configuration ownership and an implementation plan. Its `ai-providers`,
+`local-models`, `privacy` and `migrations` tags keep those specific jobs discoverable
+without a one-item area or a duplicate skill listing.
+
 ## Identity, versions and lifecycle
 
 - **IDs are permanent.** A renamed item keeps its old ID as an alias, and the old URL

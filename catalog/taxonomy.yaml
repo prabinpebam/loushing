@@ -1,6 +1,6 @@
 # Loushing taxonomy: the controlled vocabularies every card is checked against.
 # Job areas are derived from real items (decision O4). Add an area only when real
-# items need it; keep at most eight. Only areas with at least one item are shown.
+# items need it; keep at most eight, with at least two items in each nonempty area.
 
 areas:
   - id: product-planning
@@ -19,11 +19,6 @@ areas:
     title: Interface design
     summary: Shape how a product looks and feels
     icon: draw
-  # Working default for the ai-integration kit; the owner confirms the name and icon.
-  - id: ai-features
-    title: AI features
-    summary: Add and update AI in an application
-    icon: smart_toy
 
 tags:
   - specs

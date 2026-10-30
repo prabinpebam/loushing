@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32 } from 'node:zlib';
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { loadCatalog, pinnedCheckoutBytes, sha256 } from '../scripts/lib/catalog.mjs';
 import { checkPayload, deterministicZip, prepareArchives } from '../scripts/lib/archives.mjs';
@@ -25,7 +26,7 @@ test('CRLF checkouts retain pinned Git hashes without concealing real text or bi
   assert.equal(pinnedCheckoutBytes(changed), changed);
 });
 
-function unzip(bytes) {
+function unzip(bytes, includeBytes = false) {
   const files = [];
   let at = 0;
   while (bytes.readUInt32LE(at) === 0x04034b50) {
@@ -37,7 +38,7 @@ function unzip(bytes) {
     const start = at + 30 + nameSize;
     const data = bytes.subarray(start, start + size);
     assert.equal(crc32(data), bytes.readUInt32LE(at + 14));
-    files.push({ path: bytes.subarray(at + 30, start).toString(), size, sha256: sha256(data) });
+    files.push({ path: bytes.subarray(at + 30, start).toString(), size, sha256: sha256(data), ...(includeBytes ? { bytes: data } : {}) });
     at = start + size;
   }
   assert.equal(bytes.readUInt32LE(at), 0x02014b50);
@@ -101,8 +102,8 @@ test('real item ZIPs, manifests, agent outputs and base-path download plans agre
     const index = catalogJson(model);
     const safe = catalog.items.filter((item) => item.archive?.url);
     // Kits whose pinned payload fails the publication check: no local download, Git only.
-    const blocked = ['slate', 'ai-integration'];
-    assert.equal(safe.length, catalog.items.filter((i) => i.type !== 'stack' && !blocked.includes(i.id)).length, 'every skill and both redistributable kits');
+    const blocked = ['slate'];
+    assert.equal(safe.length, catalog.items.filter((i) => i.type !== 'stack' && !blocked.includes(i.id)).length, 'every skill and all three redistributable kits');
     for (const item of safe) {
       const zip = artifacts.find((a) => `/${a.path}` === item.archive.url).bytes;
       const manifest = JSON.parse(artifacts.find((a) => `/${a.path}` === item.archive.manifest).bytes);
@@ -131,6 +132,82 @@ test('real item ZIPs, manifests, agent outputs and base-path download plans agre
     const second = prepareArchives(loadCatalog(root));
     assert.deepEqual(artifacts, second, 'separate builds reproduce every byte');
   } finally { setBase(); }
+});
+
+test('ai-integration ships its complete pinned skill, installer and license without developer fixtures', () => {
+  const catalog = loadCatalog(root);
+  const kit = catalog.items.find((item) => item.id === 'ai-integration');
+  prepareArchives({ root, items: [kit] });
+  assert.ok(kit.archive.url, kit.archive.blocked);
+  const paths = kit.archiveFiles.map((file) => file.path);
+  for (const required of ['LICENSE', 'README.md', 'package.json', 'docs/intent.md', 'tools/install.mjs', 'skills/ai-integration/LICENSE', 'skills/ai-integration/scripts/lib/files.mjs']) {
+    assert.ok(paths.includes(required), required);
+  }
+  for (const part of kit.parts) for (const file of part.files) {
+    assert.equal(kit.archiveFiles.find((entry) => entry.path === file.path)?.sha256, file.sha256, file.path);
+  }
+  assert.ok(paths.every((path) => !/^(?:test|fixtures)\//.test(path)));
+});
+
+test('an explicit package cannot omit declared resources or license, bypass scanning, or select skill files', () => {
+  const catalog = loadCatalog(root);
+  const original = catalog.items.find((item) => item.id === 'ai-integration');
+  for (const [packageFiles, message] of [
+    [['LICENSE', 'README.md'], /omits declared parts/],
+    [['skills/', 'tools/'], /include its LICENSE/],
+    [[...original.packageFiles, 'test/'], /publication check/],
+    [[...original.packageFiles, 'absent/'], /missing or empty/],
+    [[...original.packageFiles, 'skills/ai-integration/'], /overlap/],
+    [null, /nonempty array/],
+  ]) {
+    const kit = { ...original, packageFiles };
+    assert.deepEqual(prepareArchives({ root, items: [kit] }), []);
+    assert.match(kit.archive.blocked, message);
+    assert.equal(kit.archiveFiles, undefined);
+  }
+  const skill = { ...catalog.items.find((item) => item.type === 'skill'), packageFiles: ['SKILL.md'] };
+  assert.throws(() => prepareArchives({ root, items: [skill] }), /only supported for kits/);
+});
+
+test('the real ai-integration ZIP installs its full resource closure for github, agents and claude', () => {
+  const catalog = loadCatalog(root);
+  const kit = catalog.items.find((item) => item.id === 'ai-integration');
+  const artifacts = prepareArchives({ root, items: [kit] });
+  assert.ok(kit.archive.url, kit.archive.blocked);
+  const zip = artifacts.find((entry) => `/${entry.path}` === kit.archive.url).bytes;
+  const scratch = join(root, '.agent-orchestration');
+  mkdirSync(scratch, { recursive: true });
+  const dir = mkdtempSync(join(scratch, 'package-install-'));
+  try {
+    for (const { path, bytes } of unzip(zip, true)) {
+      const destination = join(dir, path);
+      mkdirSync(dirname(destination), { recursive: true });
+      writeFileSync(destination, bytes);
+    }
+    const packageRoot = join(dir, kit.id);
+    const canonical = kit.archiveFiles.filter((entry) => entry.path.startsWith('skills/ai-integration/'));
+    for (const target of ['github', 'agents', 'claude']) {
+      const project = join(dir, `project-${target}`);
+      mkdirSync(project);
+      const args = [join(packageRoot, 'tools', 'install.mjs'), project, '--target', target];
+      const run = (extra = []) => JSON.parse(execFileSync(process.execPath, [...args, ...extra], { cwd: packageRoot, encoding: 'utf8' }));
+      const dry = run(['--dry-run']);
+      assert.equal(dry.dryRun, true);
+      assert.equal(dry.fileCount, canonical.length);
+      assert.deepEqual(readdirSync(project), [], `${target}: dry-run writes nothing`);
+      const installed = run();
+      assert.equal(installed.fileCount, canonical.length);
+      const skillRoot = join(project, `.${target}`, 'skills', kit.id);
+      for (const entry of canonical) {
+        assert.equal(sha256(readFileSync(join(skillRoot, entry.path.slice('skills/ai-integration/'.length)))), entry.sha256, `${target}: ${entry.path}`);
+      }
+      assert.deepEqual(run(['--dry-run']).changes, [], `${target}: repeat install is exact`);
+      for (const command of [['catalogue', 'validate'], ['profile', 'validate', 'assets/profile.example.json'], ['profile', 'plan', 'assets/profile.example.json']]) {
+        execFileSync(process.execPath, ['scripts/ai.mjs', ...command], { cwd: skillRoot, stdio: 'pipe' });
+      }
+      assert.deepEqual(readdirSync(project), [`.${target}`], 'no project instruction or personal files changed');
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('a kit payload beyond its declared parts still publishes schema-valid file roles', () => {

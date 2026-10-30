@@ -17,6 +17,7 @@
     "site/src/lib/kit-contract.mjs",
     "site/src/lib/lifecycle.mjs",
     "site/scripts/lib/catalog.mjs",
+    "site/scripts/lib/package-files.mjs",
     "site/scripts/lib/releases.mjs",
     "site/scripts/lib/publication.mjs"
   ],

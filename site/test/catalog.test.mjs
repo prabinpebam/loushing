@@ -87,3 +87,15 @@ test('the real catalog loads cleanly, with a plan for every agent and scope', ()
   assert.equal(slate.plans['claude-code:project'].supported, false);
   assert.match(slate.plans['claude-code:project'].reason, /Claude Code isn’t one of them/);
 });
+
+test('real job areas have at least two items and no more than a third of the catalog', () => {
+  const model = buildModel(loadCatalog(root));
+  assert.ok(model.areas.length <= 8);
+  for (const area of model.areas) {
+    assert.ok(area.count >= 2, `${area.id} has only ${area.count} item`);
+    assert.ok(area.count <= model.items.length / 3, `${area.id} holds more than a third of the catalog`);
+  }
+  assert.equal(model.byId.get('ai-integration').area, 'product-planning');
+  assert.deepEqual(model.byId.get('ai-integration').tags, ['ai-providers', 'local-models', 'privacy', 'migrations']);
+  assert.ok(!model.taxonomy.areas.some((area) => area.id === 'ai-features'));
+});

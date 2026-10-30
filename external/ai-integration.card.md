@@ -9,7 +9,7 @@ useWhen:
 notFor:
   - An AI runtime, SDK or ready-made chat UI; your app makes the calls
   - Deciding what product to build or what success means (use agentic-craft)
-area: ai-features
+area: product-planning
 tags: [ai-providers, local-models, privacy, migrations]
 agents:
   copilot-vscode: expected

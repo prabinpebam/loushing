@@ -5,13 +5,11 @@
 import { join } from 'node:path';
 import { fileRole, git, readBlobs, sha256 } from './catalog.mjs';
 import { scanText } from './publication.mjs';
+import { safeArchivePath as safePath, selectPackageFiles } from './package-files.mjs';
 
 class DownloadError extends Error {}
 
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-const safePath = (path) => typeof path === 'string' && !/[\\:<>"|?*\x00-\x1f]/.test(path)
-  && path.split('/').every((p) => p && p !== '.' && p !== '..' && !/[. ]$/.test(p)
-    && !/^(?:\.git|\.env(?:\..*)?|node_modules|con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p));
 
 /** Uncompressed ZIP, UTF-8 paths, 1980-01-01, stable Unix permissions, no extras. */
 export function deterministicZip(entries) {
@@ -75,20 +73,18 @@ export function checkPayload(files) {
   }
 }
 
-/** Read an entire pinned tree, rejecting links, nested repositories and odd paths. */
-function pinnedFiles(cwd, commit, prefix = '') {
+/** Read pinned package roots, rejecting links, nested repositories and odd paths. */
+function pinnedFiles(cwd, commit, prefix = '', packageFiles) {
   if (!/^[a-f0-9]{40}$/.test(commit ?? '')) throw new DownloadError('A full pinned commit is required');
-  const tree = git(cwd, ['ls-tree', '-rz', '--full-tree', commit], { buffer: true });
-  const entries = tree.toString('utf8').split('\0').filter(Boolean).map((line) => {
-    const match = /^(\d+) (\w+) [a-f0-9]+\t(.+)$/.exec(line);
+  const tree = git(cwd, ['ls-tree', '-rzl', '--full-tree', commit], { buffer: true });
+  let entries = tree.toString('utf8').split('\0').filter(Boolean).map((line) => {
+    const match = /^(\d+) (\w+) [a-f0-9]+\s+(-|\d+)\t(.+)$/.exec(line);
     if (!match) throw new DownloadError('Unsupported Git tree entry');
-    return { mode: match[1], type: match[2], sourcePath: match[3] };
+    return { mode: match[1], type: match[2], size: Number(match[3]), sourcePath: match[4] };
   }).filter((f) => !prefix || f.sourcePath.startsWith(`${prefix}/`));
-  if (!entries.length) throw new DownloadError('The pinned item has no files');
-  for (const f of entries) {
-    f.path = prefix ? f.sourcePath.slice(prefix.length + 1) : f.sourcePath;
-    if (!safePath(f.path) || f.type !== 'blob' || !['100644', '100755'].includes(f.mode)) throw new DownloadError('The pinned item contains an unsafe path, link or nested repository');
-  }
+  entries = entries.map((f) => ({ ...f, path: prefix ? f.sourcePath.slice(prefix.length + 1) : f.sourcePath }));
+  try { entries = selectPackageFiles(entries, packageFiles); }
+  catch (error) { throw new DownloadError(error.message); }
   const blobs = readBlobs(cwd, commit, entries.map((f) => f.sourcePath));
   return entries.map((f) => ({ ...f, bytes: blobs.get(f.sourcePath) })).sort((a, b) => compare(a.path, b.path));
 }
@@ -109,8 +105,14 @@ export function prepareArchives(catalog, { preview = false } = {}) {
     }
     try {
       const cwd = item.source.local ? catalog.root : checkoutFor(catalog.root, item.source.repo);
-      // Local and moved skills are a folder of their pinned repository; kits are the whole tree.
-      let files = pinnedFiles(cwd, item.source.commit, item.source.local || item.type === 'skill' ? item.source.path ?? '' : '');
+      // Skills retain their exact folder; kits may explicitly select complete package roots.
+      if (item.packageFiles !== undefined && item.type !== 'kit') throw new DownloadError('packageFiles is only supported for kits');
+      let files = pinnedFiles(cwd, item.source.commit, item.source.local || item.type === 'skill' ? item.source.path ?? '' : '', item.packageFiles);
+      if (item.packageFiles !== undefined) {
+        const included = new Set(files.map((file) => file.path));
+        if (!included.has('LICENSE')) throw new DownloadError('The selected kit package must include its LICENSE');
+        if ((item.parts ?? []).some((part) => part.files.some((file) => !included.has(file.path)))) throw new DownloadError('The selected kit package omits declared parts or their resources');
+      }
       if (item.type === 'skill') {
         files = files.filter((f) => f.path !== 'about.md');
         const actual = files.map((f) => ({ path: f.path, size: f.bytes.length, sha256: sha256(f.bytes) }));

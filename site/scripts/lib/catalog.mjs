@@ -15,6 +15,7 @@ import { scanText } from './publication.mjs';
 import { contractProblem } from '../../src/lib/kit-contract.mjs';
 import { lifecycleProblems } from '../../src/lib/lifecycle.mjs';
 import { loadReleases } from './releases.mjs';
+import { packageFilesProblem } from './package-files.mjs';
 
 export const RELATIONS = ['pairsWith', 'feedsInto', 'requires', 'partOf', 'alternativeTo', 'replacedBy'];
 const BODY_ORDER = ['What it does', 'How it works', 'Try it', 'What it adds to your project', 'Good to know'];
@@ -319,6 +320,10 @@ function loadPointer(root, file, checkouts, problem) {
   }
   const id = basename(file, '.yaml');
   if (p.id !== id) problem(file, `the pointer's id "${p.id}" differs from its file name`, `Use id: ${id}.`);
+  if (Object.hasOwn(p, 'packageFiles')) {
+    const invalid = (p.type ?? 'kit') !== 'kit' ? 'packageFiles is only supported for kits' : packageFilesProblem(p.packageFiles);
+    if (invalid) problem(file, invalid, 'List the complete installable kit: license, instructions, skill resources and installer dependencies.');
+  }
   const src = p.source ?? {};
   if (!src.repo || !src.ref) {
     problem(file, 'the pointer needs source.repo and source.ref', 'Add the repository URL and a release tag or full commit.');
@@ -410,6 +415,7 @@ function loadPointer(root, file, checkouts, problem) {
     pointerFile: file,
     source: { repo: normRepo(src.repo), ref: src.ref, commit, tag: isTag ? src.ref : null, card: src.card ?? 'about.md', inline: cardFile.startsWith(root), ...(p.type === 'skill' ? { path: src.path } : {}) },
     ...(skillFiles ? { files: skillFiles } : {}),
+    packageFiles: p.packageFiles,
     ...(p.visibility ? { visibility: p.visibility } : {}),
     channels: p.channels ?? {},
     parts,
