@@ -178,7 +178,7 @@ People keep items current, and the catalog grows without breaking anything.
 | 5.2 | Moving a skill to its own repository keeps its ID, links and installs working (U15, U19) | A rehearsal on a test skill | Disposable external-Git move retains ID, URL, old-link lookup, original-pin restoration and new-pin update/restore |
 | 5.3 | Old IDs and URLs redirect, and removed items show a reason and alternatives (U19) | Build check of aliases; a test of the Gone page | Shared lifecycle validation and base-path HTML/JSON/Markdown redirect/Gone fixtures |
 | 5.4 | You can install items from a private catalog, and none of them appears in the public build (U16, U22) | A test with a private fixture source | Explicit local-source fixture passes; one catalog per scope/lock; network auth and O9 policy remain open |
-| 5.5 | What's new and its feed list each catalog release with item changes | Build check | Local immutable-release tooling and release-derived history/feed tested; no real release fabricated or published |
+| 5.5 | What's new and its feed list each item's history from Git, and each catalog release's item changes once there are any | Build check | Git item history and release entries merge newest first in the timeline, item changes and feed; no real release fabricated or published |
 
 **Depends on:** your decision on how private catalogs work (O9).
 
@@ -299,6 +299,6 @@ hosted CI run or participant result. Local checks ran on Windows with Node 26.
 | 4.1, 4.2 | Built, checked locally | Versioned schemas validate every output; `find --json` and `info` share the site's ranking (`site/test/`, `cli/test/agent-access.test.mjs`) |
 | 5.2, 5.3 | Built, checked locally | A disposable move to an external repository keeps ID, links and restores; aliases, redirects and Gone pages are build-checked |
 | 5.4 | Built, waiting on you | A local private-source fixture never reaches the public build. Needs your decision on private catalogs (O9) |
-| 5.5 | Built, waiting on you | Immutable release tooling and the release-derived feed are tested; the registry is empty. Needs your first authorized catalog release |
+| 5.5 | Built, waiting on you | What's new and the feed list Git item history; immutable release tooling and merged release entries are tested; the registry is empty. Needs your first authorized catalog release |
 | A13 | Blocked on outside evidence | Needs a record of real weekly upkeep against 30 minutes |
 | O1, O2, O13, O23, O26 | Built, waiting on you | Working defaults are in place; the names, domain, typeface and tribute line are your decisions |

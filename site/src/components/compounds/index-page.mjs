@@ -55,7 +55,7 @@ export function ResultsStatus({ total }) {
  * @param {{ items: { date: string, kind: string, item: object, line: string }[] }} props
  */
 export function ReleaseTimeline({ items }) {
-  if (!items.length) return html`<p>No catalog releases yet. <a href="${url('/catalog')}">Browse the development catalog</a>.</p>`;
+  if (!items.length) return html`<p>Nothing new yet. <a href="${url('/catalog')}">Browse the catalog</a>.</p>`;
   const months = new Map();
   for (const e of items) {
     const k = formatDate(e.date, 'month');

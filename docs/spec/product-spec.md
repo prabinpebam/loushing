@@ -367,7 +367,7 @@ place him.
 | **Stack page** | Set up a combination | U9, U10 | See [stack page](item-pages.md#stack-page) |
 | **Get started** | Learn the basics and set up the CLI | U20, U6, U13 | What a skill, kit and stack are; where agents look; first install; restoring a set; the privacy and safety model |
 | **For agents** | Machine access, for people wiring up agents | U17, U18 | Index URLs, CLI JSON commands and exit codes, the finder skill |
-| **What's new** | See changes | U11 | Catalog releases, newest first, with item changes; an Atom feed |
+| **What's new** | See changes | U11 | Each item's history from Git, plus catalog releases once there are any, newest first; an RSS feed |
 | **Gone or not found** | Never a dead end | U19 | Removed or unknown ID: the reason, alternatives, search |
 
 ## 6. Architecture
@@ -528,9 +528,10 @@ can overturn.
   succeeds. A catalog with any problem exits with the problems listed and writes
   nothing. `OUT_DIR` and `CATALOG_ROOT` let tests build elsewhere and from a fixture.
 - Pinned Git blobs are read in one batch (`git cat-file --batch`); each item's
-  "Updated" date still comes from Git. What's new and RSS use explicit immutable
-  catalog releases. An ordinary working-tree build is `development`, not a release
-  inferred from the latest Git date.
+  "Updated" date still comes from Git. What's new and RSS list that item history
+  (a kit's pin, otherwise added or updated), merged with explicit immutable catalog
+  releases once they exist. An ordinary working-tree build is `development`, not a
+  release inferred from the latest Git date.
 
 **Cards and pages.**
 
@@ -631,9 +632,10 @@ remain isolated from public builds and other source locks; O9 network-auth polic
 is still open.
 
 The release registry is empty: no historical releases were invented. Builds label
-the catalog `development`; What's new and RSS contain only registered immutable
-releases. Local preparation verifies actual Git-pinned bytes, refuses dirty sources
-and never publishes or promotes a channel. The default public metadata cache lasts
+the catalog `development`; What's new and RSS list each item's Git history and will
+add registered immutable releases beside it. Local preparation verifies actual
+Git-pinned bytes, refuses dirty sources and never publishes or promotes a channel.
+The default public metadata cache lasts
 10 minutes, can be bypassed explicitly and never persists dry-run or private data.
 See [distribution](distribution.md#lifecycle-and-release-preparation) for boundaries.
 

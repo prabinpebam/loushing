@@ -117,11 +117,18 @@ test('a marked private card is rejected before public output', (t) => {
   assert.ok(!existsSync(out));
 });
 
-test('no release means development, an empty feed and no guessed stable/next', () => {
+test('no release means development, Git item history in the feed and no guessed stable/next', () => {
   const model = buildModel(loadCatalog(root));
   assert.equal(catalogVersion(model), 'development');
-  assert.deepEqual(model.releases, []);
-  assert.ok(!feedXml(model).includes('<item>'));
+  assert.ok(model.releases.length > 0, 'What’s new lists item history before any release');
+  assert.ok(model.releases.every((entry) => !entry.release), 'no release is invented');
+  assert.ok(model.releases.some((entry) => entry.item.id === 'ai-integration' && entry.kind === 'pinned'));
+  assert.ok(model.releases.every((entry, i, all) => i === 0 || Date.parse(all[i - 1].date) >= Date.parse(entry.date)), 'newest first');
+  const feed = feedXml(model);
+  assert.equal((feed.match(/<item>/g) ?? []).length, Math.min(model.releases.length, 50));
+  assert.ok(!feed.includes('@undefined'));
+  const kit = model.items.find((item) => item.id === 'ai-integration');
+  assert.ok(itemJson(kit, model).changes.length > 0);
   assert.ok(catalogJson(model).items.every((item) => !item.channels && !item.versions));
 });
 
@@ -145,8 +152,12 @@ test('release preparation verifies pinned bytes, is immutable and never moves ch
   const registry = loadReleases(f.source);
   assert.equal(registry.channels.stable, '1.0.0');
   const model = buildModel(loadCatalog(f.source));
-  assert.equal(model.releases.length, 1);
+  const released = model.releases.filter((entry) => entry.release);
+  assert.equal(released.length, 1);
+  assert.equal(released[0].item.id, 'tidy-notes');
+  assert.ok(model.releases.some((entry) => !entry.release && entry.item.id === 'tidy-notes'), 'Git item history stays beside releases');
   assert.match(feedXml(model), /Synthetic fixture release/);
+  assert.match(feedXml(model), /tidy-notes@1\.0\.0/);
   const entry = catalogJson(model).items[0];
   assert.equal(entry.channels.stable.version, '1.0.0');
   assert.equal(entry.channels.next, undefined);
@@ -187,7 +198,7 @@ test('a removal-only release retains its reason, Gone address and feed entry', (
   cpSync(out, join(f.source, 'catalog/releases/1.0.0'), { recursive: true });
   put(f.source, 'catalog/releases.json', JSON.stringify({ version: 1, channels: { stable: '1.0.0', next: null }, releases: [{ version: result.version, sha256: result.sha256 }] }));
   const model = buildModel(loadCatalog(f.source));
-  assert.equal(model.releases[0].item.url, '/items/tidy-notes');
+  assert.equal(model.releases.find((entry) => entry.release).item.url, '/items/tidy-notes');
   assert.match(feedXml(model), /Removed: tidy-notes/);
   assert.match(feedXml(model), /Synthetic removal fixture/);
 });

@@ -143,7 +143,7 @@ export function feedXml(model) {
 <title>Loushing: what's new</title>
 <link>${xmlEsc(absolute('/whats-new'))}</link>
 <description>Skills, kits and stacks added, updated or pinned to a new version.</description>
-${entries.map((e) => `<item><title>${xmlEsc(`${({ pinned: 'Pinned', added: 'Added', updated: 'Updated', removed: 'Removed' })[e.kind]}: ${e.item.title}`)}</title><link>${xmlEsc(absolute(e.item.url))}</link><guid isPermaLink="false">${xmlEsc(`${e.item.id}@${e.release}`)}</guid><pubDate>${new Date(e.date).toUTCString()}</pubDate><description>${xmlEsc(e.line)}</description></item>`).join('\n')}
+${entries.map((e) => `<item><title>${xmlEsc(`${({ pinned: 'Pinned', added: 'Added', updated: 'Updated', removed: 'Removed' })[e.kind]}: ${e.item.title}`)}</title><link>${xmlEsc(absolute(e.item.url))}</link><guid isPermaLink="false">${xmlEsc(`${e.item.id}@${e.release ?? e.date}`)}</guid><pubDate>${new Date(e.date).toUTCString()}</pubDate><description>${xmlEsc(e.line)}</description></item>`).join('\n')}
 </channel>
 </rss>
 `;

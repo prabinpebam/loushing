@@ -85,14 +85,22 @@ export function partItem(kit, p) {
   };
 }
 
-/** Only explicit immutable catalog releases belong in release history. */
+/**
+ * What's new: each item's history from Git (a kit's pin, otherwise added or updated),
+ * merged with the entries of explicit immutable catalog releases, newest first.
+ */
 export function timeline(items, registry) {
   const byId = new Map(items.map((item) => [item.id, item]));
-  return (registry?.releases ?? []).flatMap((release) => release.changes.map((change) => ({
+  const history = items.filter((i) => i.updated).map((i) => i.type === 'kit'
+    ? { date: i.updated, kind: 'pinned', item: i, line: `Pinned ${i.version ? `to version ${i.version} ` : ''}at commit ${String(i.source?.commit ?? '').slice(0, 7)}` }
+    : { date: i.updated, kind: i.updated === i.added ? 'added' : 'updated', item: i, line: i.summary });
+  const releases = (registry?.releases ?? []).flatMap((release) => release.changes.map((change) => ({
     date: release.date, kind: change.kind, release: release.version,
     item: byId.get(change.id) ?? { id: change.id, title: change.id, ...release.index.items.find((item) => item.id === change.id), url: `/items/${change.id}` },
     line: `${release.version}: ${change.line}`,
-  }))).sort((a, b) => b.date.localeCompare(a.date));
+  })));
+  const time = (date) => Date.parse(date) || 0;
+  return [...history, ...releases].sort((a, b) => time(b.date) - time(a.date));
 }
 
 function searchDoc(i) {

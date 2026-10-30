@@ -66,8 +66,9 @@ carry credentials or query parameters. Cache failures are explicit, not an excus
 to use stale metadata. This is cache-correctness evidence, not an install-speed claim.
 
 Historical versions and `next` require explicit immutable release entries. With no
-registered releases the build says `catalogVersion: "development"` and the release
-timeline/feed is empty. Git dates and a changed `main` are not releases.
+registered releases the build says `catalogVersion: "development"`, and the What's
+new timeline and feed list each item's history from Git. Git dates and a changed
+`main` are not releases; release entries join that history once they exist.
 
 The package uses a root allowlist for `cli/` plus the existing catalog/search
 helpers it shares with the site. No skills, submodules or documentation-host

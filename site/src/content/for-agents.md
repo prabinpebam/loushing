@@ -15,7 +15,7 @@ myself; nothing here is ranked or rated.
 | `/items/<id>.json` | Read one item: its card, files with sizes and SHA-256 hashes, and the install plan for every agent and scope |
 | `/items/<id>.md` | Read one item’s page as plain Markdown |
 | [llms.txt](/llms.txt) | Start here: what the site is and where the files are |
-| [feed.xml](/feed.xml) | Follow registered catalog releases; empty before the first release |
+| [feed.xml](/feed.xml) | Follow items as they are added, updated and pinned, and catalog releases once there are any |
 | [Catalog schema](/schema/catalog-1.json) · [Item schema](/schema/item-1.json) · [Old-ID schema](/schema/lifecycle-1.json) | Validate index, item and alias/removal JSON |
 
 ## Install with consent
