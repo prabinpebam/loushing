@@ -105,6 +105,7 @@ async function execute(options, context) {
     signal: context.signal, sourceRoot: options['source-root'], progress: context.progress, env: context.env,
     dryRun: options['dry-run'], noCache: options['no-cache'], refresh: options.refresh,
     cacheRoot: resolve(context.home ?? homedir(), '.cache', 'loushing', 'metadata-v1'),
+    cacheScope: resolve(context.home ?? homedir()),
   };
   let catalog = context.catalog ?? new Catalog(location, catalogOptions);
   if (command === 'find') {

@@ -23,6 +23,7 @@ export class Catalog {
     this.metadataCache = new MetadataCache(options.cacheRoot ?? resolve(homedir(), '.cache', 'loushing', 'metadata-v1'), {
       enabled: this.url.href === DEFAULT_CATALOG && !options.dryRun && !options.noCache,
       refresh: options.refresh, now: options.now,
+      scope: options.cacheScope ?? (options.cacheRoot ? undefined : homedir()),
     });
   }
 

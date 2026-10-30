@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CACHE_TTL, MetadataCache, PUBLIC_CATALOG } from '../lib/metadata-cache.mjs';
@@ -59,4 +59,20 @@ test('cache corruption is explicit, never stale fallback; refresh repairs it', (
   new MetadataCache(dir, { refresh: true }).set(url, { items: [] });
   assert.deepEqual(cache.get(url), { items: [] });
   assert.equal(readdirSync(dir).filter((file) => file.endsWith('.pending')).length, 0);
+});
+test('a home reached through a linked parent keeps its cache; a linked folder between home and the cache is refused', (t) => {
+  const dir = fixture(t), url = new URL(PUBLIC_CATALOG);
+  const link = (target, path) => symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
+  const real = join(dir, 'real'), outside = join(dir, 'outside');
+  mkdirSync(join(real, 'home'), { recursive: true });
+  mkdirSync(outside);
+  link(real, join(dir, 'via'));
+  const home = join(dir, 'via', 'home');
+  const cache = () => new MetadataCache(join(home, '.cache', 'loushing', 'metadata-v1'), { scope: home });
+  cache().set(url, { items: [] });
+  assert.deepEqual(cache().get(url), { items: [] });
+  rmSync(join(real, 'home', '.cache'), { recursive: true });
+  link(outside, join(real, 'home', '.cache'));
+  assert.throws(() => cache().set(url, { items: [] }), /Could not save/);
+  assert.deepEqual(readdirSync(outside), []);
 });

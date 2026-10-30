@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { relative, sep } from 'node:path';
 import { CliError, hash, safePath, stat } from './safety.mjs';
 
 export const PUBLIC_CATALOG = 'https://prabinpebam.github.io/loushing/catalog.json';
@@ -7,18 +8,24 @@ export const CACHE_TTL = 10 * 60 * 1000;
 
 /** Only unauthenticated metadata from the one public catalog may persist. */
 export class MetadataCache {
-  constructor(root, { now = Date.now, enabled = true, refresh = false } = {}) {
+  constructor(root, { now = Date.now, enabled = true, refresh = false, scope = root } = {}) {
     this.root = root;
+    this.scope = scope;
     this.now = now;
     this.enabled = enabled;
     this.refresh = refresh;
+  }
+  /** Checks from the folder the cache lives under (home), so folders it creates there can't be links. */
+  within(path = '') {
+    const inner = [...relative(this.scope, this.root).split(sep).filter(Boolean), ...(path ? [path] : [])].join('/');
+    return inner ? safePath(this.scope, inner) : safePath(this.scope);
   }
   eligible(url) {
     const base = new URL('.', PUBLIC_CATALOG);
     return this.enabled && !!this.root && url.href.startsWith(base.href)
       && !url.search && !url.hash && !url.username && !url.password;
   }
-  path(url) { return safePath(this.root, `${hash(url.href)}.json`); }
+  path(url) { return this.within(`${hash(url.href)}.json`); }
   get(url) {
     if (!this.eligible(url) || this.refresh) return null;
     try {
@@ -37,14 +44,14 @@ export class MetadataCache {
     if (!this.eligible(url) || data?.visibility === 'private') return;
     let staging;
     try {
-      safePath(this.root);
+      this.within();
       mkdirSync(this.root, { recursive: true, mode: 0o700 });
       const target = this.path(url);
       const existing = stat(target);
       if (existing && (!existing.isFile() || existing.nlink > 1)) throw new Error();
-      staging = safePath(this.root, `${hash(url.href)}-${randomUUID()}.pending`);
+      staging = this.within(`${hash(url.href)}-${randomUUID()}.pending`);
       writeFileSync(staging, JSON.stringify({ cacheVersion: 1, url: url.href, savedAt: this.now(), data }), { flag: 'wx', mode: 0o600 });
-      safePath(this.root);
+      this.within();
       renameSync(staging, this.path(url));
       staging = undefined;
     } catch { throw new CliError('Could not save the public metadata cache. Retry with --no-cache.'); }

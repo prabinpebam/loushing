@@ -262,6 +262,31 @@ test('rejects destination junctions and malicious lock ownership before removing
   assert.deepEqual(tree(f.project), before);
 });
 
+test('a project, home and catalog reached through a linked parent folder work; a linked chosen folder is still rejected', async (t) => {
+  const f = fixture(t);
+  const link = (target, path) => symlinkSync(target, path, process.platform === 'win32' ? 'junction' : 'dir');
+  const real = join(f.dir, 'real');
+  for (const folder of ['project', 'home']) mkdirSync(join(real, folder), { recursive: true });
+  cpSync(f.metadata, join(real, 'metadata'), { recursive: true });
+  const via = join(f.dir, 'via');
+  link(real, via);
+  const invoke = (argv, cwd, home = join(via, 'home')) => run([...argv, '--catalog', join(via, 'metadata', 'catalog.json'), '--source-root', repo], { cwd, home });
+  for (const [scope, root] of [['project', 'project'], ['personal', 'home']]) {
+    const before = tree(join(real, root));
+    const added = await invoke(['add', 'ground', '--agent', 'copilot', '--scope', scope, '--yes'], join(via, 'project'));
+    assert.equal(added.status, 'ok', added.message);
+    assert.deepEqual(readFileSync(join(real, root, TARGETS.copilot[scope], 'ground', 'SKILL.md')), original);
+    assert.equal((await invoke(['remove', 'ground', '--scope', scope, '--yes'], join(via, 'project'))).status, 'ok');
+    assert.deepEqual(tree(join(real, root)), before);
+  }
+  link(join(real, 'project'), join(f.dir, 'linked-project'));
+  link(join(real, 'home'), join(f.dir, 'linked-home'));
+  assert.equal((await invoke(['add', 'ground', '--agent', 'copilot', '--yes'], join(f.dir, 'linked-project'))).status, 'error');
+  assert.equal((await invoke(['add', 'ground', '--agent', 'copilot', '--scope', 'personal', '--yes'], join(via, 'project'), join(f.dir, 'linked-home'))).status, 'error');
+  assert.deepEqual(tree(join(real, 'project')), {});
+  assert.deepEqual(tree(join(real, 'home')), {});
+});
+
 test('existing install mutex fails safely without touching another run', async (t) => {
   const f = fixture(t);
   mkdirSync(join(f.project, '.loushing-transaction'));

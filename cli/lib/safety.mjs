@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync } from 'node:fs';
-import { isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
+import { lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export class CliError extends Error {
   constructor(message, code = 1, details = {}) {
@@ -37,14 +37,38 @@ export function stat(path) {
   }
 }
 
-/** Check every ancestor, not just the leaf: junctions are links on Windows too. */
+/** The deepest existing folder of `path`, resolved through links, plus the parts that don't exist yet. */
+function realFolder(path) {
+  const missing = [];
+  let current = path;
+  for (;;) {
+    const entry = stat(current);
+    if (entry) {
+      let real;
+      try { real = realpathSync(current); } catch { throw new CliError(`A symbolic link blocks ${current}. Choose a real folder.`); }
+      if (!statSync(real).isDirectory()) throw new CliError(`A file blocks ${current}. Choose a folder.`);
+      return join(real, ...missing.reverse());
+    }
+    const up = dirname(current);
+    if (up === current) return path;
+    missing.push(basename(current));
+    current = up;
+  }
+}
+
+/**
+ * Links above the chosen root are system or user layout (macOS /var and /tmp, a linked
+ * home), so its parent is resolved first. The root itself and every ancestor below it
+ * must not be a link: junctions are links on Windows too.
+ */
 export function safePath(root, path = '') {
   root = resolve(root);
   const target = path ? resolve(root, ...portablePath(path).split('/')) : root;
   const rel = relative(root, target);
   if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new CliError('The destination escapes its scope.');
-  let current = parse(target).root;
-  const parts = target.slice(current.length).split(sep).filter(Boolean);
+  const parent = dirname(root);
+  let current = parent === root ? root : realFolder(parent);
+  const parts = [...(parent === root ? [] : [basename(root)]), ...rel.split(sep).filter(Boolean)];
   for (let i = 0; i < parts.length; i++) {
     current = join(current, parts[i]);
     const entry = stat(current);
